@@ -79,14 +79,20 @@ namespace GBC_Tool
             }
 
         }
-
-        private void Init()
+        private void RefreshSerial()
         {
-            this.DataContext = this;
+            
+            if (serial.connection.IsOpen)
+            {
+                serial.connection.Close();
+            }
+            Connected = false;
+
             serial.ComPorts = SerialPort.GetPortNames();
             if (serial.ComPorts.Length > 0)
             {
                 Array.Sort(serial.ComPorts);
+                Array.Sort(serial.BaudRates);
 
                 cbComPorts.ItemsSource = serial.ComPorts;
                 cbComPorts.SelectedIndex = 0;
@@ -97,7 +103,11 @@ namespace GBC_Tool
             {
                 Connected = true;
             }
-
+        }
+        private void Init()
+        {
+            this.DataContext = this;
+            RefreshSerial();
             string filename = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) + @"\output.txt";
             fs = System.IO.File.Create(filename);
 
@@ -329,6 +339,11 @@ namespace GBC_Tool
         private void btnSendRam_Click(object sender, RoutedEventArgs e)
         {
             SendRam();
+        }
+
+        private void DetectSerial_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshSerial();
         }
 
     }

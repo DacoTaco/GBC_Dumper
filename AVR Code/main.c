@@ -169,10 +169,10 @@ void ProcessCommand(void)
 		switch(ret)
 		{
 			case ERR_FAULT_CART:
-				cprintf("Error Reading game : ERR_FAULT_CART\0\r\n");
+				cprintf("Error Reading game : ERR_FAULT_CART\r\n");
 				break;
 			default :
-				cprintf("Unknown Error Reading Game, error : %d\0\r\n",ret);
+				cprintf("Unknown Error Reading Game, error : %d\r\n",ret);
 				break;
 		}
 		

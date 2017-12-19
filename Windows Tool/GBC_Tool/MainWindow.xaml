@@ -4,7 +4,9 @@
         Title="DacoTaco's GB/C Communicator" Height="450" Width="525">
     <DockPanel>
         <Menu DockPanel.Dock="Top" Height="25">
-            <MenuItem Header="_File" Height="25"></MenuItem>
+            <MenuItem Header="_File" Height="25">
+                <MenuItem Header="_Detect Serial Ports" Height="25" Click="DetectSerial_Click"></MenuItem>
+            </MenuItem>
         </Menu>
         <Grid DockPanel.Dock="Top" Margin="0,5,0,100">
             <Grid.RowDefinitions>
