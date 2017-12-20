@@ -29,13 +29,21 @@ void API_Get_Memory(ROM_TYPE type,char* Name,uint16_t size)
 	API_Send_Name(Name);
 	API_Send_Size(size);
 	
-	if(type == TYPE_RAM)
+	if(API_WaitForOK())
 	{
-		API_GetRam();
+		if(type == TYPE_RAM)
+		{
+			API_GetRam();
+		}
+		else
+		{
+			API_GetRom();
+		}
 	}
 	else
 	{
-		API_GetRom();
+		cprintf_char(API_ABORT);
+		cprintf_char(API_ABORT_PACKET);
 	}
 }
 int8_t API_WaitForOK(void)

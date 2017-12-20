@@ -26,6 +26,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define API_TASK_START 0x20
 #define API_TASK_FINISHED 0x21
 
+#define API_MODE_READ_ROM 0xD0;
+#define API_MODE_READ_RAM 0xD1;
+#define API_MODE_WRITE_RAM 0xD2;
+
 #define API_ABORT 0xF0
 #define API_ABORT_ERROR 0xF1
 #define API_ABORT_CMD 0xF2

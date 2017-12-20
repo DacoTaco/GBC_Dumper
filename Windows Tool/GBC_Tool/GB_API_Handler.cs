@@ -11,26 +11,32 @@ namespace Gameboy
 {
     public static class GB_API_Protocol
     {
-        public static byte API_GAMENAME_START = 0x86;
-        public static byte API_GAMENAME_END = 0x87;
-        public static byte API_FILESIZE_START = 0x96;
-        public static byte API_FILESIZE_END = 0x97;
+        //header functions
+        public const byte API_GAMENAME_START = 0x86;
+        public const byte API_GAMENAME_END = 0x87;
+        public const byte API_FILESIZE_START = 0x96;
+        public const byte API_FILESIZE_END = 0x97;
 
-        public static byte API_OK = 0x10;
-        public static byte API_NOK = 0x11;
-        public static byte API_VERIFY = 0x12;
-        public static byte API_RESEND_CMD = 0x13;
+        //command functions
+        public const byte API_OK = 0x10;
+        public const byte API_NOK = 0x11;
+        public const byte API_VERIFY = 0x12;
+        public const byte API_RESEND_CMD = 0x13;
 
-        public static byte API_TASK_START = 0x20;
-        public static byte API_TASK_FINISHED = 0x21;
+        public const byte API_TASK_START = 0x20;
+        public const byte API_TASK_FINISHED = 0x21;
 
-        public static byte API_ABORT = 0xF0;
-        public static byte API_ABORT_ERROR = 0xF1;
-        public static byte API_ABORT_CMD = 0xF2;
-        public static byte API_ABORT_PACKET = 0xF3;
+        public const byte API_MODE_READ_ROM = 0xD0;
+        public const byte API_MODE_READ_RAM = 0xD1;
+        public const byte API_MODE_WRITE_RAM = 0xD2;
 
-        public static byte TYPE_ROM = 0;
-        public static byte TYPE_RAM = 1;
+        public const byte API_ABORT = 0xF0;
+        public const byte API_ABORT_ERROR = 0xF1;
+        public const byte API_ABORT_CMD = 0xF2;
+        public const byte API_ABORT_PACKET = 0xF3;
+
+        public const byte TYPE_ROM = 0;
+        public const byte TYPE_RAM = 1;
     }
     public class GB_API_Handler
     {
@@ -46,29 +52,10 @@ namespace Gameboy
         Serial serial = Serial.Instance;
         private byte PrevByte = 0x00;
         private byte[] PrevPacket = {0x00,0x00};
-
+        private byte APIMode = 0x00;
         private string RamFilepath = String.Empty;
+        private bool IsWriting = false;      
 
-        private bool isWriting = false;
-        public bool IsWriting
-        {
-            get { return isWriting; }
-            private set { isWriting = value; }
-        }
-
-        private bool isReading = false;
-        public bool IsReading
-        {
-            get 
-            {
-                return isReading; 
-            }
-            private set
-            {
-                isReading = value;
-            }
-        }
-        
 
         public GB_API_Handler()
         {
@@ -81,11 +68,11 @@ namespace Gameboy
                 Filefs.Close();
                 Filefs = null;
             }
+            APIMode = 0x00;
             Info.CartName = string.Empty;
             Info.FileSize = 0;
             Info.current_addr = 0;
             IsWriting = false;
-            IsReading = false;
             RamFilepath = string.Empty;
             return;
         }
@@ -100,7 +87,7 @@ namespace Gameboy
                 return;
 
             PrevPacket = data;
-            serial.connection.Write(data, 0, data.Length);
+            serial.Write(data, 0, data.Length);
         }
         private void OpenSaveFile()
         {
@@ -142,7 +129,7 @@ namespace Gameboy
             if (IsRom && IsWriting)
                 return -1;
 
-            int bufSize = buf.Length;
+            int bufSize = buf.Length > 0x25?0x25:buf.Length;
             int offset = 0;
             for (int i = 0; i < bufSize; i++)
             {
@@ -210,6 +197,55 @@ namespace Gameboy
             else
                 RamFilepath = filepath;
         }
+        public byte GetAPIMode()
+        {
+            return APIMode;
+        }
+        public void SetAPIMode(byte mode)
+        {
+            switch (mode)
+            {
+                case GB_API_Protocol.API_MODE_READ_ROM:
+                    APIMode = mode;
+                    serial.Write("API_READ_ROM\n");
+                    break;
+                case GB_API_Protocol.API_MODE_READ_RAM:
+                    APIMode = mode;
+                    serial.Write("API_READ_RAM\n");
+                    break;
+                case GB_API_Protocol.API_MODE_WRITE_RAM:
+                    APIMode = mode;
+                    serial.Write("API_WRITE_RAM\n");
+                    break;
+                default:
+                    APIMode = 0x00;
+                    break;
+            }
+        }
+        public int HandleData(byte[] buf)
+        {
+            if (buf == null || buf.Length <= 0)
+                return 0;
+
+            int ret = 0;
+
+            switch (APIMode)
+            {
+                case GB_API_Protocol.API_MODE_WRITE_RAM:
+                    ret = HandleWriteRam(buf);
+                    break;
+                case GB_API_Protocol.API_MODE_READ_ROM:
+                    ret = HandleReadRomRam(buf,true);
+                    break;
+                case GB_API_Protocol.API_MODE_READ_RAM:
+                    ret = HandleReadRomRam(buf, false);
+                    break;
+                default:
+                    ret = -15;
+                    break;
+            }
+            return ret;
+        }
         public int HandleWriteRam(byte[] buf)
         {
             if (buf == null || buf.Length <= 0)
@@ -239,7 +275,7 @@ namespace Gameboy
                     {
                         Filefs.Position = 0;
                         data = new byte[] { GB_API_Protocol.API_OK };
-                        ret = 1;
+                        ret = GB_API_Protocol.API_OK;
                         IsWriting = true;
                     }
                     else
@@ -269,10 +305,10 @@ namespace Gameboy
                     //somehow we only got 1 byte. wait to see if we get more data for a while.
                     //if we dont, let the code handle it. it could be legit
                     System.Threading.Thread.Sleep(5);
-                    if (serial.connection.BytesToRead == 1)
+                    if (serial.BytesToRead == 1)
                     {
                         //we have data!
-                        byte new_data = (byte)(serial.connection.ReadByte() & 0xFF);
+                        byte new_data = (byte)(serial.ReadByte() & 0xFF);
                         buf = new byte[] { buf[0], new_data };
                     }
 
@@ -305,19 +341,19 @@ namespace Gameboy
                         if (data == null)
                         {
                             data = new byte[] { GB_API_Protocol.API_OK, byte_to_send };
-                            ret = 3;
+                            ret = GB_API_Protocol.API_OK;
                         }
                     }
                     else
                     {
                         data = new byte[] { GB_API_Protocol.API_NOK, PrevByte };
-                        ret = 4;
+                        ret = GB_API_Protocol.API_NOK;
                     }
                 }
                 else if (bufSize == 1 && buf[0] == GB_API_Protocol.API_RESEND_CMD)
                 {
                     data = new byte[] { PrevPacket[0], PrevPacket[1] };
-                    ret = 6;
+                    ret = GB_API_Protocol.API_RESEND_CMD;
                 }
                 else if (bufSize == 1 && buf[0] == GB_API_Protocol.API_TASK_START && Info.current_addr == 0)
                 {
@@ -327,13 +363,13 @@ namespace Gameboy
                     PrevByte = byte_to_send;
                     Info.current_addr++;
                     data = new byte[] { GB_API_Protocol.API_OK, byte_to_send };
-                    ret = 2;
+                    ret = GB_API_Protocol.API_TASK_START;
                 }
                 else if ((bufSize == 1 && buf[0] == GB_API_Protocol.API_TASK_FINISHED) || (bufSize == 3 && buf[2] == GB_API_Protocol.API_TASK_FINISHED))
                 {
                     //oh, we are done!
                     ResetVariables();
-                    ret = 5;
+                    ret = GB_API_Protocol.API_TASK_FINISHED;
                 }
                 else
                 {
@@ -348,14 +384,6 @@ namespace Gameboy
             }
             return ret;
         }
-        public int HandleRom(byte[] buf)
-        {
-            return HandleReadRomRam(buf,true);
-        }
-        public int HandleRam(byte[] buf)
-        {
-            return HandleReadRomRam(buf,false);
-        }
         private int HandleReadRomRam(byte[] buf, bool isRom)
         {
             int offset = 0;
@@ -366,33 +394,46 @@ namespace Gameboy
                 offset = GetHeaderInfo(buf, isRom);
                 if (offset < 0)
                     return offset;
+                else if(offset > 0)
+                {
+                    //send ok to say we are ready!
+                    byte[] data = new byte[] { GB_API_Protocol.API_OK };
+                    serial.Write(data,0,data.Length);
+                    //since last byte is the OK from the controller, we need to see if there is more data beyond it
+                    if (offset + 1 >= bufSize)
+                        return 0;
+                    else
+                        offset++;
+                }
             }
             if (Info.FileSize > 0 && String.IsNullOrWhiteSpace(Info.CartName) == false)
             {
                 if (Filefs == null)
                 {
                     OpenFile(isRom);
-                    IsReading = true;
                     if (Filefs == null)
                     {
                         ret = -10;
                     }
                 }
-                else
+
+                if(Filefs != null)
                 {
                     //check if we retrieved all data
                     if ((Info.current_addr + (bufSize - offset)) < Info.FileSize)
                     {
                         Filefs.Write(buf, offset, bufSize - offset);
                         Info.current_addr += bufSize - offset;
-                        ret = Info.current_addr;
+                        //ret = Info.current_addr;
+                        ret = GB_API_Protocol.API_OK;
                     }
                     else
                     {
                         //end of file
                         Filefs.Write(buf, offset, Info.FileSize - Info.current_addr);
                         Info.current_addr = Info.FileSize;
-                        ret = Info.current_addr;
+                        //ret = Info.current_addr;
+                        ret = GB_API_Protocol.API_TASK_FINISHED;
                         ResetVariables();
                     }
                 }

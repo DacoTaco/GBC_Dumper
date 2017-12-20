@@ -27,6 +27,7 @@ namespace GBC_Tool
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        //Property changed event raiser
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string propertyName)
         {
@@ -37,13 +38,12 @@ namespace GBC_Tool
         }
 
         
-        FileStream fs = null;
-        bool ReadRam = false;
-        bool WriteRam = false;
-        bool ReadRom = false;
-        GB_API_Handler Handler = new GB_API_Handler();
+        //variables used by the interface
+        FileStream Debugfs = null;
+        GB_API_Handler APIHandler = new GB_API_Handler();
         Serial serial = Serial.Instance;
 
+        //variable to control the enabled property of the controls in the UI
         public bool EnableControls 
         {
             get
@@ -52,6 +52,7 @@ namespace GBC_Tool
             }
         }
 
+        //see EnabledControls
         private bool connected;
         public bool Connected
         {
@@ -65,6 +66,7 @@ namespace GBC_Tool
         }
         
 
+        //variable containing all text of the textfield
         private string textField;
         public string TextField
         {
@@ -79,12 +81,14 @@ namespace GBC_Tool
             }
 
         }
+
+        //redetect all serial ports
         private void RefreshSerial()
         {
             
-            if (serial.connection.IsOpen)
+            if (serial.IsOpen)
             {
-                serial.connection.Close();
+                serial.Close();
             }
             Connected = false;
 
@@ -104,76 +108,82 @@ namespace GBC_Tool
                 Connected = true;
             }
         }
+
+        //Init everything of the UI
         private void Init()
         {
             this.DataContext = this;
             RefreshSerial();
             string filename = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) + @"\output.txt";
-            fs = System.IO.File.Create(filename);
+            Debugfs = System.IO.File.Create(filename);
 
             return;
         }
         private void ConnectPort()
         {
-            serial.connection.PortName = cbComPorts.SelectedItem.ToString();
-            serial.connection.BaudRate = Convert.ToInt32(cbBaudRate.SelectedItem);
-            serial.connection.Handshake = System.IO.Ports.Handshake.None;
-            serial.connection.Parity = Parity.None;
-            serial.connection.DataBits = 8;
-            serial.connection.StopBits = StopBits.One;
+            //connect to serial port! 
+            //set all variables and lets go!
+            serial.PortName = cbComPorts.SelectedItem.ToString();
+            serial.BaudRate = Convert.ToInt32(cbBaudRate.SelectedItem);
+            serial.Handshake = System.IO.Ports.Handshake.None;
+            serial.Parity = Parity.None;
+            serial.DataBits = 8;
+            serial.StopBits = StopBits.One;
             //connection.DtrEnable = false;
             //connection.RtsEnable = false;
-            serial.connection.ReadTimeout = 200;
-            serial.connection.WriteTimeout = 50;
-            serial.connection.ReceivedBytesThreshold = 1;
+            serial.ReadTimeout = 200;
+            serial.WriteTimeout = 50;
+            serial.ReceivedBytesThreshold = 1;
             Connected = true;
 
-            serial.connection.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(HandleReceive);
-            serial.connection.Open();
+            serial.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(HandleReceive);
+            serial.Open();
 
         }
+        //disconnect port
         private void DisconnectPort()
         {
             ResetVariables();
-            serial.connection.Close();
+            serial.Close();
             Connected = false;
         }
+
+        //add a string to the textfield and write it to file
         private void AddTextToField(string text)
         {
             if (String.IsNullOrWhiteSpace(text))
                 return;
 
             byte[] data = Encoding.ASCII.GetBytes(text);
-            fs.Write(data, 0, data.Length);
+            Debugfs.Write(data, 0, data.Length);
             TextField += text;
         }
+
+        //event handler for the receiving of data!
         private void HandleReceive(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
         {
             // Collecting the characters received to our 'buffer' (string).
-            int bufSize = serial.connection.BytesToRead;
+            int bufSize = serial.BytesToRead;
+
             byte[] buf = new byte[bufSize];
-            serial.connection.Read(buf, 0, bufSize);
-
-            //Process the display
-            //Process the reading of the rom/ram
+            serial.Read(buf, 0, bufSize);
             int ret = 0;
-            if (ReadRom || ReadRam)
-            {
-                if(ReadRom)
-                    ret = Handler.HandleRom(buf);
-                else
-                    ret = Handler.HandleRam(buf);
 
+            //Process the reading of the rom/ram
+            byte API_Mode = APIHandler.GetAPIMode();
+            if (API_Mode > 0)
+            {
+                ret = APIHandler.HandleData(buf);
                 if (ret < 0)
                 {
                     byte[] data = new byte[bufSize - 2];
                     Array.Copy(buf, 2, data, 0, buf.Length - 2);
-                    AddTextToField(String.Format("{1}{0}An Error was Given by the Controller!{1}", System.Text.Encoding.Default.GetString(data), Environment.NewLine));
+                    AddTextToField(buf + (Environment.NewLine + "An Error was Given by the Controller!" + Environment.NewLine));
                     ResetVariables();
                 }
-                else if (ret > 0)
+                else if( ret > 0)
                 {
-                    if (Handler.IsReading == false && (ReadRom == true || ReadRam == true))
+                    if (ret == GB_API_Protocol.API_TASK_FINISHED)
                     {
                         //we are done reading!
                         AddTextToField((Environment.NewLine + "Done!" + Environment.NewLine));
@@ -181,107 +191,101 @@ namespace GBC_Tool
                     }
                     else
                     {
-                        if (TextField.Contains("Downloading"))
+                        //we are reading/downloading data
+                        if(API_Mode == GB_API_Protocol.API_MODE_READ_RAM || API_Mode == GB_API_Protocol.API_MODE_READ_ROM)
                         {
-                            //replace the string in TextField!
-                            //aka, update the read bytes
-                            string display;
-                            int place = TextField.LastIndexOf("Downloading...");
-                            if (place > 0)
+                            if (TextField.Contains("Downloading"))
                             {
-                                place += String.Format("Downloading...{0}", Environment.NewLine).Length;
-                                display = TextField.Remove(place, 24);
-                                display += String.Format("0x{0:X8}/0x{1:X8}...", Handler.Info.current_addr, Handler.Info.FileSize);
-                                TextField = display;
-                            }
+                                //replace the string in TextField!
+                                //aka, update the read bytes
+                                string display;
+                                int place = TextField.LastIndexOf("Downloading...");
+                                if (place > 0)
+                                {
+                                    place += String.Format("Downloading...{0}", Environment.NewLine).Length;
+                                    display = TextField.Remove(place, 24);
+                                    display += String.Format("0x{0:X8}/0x{1:X8}...", APIHandler.Info.current_addr, APIHandler.Info.FileSize);
+                                    TextField = display;
+                                }
 
-                        }
-                        else
-                        {
-                            AddTextToField(String.Format("Downloading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, Handler.Info.current_addr, Handler.Info.FileSize));
-                        }
-                    }
-                }
-            }           
-            else if(WriteRam)
-            {
-                ret = Handler.HandleWriteRam(buf);
-                if (ret < 0)
-                {
-                    AddTextToField(buf + (Environment.NewLine + "An Error was Given by the Controller!" + Environment.NewLine));
-                    ResetVariables();
-                }
-                else 
-                {
-                    if (ret == 5 )//&& Handler.IsWriting == false)
-                    {
-                        //error or we are done!
-                        ResetVariables();
-                        AddTextToField((Environment.NewLine + "Done!" + Environment.NewLine));
-                    }
-                    else
-                    {
-                        //still ongoing!
-                        if (TextField.Contains("Uploading"))
-                        {
-                            //replace the string in TextField!
-                            //aka, update the read bytes
-                            string display;
-                            int place = TextField.LastIndexOf("Uploading...");
-                            if (place > 0)
+                            }
+                            else
                             {
-                                place += String.Format("Uploading...{0}", Environment.NewLine).Length;
-                                display = TextField.Remove(place, 24);
-                                display += String.Format("0x{0:X8}/0x{1:X8}...", Handler.Info.current_addr, Handler.Info.FileSize);
-                                TextField = display;
+                                AddTextToField(String.Format("Downloading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
                             }
-
                         }
-                        else
+                        //we are writing/uploading data!
+                        else if(API_Mode == GB_API_Protocol.API_MODE_WRITE_RAM)
                         {
-                            AddTextToField(String.Format("Uploading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, Handler.Info.current_addr, Handler.Info.FileSize));
+                            //still ongoing!
+                            //update the text!
+                            if (TextField.Contains("Uploading"))
+                            {
+                                //replace the string in TextField!
+                                //aka, update the read bytes
+                                string display;
+                                int place = TextField.LastIndexOf("Uploading...");
+                                if (place > 0)
+                                {
+                                    place += String.Format("Uploading...{0}", Environment.NewLine).Length;
+                                    display = TextField.Remove(place, 24);
+                                    display += String.Format("0x{0:X8}/0x{1:X8}...", APIHandler.Info.current_addr, APIHandler.Info.FileSize);
+                                    TextField = display;
+                                }
+
+                            }
+                            else
+                            {
+                                //didn't find the text for some odd reason. so lets add it!
+                                AddTextToField(String.Format("Uploading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
+                            }
+                        }
+                        else //unknown WTF we are doing, so lets just output data
+                        {
+                            string data = Encoding.ASCII.GetString(buf, 0, bufSize);
+                            AddTextToField(data);
                         }
                     }
                 }
             }
+            //default : display data
             else
             {
                 string data = Encoding.ASCII.GetString(buf, 0, bufSize);
                 AddTextToField(data);
             }
         }
+
+        //reset all variables and handlers
         private void ResetVariables()
         {
-            Handler.ResetVariables();
-            ReadRom = false;
-            ReadRam = false;
-            WriteRam = false;
+            APIHandler.ResetVariables();
             return;
         }
+
+        //function called by the buttons
         private void GetRom()
         {
-            if (serial.connection.IsOpen == true && ReadRom == false && WriteRam == false && ReadRam == false)
+            if (serial.IsOpen == true && APIHandler.GetAPIMode() == 0)
             {
-                serial.connection.Write("API_READ_ROM\n");
-                ReadRom = true;
-                OpenFileDialog dialog = new OpenFileDialog();
-                
-                AddTextToField(String.Format("Downloading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, Handler.Info.current_addr, Handler.Info.FileSize));
+                APIHandler.SetAPIMode(GB_API_Protocol.API_MODE_READ_ROM);             
+                AddTextToField(String.Format("Downloading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
             }
 
         }
+        //function called by the buttons
         private void GetRam()
         {
-            if (serial.connection.IsOpen == true && ReadRom == false && WriteRam == false && ReadRam == false)
+            if (serial.IsOpen == true && APIHandler.GetAPIMode() == 0)
             {
-                serial.connection.Write("API_READ_RAM\n");
-                ReadRam = true;
-                AddTextToField(String.Format("Downloading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, Handler.Info.current_addr, Handler.Info.FileSize));
+                APIHandler.SetAPIMode(GB_API_Protocol.API_MODE_READ_RAM);
+                AddTextToField(String.Format("Downloading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
             }
         }
+        //function called by the buttons
         private void SendRam()
         {
-            if (serial.connection.IsOpen == true && ReadRom == false && WriteRam == false && ReadRam == false)
+            if (serial.IsOpen == true && APIHandler.GetAPIMode() == 0)
             {
                 OpenFileDialog dialog = new OpenFileDialog();
                 dialog.Filter = "gameboy save (*.sav/)|*.sav|All files (*.*)|*.*";
@@ -291,10 +295,9 @@ namespace GBC_Tool
 
                 if (dialog.ShowDialog() == true)
                 {
-                    Handler.SetRamFilename(dialog.FileName);//Debug.WriteLine("we got a file! {0}{1}", dialog.FileName, Environment.NewLine);
-                    serial.connection.Write("API_WRITE_RAM\n");
-                    WriteRam = true;
-                    AddTextToField(String.Format("Uploading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, Handler.Info.current_addr, Handler.Info.FileSize));
+                    APIHandler.SetRamFilename(dialog.FileName);//Debug.WriteLine("we got a file! {0}{1}", dialog.FileName, Environment.NewLine);
+                    APIHandler.SetAPIMode(GB_API_Protocol.API_MODE_WRITE_RAM);
+                    AddTextToField(String.Format("Uploading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
                 }
                 else
                 {
@@ -302,12 +305,15 @@ namespace GBC_Tool
                 }
             }
         }
+
+        //class init
         public MainWindow()
         {
             InitializeComponent();
             Init();
         }
 
+        //event handler for connecting
         private void Connect_Click(object sender, RoutedEventArgs e)
         {
             if (btConnect.IsChecked == true)

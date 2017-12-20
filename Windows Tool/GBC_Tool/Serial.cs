@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 
 namespace SerialCommunication
 {
-    public sealed class Serial
+    //we inherit from SerialPort so we can use this class to connect and stuff
+    public sealed class Serial: SerialPort
     {
         private static readonly Serial instance = new Serial();
         public static Serial Instance { get { return instance; } }
         private Serial () {}
 
-        public SerialPort connection = new SerialPort();
         private string[] comPorts;
         public string[] ComPorts 
         {
