@@ -71,6 +71,14 @@ int8_t API_WaitForOK(void)
 	sei();
 	return ret;
 }
+int8_t API_GetGameInfo(void)
+{
+	int8_t ret = 0;
+	SetControlPin(RST,HIGH);
+	ret = GetGameInfo();
+	SetControlPin(RST,LOW);
+	return ret;
+}
 int8_t API_WriteRam(void)
 {
 	SetControlPin(WD,HIGH);
@@ -201,17 +209,24 @@ int8_t API_WriteRam(void)
 	CloseRam();
 end_function:
 	//re-enable interrupts!
+	SetControlPin(RST,LOW);
 	sei();
 	return ret;
 }
 int8_t API_GetRom(void)
 {
+	SetControlPin(RST,HIGH);
+	
 	DumpROM();
+	
+	SetControlPin(RST,LOW);
 	return 1;
 }
 int8_t API_GetRam(void)
 {
+	SetControlPin(RST,HIGH);
 	DumpRAM();
+	SetControlPin(RST,LOW);
 	return 1;
 }
 void API_Send_Abort(uint8_t type)

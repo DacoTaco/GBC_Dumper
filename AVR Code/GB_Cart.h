@@ -104,6 +104,7 @@ Connections we want,need and assigned to :
 #define MBC5 0x50
 
 #define CTRL_PORT PORTD
+#define CTRL_PIN PIND
 #define RD PD2
 //0b00000100;
 #define WD PD3
@@ -151,6 +152,7 @@ int8_t WriteRAM(void);
 
 //other , usable functions by other code. these are used by the GB/C Cart code !
 void SetControlPin(uint8_t Pin,uint8_t state);
+int8_t CheckControlPin(uint8_t Pin);
 uint8_t GetByte(uint16_t address);
 uint8_t GetRAMByte(uint16_t address,uint8_t Bank_Type);
 uint8_t WriteRAMByte(uint16_t addr,uint8_t byte,uint8_t Bank_Type);

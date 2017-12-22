@@ -22,6 +22,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define API_NOK 0x11
 #define API_VERIFY 0x12
 #define API_RESEND_CMD 0x13
+#define API_HANDSHAKE_REQUEST 0x14
+#define API_HANDSHAKE_ACCEPT 0x15
+#define API_HANDSHAKE_DENY 0x16
 
 #define API_TASK_START 0x20
 #define API_TASK_FINISHED 0x21
@@ -29,6 +32,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define API_MODE_READ_ROM 0xD0;
 #define API_MODE_READ_RAM 0xD1;
 #define API_MODE_WRITE_RAM 0xD2;
+
+
 
 #define API_ABORT 0xF0
 #define API_ABORT_ERROR 0xF1
@@ -42,6 +47,7 @@ typedef uint8_t ROM_TYPE;
 //main API functions
 void API_Get_Memory(ROM_TYPE type,char* Name,uint16_t size);
 int8_t API_WaitForOK(void);
+int8_t API_GetGameInfo(void);
 int8_t API_WriteRam(void);
 
 

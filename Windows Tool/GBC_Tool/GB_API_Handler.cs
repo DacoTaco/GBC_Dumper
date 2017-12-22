@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 
 namespace Gameboy
 {
+    /// <summary>
+    /// All API related bytes and values
+    /// </summary>
     public static class GB_API_Protocol
     {
         //header functions
@@ -22,6 +25,9 @@ namespace Gameboy
         public const byte API_NOK = 0x11;
         public const byte API_VERIFY = 0x12;
         public const byte API_RESEND_CMD = 0x13;
+        public const byte API_HANDSHAKE_REQUEST = 0x14;
+        public const byte API_HANDSHAKE_ACCEPT = 0x15;
+        public const byte API_HANDSHAKE_DENY = 0x16;
 
         public const byte API_TASK_START = 0x20;
         public const byte API_TASK_FINISHED = 0x21;
@@ -38,15 +44,20 @@ namespace Gameboy
         public const byte TYPE_ROM = 0;
         public const byte TYPE_RAM = 1;
     }
+
     public class GB_API_Handler
     {
+        /// <summary>
+        /// structure used to hold all current game info
+        /// </summary>
         public struct GameInfo
-	    {
-		    public string CartName;
+        {
+            public string CartName;
             public Int32 FileSize;
             public Int32 current_addr;
-	    }
+        }
 
+        //all variables used by the API handler
         public GameInfo Info = new GameInfo();
         private FileStream Filefs = null;
         Serial serial = Serial.Instance;
@@ -61,6 +72,8 @@ namespace Gameboy
         {
             ResetVariables();
         }
+
+        //reset all variables and settings
         public void ResetVariables()
         {
             if (Filefs != null)
@@ -76,11 +89,8 @@ namespace Gameboy
             RamFilepath = string.Empty;
             return;
         }
-        private void SendData(byte command)
-        {
-            byte[] data = { command };
-            SendData(data);
-        }
+
+        //send data over serial connection
         private void SendData(byte[] data)
         {
             if (data == null || data.Length <= 0)
@@ -89,6 +99,8 @@ namespace Gameboy
             PrevPacket = data;
             serial.Write(data, 0, data.Length);
         }
+
+        //functions about opening file for ROM/RAM reading or RAM writing
         private void OpenSaveFile()
         {
             string filename = string.Empty;
@@ -124,6 +136,7 @@ namespace Gameboy
                 mode = FileMode.Open;
             Filefs = System.IO.File.Open(Filename, mode);
         }
+
         private int GetHeaderInfo(byte[] buf, bool IsRom, bool IsWriting)
         {
             if (IsRom && IsWriting)
@@ -188,6 +201,7 @@ namespace Gameboy
         {
             return GetHeaderInfo(buf, IsRom,false);
         }
+
         public void SetRamFilename(string filepath)
         {
             if (String.IsNullOrWhiteSpace(filepath))
@@ -197,6 +211,7 @@ namespace Gameboy
             else
                 RamFilepath = filepath;
         }
+
         public byte GetAPIMode()
         {
             return APIMode;
@@ -222,6 +237,47 @@ namespace Gameboy
                     break;
             }
         }
+        public int AttemptAPIHandshake()
+        {
+            int ret = 0;
+
+            serial.Write(new byte[] {GB_API_Protocol.API_HANDSHAKE_REQUEST},0,1);
+            byte cnt = 0;
+
+            while (true)
+            {
+                if (cnt >= 10)
+                {
+                    ret = 0;
+                    break;
+                }
+
+                if (serial.BytesToRead > 0)
+                {
+                    int data = serial.ReadByte();
+                    if (data == GB_API_Protocol.API_HANDSHAKE_ACCEPT)
+                    {
+                        ret = 1;
+                    }
+                    else if (data == GB_API_Protocol.API_HANDSHAKE_DENY)
+                    {
+                        ret = -1;
+                    }
+                    else
+                    {
+                        ret = 0;
+                    }
+                    break;
+                }
+                else
+                {
+                    System.Threading.Thread.Sleep(20);
+                    cnt++;
+                }
+            }    
+            return ret;
+        }
+
         public int HandleData(byte[] buf)
         {
             if (buf == null || buf.Length <= 0)

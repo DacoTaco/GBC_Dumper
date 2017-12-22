@@ -22,10 +22,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdint.h>
 #include "GB_Cart.h"
 #include "serial.h"
-#include "gbc_api.h"
 
 //the Barebone functions
 //--------------------------------
+int8_t CheckControlPin(uint8_t Pin)
+{
+	if((CTRL_PIN & (1<< Pin))==0)
+		return LOW;
+	else
+		return HIGH;
+}
 void SetControlPin(uint8_t Pin,uint8_t state)
 {
 	if(state > 0)
@@ -83,12 +89,16 @@ void SetupPins(void)
 	SetControlPin(RD,HIGH);
 	SetControlPin(SRAM,HIGH);
 	SetControlPin(RST,LOW);
-	_delay_us(50);
-	SetControlPin(RST,HIGH);
 
 }
 void SetAddress(uint16_t address)
 {
+	//check if rst is set high. if not, set it high
+	if(CheckControlPin(RST) == 0)
+	{
+		SetControlPin(RST,HIGH);
+	}
+		
 	uint8_t adr1 = address >> 8;
 	uint8_t adr2 = (uint8_t)(address & 0xFF);
 	//cprintf("setting address to 0x%02X%02X\r\n",adr1,adr2);
@@ -99,8 +109,14 @@ void SetAddress(uint16_t address)
 uint8_t GetByte(uint16_t address)
 {
 	uint8_t data = 0;
+
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
+	//check if rst is set high. if not, set it high
+	if(CheckControlPin(RST) == 0)
+	{
+		SetControlPin(RST,HIGH);
+	}
 		
 	//pass Address to cartridge via the address bus
 	SetAddress(address);
@@ -120,6 +136,11 @@ uint8_t GetRAMByte(uint16_t address,uint8_t Bank_Type)
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 	
+	if(CheckControlPin(RST) == 0)
+	{
+		SetControlPin(RST,HIGH);
+	}
+	
 	SetControlPin(SRAM,LOW);
 	uint8_t ret = GetByte(address);
 	SetControlPin(SRAM,HIGH);
@@ -138,7 +159,11 @@ uint8_t WriteByte(uint16_t addr,uint8_t byte)
 {	
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
-		
+	if(CheckControlPin(RST) == 0)
+	{
+		SetControlPin(RST,HIGH);
+	}
+	
 	ChangeDataPinsMode(OUTPUT);
 	PORTA = byte;
 	SetAddress(addr);
@@ -151,7 +176,6 @@ uint8_t WriteByte(uint16_t addr,uint8_t byte)
 	PORTA = 0x00;
 	ChangeDataPinsMode(INPUT);
 	
-	
 	return 1;
 }
 uint8_t WriteRAMByte(uint16_t addr,uint8_t byte,uint8_t Bank_Type)
@@ -160,6 +184,10 @@ uint8_t WriteRAMByte(uint16_t addr,uint8_t byte,uint8_t Bank_Type)
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 		
+	if(CheckControlPin(RST) == 0)
+	{
+		SetControlPin(RST,HIGH);
+	}
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
 	SetControlPin(SRAM,HIGH);
@@ -168,7 +196,7 @@ uint8_t WriteRAMByte(uint16_t addr,uint8_t byte,uint8_t Bank_Type)
 	uint8_t ret = WriteByte(addr,byte);
 	_delay_ms(2);
 	SetControlPin(SRAM,HIGH);
-		
+
 	return ret;
 
 }
@@ -189,6 +217,10 @@ int8_t OpenRam(void)
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 	
+	if(CheckControlPin(RST) == 0)
+	{
+		SetControlPin(RST,HIGH);
+	}
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
 	SetControlPin(SRAM,HIGH);	
@@ -208,10 +240,16 @@ int8_t OpenRam(void)
 	uint16_t init_addr = 0x0000; 
 	WriteByte(init_addr,0x0A);
 	_delay_ms(2);
+	
 	return 1;
 }
 int8_t CloseRam(void)
 {
+	if(CheckControlPin(RST) == 0)
+	{
+		SetControlPin(RST,HIGH);
+	}
+	
 	uint16_t init_addr = 0x0000;
 	
 	if(GameInfo.Name[0] == 0x00)
@@ -223,6 +261,9 @@ int8_t CloseRam(void)
 			return ret;
 		}
 	}
+	
+	
+	
 	uint8_t Bank_Type = GetMBCType(GameInfo.CartType);
 	//disable RAM again - VERY IMPORTANT -
 	if(Bank_Type == MBC1)
@@ -230,12 +271,18 @@ int8_t CloseRam(void)
 		
 	WriteByte(init_addr,0x00);
 	_delay_ms(2);
+
 	return 1;
 }
 void SwitchROMBank(int8_t bank,uint8_t Bank_Type)
 {	
 	if(Bank_Type == MBC_NONE)
 		return;
+		
+	if(CheckControlPin(RST) == 0)
+	{
+		SetControlPin(RST,HIGH);
+	}
 
 	//first some preperations
 	uint16_t addr = 0x2100;
@@ -274,6 +321,11 @@ void SwitchROMBank(int8_t bank,uint8_t Bank_Type)
 }
 void SwitchRAMBank(int8_t bank,uint8_t Bank_Type)
 {
+	if(CheckControlPin(RST) == 0)
+	{
+		SetControlPin(RST,HIGH);
+	}
+	
 	WriteByte(0x4000,bank);
 	return;
 }
@@ -573,6 +625,7 @@ int8_t DumpROM()
 			cprintf_char(GetByte(addr));
 		}
 	}
+	SetControlPin(RST,LOW);
 	return 1;
 }
 int8_t DumpRAM()
@@ -585,6 +638,7 @@ int8_t DumpRAM()
 	SetControlPin(RST,LOW);
 	_delay_us(50);
 	SetControlPin(RST,HIGH);
+	
 	if(GameInfo.Name[0] == 0x00)
 	{
 		//header isn't loaded yet!
@@ -631,6 +685,7 @@ int8_t DumpRAM()
 	}
 	
 	CloseRam();
+	SetControlPin(RST,LOW);
 	
 	return 1;
 }
@@ -704,6 +759,7 @@ int8_t WriteRAM()
 	
 	CloseRam();
 end_function:
+	SetControlPin(RST,LOW);
 	//re-enable interrupts!
 	sei();
 	return ret;

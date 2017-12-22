@@ -8,7 +8,7 @@
                 <MenuItem Header="_Detect Serial Ports" Height="25" Click="DetectSerial_Click"></MenuItem>
             </MenuItem>
         </Menu>
-        <Grid DockPanel.Dock="Top" Margin="0,5,0,100">
+        <Grid DockPanel.Dock="Top" Margin="0,10,0,15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"></RowDefinition>
                 <RowDefinition Height="*"></RowDefinition>
@@ -19,23 +19,35 @@
                 <ColumnDefinition Width="*"></ColumnDefinition>
             </Grid.ColumnDefinitions>
             <ComboBox Name="cbComPorts" VerticalAlignment="Top" HorizontalAlignment="Stretch" IsEnabled="{Binding EnableControls}" ScrollViewer.VerticalScrollBarVisibility="Visible" 
-                      HorizontalContentAlignment="Center" MaxDropDownHeight="100" Grid.Row="0" Grid.Column="0" MaxWidth="150" MaxHeight="25" Margin="5,5,5,5"/>
+                      HorizontalContentAlignment="Center" MaxDropDownHeight="100" Grid.Row="0" Grid.Column="0" MaxHeight="25" Margin="5,5,5,5"/>
             <ComboBox Name="cbBaudRate" HorizontalAlignment="Stretch" VerticalAlignment="Top" IsEnabled="{Binding EnableControls}" ScrollViewer.VerticalScrollBarVisibility="Visible" 
-                      HorizontalContentAlignment="Center" MaxDropDownHeight="100" Grid.Row="0" Grid.Column="1" MaxWidth="150" MaxHeight="25" Margin="5,5,5,5"/>
+                      HorizontalContentAlignment="Center" MaxDropDownHeight="100" Grid.Row="0" Grid.Column="1" MaxHeight="25" Margin="5,5,5,5"/>
             <ToggleButton Name="btConnect" Content="Connect" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="Connect_Click" 
-                          Grid.Row="0" Grid.Column="2" MaxWidth="150" MaxHeight="25" Margin="5,5,5,5"/>
+                          Grid.Row="0" Grid.Column="2" MaxHeight="25" Margin="5,5,5,5"/>
             
             <Button Name="btnGetRom" Content="Get Rom" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="btnGetRom_Click" IsEnabled="{Binding Connected}"
-                    Grid.Row="1" Grid.Column="0" MaxWidth="150" MaxHeight="25" Margin="5,5,5,5"/>
+                    Grid.Row="1" Grid.Column="0" MaxHeight="25" Margin="5,5,5,5"/>
             <Button Name="btnGetRam" Content="Get Ram" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="btnGetRam_Click" IsEnabled="{Binding Connected}"
-                    Grid.Row="1" Grid.Column="1" MaxWidth="150" MaxHeight="25" Margin="5,5,5,5"/>
+                    Grid.Row="1" Grid.Column="1" MaxHeight="25" Margin="5,5,5,5"/>
             <Button Name="btnSendRam" Content="WRITE RAM" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="btnSendRam_Click" IsEnabled="{Binding Connected}"
-                    Grid.Row="1" Grid.Column="2" MaxWidth="150" MaxHeight="25" Margin="5,5,5,5"/>
+                    Grid.Row="1" Grid.Column="2" MaxHeight="25" Margin="5,5,5,5"/>
         </Grid>
+        <StatusBar DockPanel.Dock="Bottom" Height="30">
+            <StackPanel Orientation="Horizontal">
+                <Label Content="Connected : " Background="Transparent"></Label>
+                <Label Content="{Binding Connected}" Background="Transparent" Width="80"></Label>
+                <Separator>
+                    <Separator.LayoutTransform>
+                        <RotateTransform Angle="90" />
+                    </Separator.LayoutTransform>
+                </Separator>
+            </StackPanel>
+        </StatusBar>
         <Grid DockPanel.Dock="Bottom" >
             <TextBox x:Name="txtOutput" Background="Black" Foreground="White" Text="{Binding TextField}" TextWrapping="Wrap" 
                      VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Auto" TextChanged="txtOutput_TextChanged"/>
         </Grid> 
+        
 
     </DockPanel>
 </Window>

@@ -134,10 +134,25 @@ namespace GBC_Tool
             serial.ReadTimeout = 200;
             serial.WriteTimeout = 50;
             serial.ReceivedBytesThreshold = 1;
-            Connected = true;
-
-            serial.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(HandleReceive);
+            
             serial.Open();
+
+            int ret = APIHandler.AttemptAPIHandshake();
+            if (ret >= 0)
+            {
+                //handshake was succesful
+                serial.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(HandleReceive);
+                Connected = true;
+                if (ret == 0)
+                {
+                    AddTextToField("Controller did not give a correct response, still keeping connection open..." + Environment.NewLine);
+                }
+            }
+            else
+            {
+                //fail
+                serial.Close();
+            }
 
         }
         //disconnect port
@@ -145,6 +160,7 @@ namespace GBC_Tool
         {
             ResetVariables();
             serial.Close();
+            serial.DataReceived -= new System.IO.Ports.SerialDataReceivedEventHandler(HandleReceive);
             Connected = false;
         }
 
@@ -183,68 +199,67 @@ namespace GBC_Tool
                 }
                 else if( ret > 0)
                 {
+                    //we are reading/downloading data
+                    if(API_Mode == GB_API_Protocol.API_MODE_READ_RAM || API_Mode == GB_API_Protocol.API_MODE_READ_ROM)
+                    {
+                        if (TextField.Contains("Downloading"))
+                        {
+                            //replace the string in TextField!
+                            //aka, update the read bytes
+                            string display;
+                            int place = TextField.LastIndexOf("Downloading...");
+                            if (place > 0)
+                            {
+                                place += String.Format("Downloading...{0}", Environment.NewLine).Length;
+                                display = TextField.Remove(place, 24);
+                                display += String.Format("0x{0:X8}/0x{1:X8}...", APIHandler.Info.current_addr, APIHandler.Info.FileSize);
+                                TextField = display;
+                            }
+
+                        }
+                        else
+                        {
+                            AddTextToField(String.Format("Downloading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
+                        }
+                    }
+                    //we are writing/uploading data!
+                    else if(API_Mode == GB_API_Protocol.API_MODE_WRITE_RAM)
+                    {
+                        //still ongoing!
+                        //update the text!
+                        if (TextField.Contains("Uploading"))
+                        {
+                            //replace the string in TextField!
+                            //aka, update the read bytes
+                            string display;
+                            int place = TextField.LastIndexOf("Uploading...");
+                            if (place > 0)
+                            {
+                                place += String.Format("Uploading...{0}", Environment.NewLine).Length;
+                                display = TextField.Remove(place, 24);
+                                display += String.Format("0x{0:X8}/0x{1:X8}...", APIHandler.Info.current_addr, APIHandler.Info.FileSize);
+                                TextField = display;
+                            }
+
+                        }
+                        else
+                        {
+                            //didn't find the text for some odd reason. so lets add it!
+                            AddTextToField(String.Format("Uploading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
+                        }
+                    }
+                    else //unknown WTF we are doing, so lets just output data
+                    {
+                        string data = Encoding.ASCII.GetString(buf, 0, bufSize);
+                        AddTextToField(data);
+                    }
+
+                    //are we done?
                     if (ret == GB_API_Protocol.API_TASK_FINISHED)
                     {
                         //we are done reading!
                         AddTextToField((Environment.NewLine + "Done!" + Environment.NewLine));
                         ResetVariables();
-                    }
-                    else
-                    {
-                        //we are reading/downloading data
-                        if(API_Mode == GB_API_Protocol.API_MODE_READ_RAM || API_Mode == GB_API_Protocol.API_MODE_READ_ROM)
-                        {
-                            if (TextField.Contains("Downloading"))
-                            {
-                                //replace the string in TextField!
-                                //aka, update the read bytes
-                                string display;
-                                int place = TextField.LastIndexOf("Downloading...");
-                                if (place > 0)
-                                {
-                                    place += String.Format("Downloading...{0}", Environment.NewLine).Length;
-                                    display = TextField.Remove(place, 24);
-                                    display += String.Format("0x{0:X8}/0x{1:X8}...", APIHandler.Info.current_addr, APIHandler.Info.FileSize);
-                                    TextField = display;
-                                }
-
-                            }
-                            else
-                            {
-                                AddTextToField(String.Format("Downloading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
-                            }
-                        }
-                        //we are writing/uploading data!
-                        else if(API_Mode == GB_API_Protocol.API_MODE_WRITE_RAM)
-                        {
-                            //still ongoing!
-                            //update the text!
-                            if (TextField.Contains("Uploading"))
-                            {
-                                //replace the string in TextField!
-                                //aka, update the read bytes
-                                string display;
-                                int place = TextField.LastIndexOf("Uploading...");
-                                if (place > 0)
-                                {
-                                    place += String.Format("Uploading...{0}", Environment.NewLine).Length;
-                                    display = TextField.Remove(place, 24);
-                                    display += String.Format("0x{0:X8}/0x{1:X8}...", APIHandler.Info.current_addr, APIHandler.Info.FileSize);
-                                    TextField = display;
-                                }
-
-                            }
-                            else
-                            {
-                                //didn't find the text for some odd reason. so lets add it!
-                                AddTextToField(String.Format("Uploading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
-                            }
-                        }
-                        else //unknown WTF we are doing, so lets just output data
-                        {
-                            string data = Encoding.ASCII.GetString(buf, 0, bufSize);
-                            AddTextToField(data);
-                        }
                     }
                 }
             }

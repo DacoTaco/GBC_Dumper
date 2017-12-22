@@ -30,7 +30,7 @@ volatile uint8_t cmd_busy = 0;
 void ProcessCommand(void)
 {
 	cmd_busy = 1;
-	int8_t ret = GetGameInfo();
+	int8_t ret = API_GetGameInfo();
 	if(ret > 0)
 	{
 		//this is the API version of reading the ROM or RAM
@@ -191,8 +191,13 @@ void ProcessChar(char byte)
 	//ignore incoming data when busy
 	if(cmd_busy == 1)
 		return;
-		
-	if(cmd_size > 0 && (byte == '\n' || byte == '\r') )
+	
+	if(byte == API_HANDSHAKE_REQUEST)
+	{
+		cprintf_char(API_HANDSHAKE_ACCEPT);
+		return;
+	}
+	else if(cmd_size > 0 && (byte == '\n' || byte == '\r') )
 	{
 		cmd_ready = 1;
 		cprintf("\r\n");
@@ -224,6 +229,7 @@ int main(void)
 	setRecvCallback(ProcessChar);//NULL);
 	
 	cprintf("Ready to rock and roll!\r\n");
+	_delay_ms(10);
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
     while(1) 
