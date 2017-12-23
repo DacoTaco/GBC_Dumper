@@ -308,3 +308,5 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+*.eep
+*.gbc

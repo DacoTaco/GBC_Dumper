@@ -165,7 +165,7 @@ namespace Gameboy
                     else
                     {
                         //skip to the bytes we need
-                        offset += 4;
+                        offset = i + 4;
                     }
                 }
                 else if (String.IsNullOrWhiteSpace(Info.CartName) && i + 2 <= bufSize && buf[i] == GB_API_Protocol.API_GAMENAME_START && buf[i + 2] == GB_API_Protocol.API_GAMENAME_END)
@@ -181,7 +181,8 @@ namespace Gameboy
                     {
                         int cnt = (strSize + i + 3 >= bufSize) ? (bufSize - i - 3) : strSize;
                         Info.CartName = Encoding.ASCII.GetString(buf, i + 3, cnt);
-                        offset += (3 + strSize);
+
+                        offset = i + (3 + strSize);                       
                     }
                 }
                 else if (i + 2 <= bufSize && buf[i] == GB_API_Protocol.API_ABORT)
@@ -424,7 +425,6 @@ namespace Gameboy
                 else if ((bufSize == 1 && buf[0] == GB_API_Protocol.API_TASK_FINISHED) || (bufSize == 3 && buf[2] == GB_API_Protocol.API_TASK_FINISHED))
                 {
                     //oh, we are done!
-                    ResetVariables();
                     ret = GB_API_Protocol.API_TASK_FINISHED;
                 }
                 else
@@ -490,7 +490,6 @@ namespace Gameboy
                         Info.current_addr = Info.FileSize;
                         //ret = Info.current_addr;
                         ret = GB_API_Protocol.API_TASK_FINISHED;
-                        ResetVariables();
                     }
                 }
             }

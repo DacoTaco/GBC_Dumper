@@ -123,7 +123,7 @@ uint8_t GetByte(uint16_t address)
 
 	//set cartridge in read mode
 	SetControlPin(RD,LOW);	
-	_delay_ms(1);
+	_delay_us(1);
 	
 	data = PINA;
 	
@@ -169,10 +169,10 @@ uint8_t WriteByte(uint16_t addr,uint8_t byte)
 	SetAddress(addr);
 	
 	SetControlPin(WD,LOW);
-	_delay_ms(2);
+	_delay_us(3);
 	
 	SetControlPin(WD,HIGH);
-	_delay_ms(1);
+	_delay_us(1);
 	PORTA = 0x00;
 	ChangeDataPinsMode(INPUT);
 	
@@ -194,7 +194,7 @@ uint8_t WriteRAMByte(uint16_t addr,uint8_t byte,uint8_t Bank_Type)
 		
 	SetControlPin(SRAM,LOW);
 	uint8_t ret = WriteByte(addr,byte);
-	_delay_ms(2);
+	_delay_us(2);
 	SetControlPin(SRAM,HIGH);
 
 	return ret;
@@ -239,7 +239,7 @@ int8_t OpenRam(void)
 	//Init the MBC Ram!
 	uint16_t init_addr = 0x0000; 
 	WriteByte(init_addr,0x0A);
-	_delay_ms(2);
+	_delay_us(2);
 	
 	return 1;
 }
@@ -270,7 +270,7 @@ int8_t CloseRam(void)
 		WriteByte(0x6000,0x00);
 		
 	WriteByte(init_addr,0x00);
-	_delay_ms(2);
+	_delay_us(2);
 
 	return 1;
 }
@@ -680,7 +680,7 @@ int8_t DumpRAM()
 		{
 			//cprintf("byte 0x%02X : 0x%02X\r\n",i-addr,GetRAMByte(i,Bank_Type));
 			cprintf_char(GetRAMByte(i,Bank_Type));
-			_delay_ms(2);
+			_delay_us(2);
 		}
 	}
 	

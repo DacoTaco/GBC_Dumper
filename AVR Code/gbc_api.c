@@ -54,6 +54,7 @@ int8_t API_WaitForOK(void)
 	int8_t ret = 0;
 	
 	cprintf_char(API_OK);
+	_delay_us(300);
 	uint8_t response = Serial_GetByte();
 	
 	if(response == API_OK)

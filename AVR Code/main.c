@@ -226,10 +226,9 @@ int main(void)
 	initConsole();
 
 	//set it so that incoming msg's are ignored.
-	setRecvCallback(ProcessChar);//NULL);
+	setRecvCallback(ProcessChar);
 	
 	cprintf("Ready to rock and roll!\r\n");
-	_delay_ms(10);
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
     while(1) 
@@ -238,52 +237,5 @@ int main(void)
 		{
 			
 		}
-		/*if((PIND & 0b01000000)==0)
-		{		
-			cprintf("checking cart...\r\n");			
-			int8_t ret = GetGameInfo();
-			if(ret > 0)
-			{
-				cprintf("game inserted : %s\r\n",GameInfo.Name);
-				cprintf("MBC Type : 0x%x\r\n",GetMBCType(GameInfo.CartType));
-				uint16_t banks = 2;
-				if(GameInfo.RomSize > 0 && GameInfo.RomSize < 8)
-				{
-					banks = 2 << GameInfo.RomSize;
-				}
-				cprintf("game bank amount : %u\r\n",banks);
-				
-				banks = GameInfo.RamSize;
-				if(banks > 0)
-				{
-					banks = 1024*2;
-					for(uint8_t i = 1;i < GameInfo.RamSize;i++)
-					{
-						banks *= 4;
-					}
-				}
-				cprintf("game ram size : %u\r\n",banks);
-				
-				//DumpROM();
-				
-				if(GameInfo.RamSize > 0)
-					DumpRAM();
-
-			}
-			else
-			{
-				switch(ret)
-				{
-					case ERR_FAULT_CART:
-						cprintf("Error Reading game : ERR_FAULT_CART\r\n");
-						break;
-					default :
-						cprintf("Unknown Error Reading Game, error : %d\r\n",ret);
-						break;
-				}
-				
-			}
-			cprintf("\r\n done\r\n");
-		}*/	
     }
 }
