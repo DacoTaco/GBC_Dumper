@@ -414,19 +414,19 @@ int8_t GetHeader(int8_t option)
 				temp.ManufacturerCode[i] = header[_CALC_ADDR(_ADDR_MANUFACT+i)];
 			}
 			
-			temp.GBCFlag = header[_CALC_ADDR(_ADDR_GBC_FLAG)];
-			
 			for(uint8_t i = 0;i < 2;i++)
 			{
 				temp.NewLicenseeCode[i] = header[_CALC_ADDR(_ADDR_NEW_LICODE+i)];
 			}	
-		}				
+		}			
+		temp.GBCFlag = header[_CALC_ADDR(_ADDR_GBC_FLAG)];
 		NameSize = 11;
 	}
 	else
 	{
-		//we got an old fanshion cart y0
+		//we got an old fashion cart y0
 		NameSize = 16;
+		temp.GBCFlag = 0x00;
 	}
 
 	memset(temp.Name,0,17);

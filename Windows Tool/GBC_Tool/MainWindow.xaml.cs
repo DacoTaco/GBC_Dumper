@@ -52,6 +52,25 @@ namespace GBC_Tool
             }
         }
 
+        //if we are busy or not
+        private bool notBusy;
+        public bool NotBusy
+        {
+            get 
+            {
+                if (Connected == false)
+                    return false;
+                return notBusy; 
+            }
+            set 
+            { 
+                notBusy = value;
+                OnPropertyChanged("NotBusy");
+                OnPropertyChanged("EnableControls");
+            }
+        }
+        
+
         //see EnabledControls
         private bool connected;
         public bool Connected
@@ -61,6 +80,7 @@ namespace GBC_Tool
             { 
                 connected = value;
                 OnPropertyChanged("Connected");
+                OnPropertyChanged("NotBusy");
                 OnPropertyChanged("EnableControls");
             }
         }
@@ -112,6 +132,7 @@ namespace GBC_Tool
         //Init everything of the UI
         private void Init()
         {
+            ResetVariables();
             this.DataContext = this;
             RefreshSerial();
             string filename = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) + @"\output.txt";
@@ -275,6 +296,7 @@ namespace GBC_Tool
         private void ResetVariables()
         {
             APIHandler.ResetVariables();
+            NotBusy = true;
             return;
         }
 
@@ -283,6 +305,7 @@ namespace GBC_Tool
         {
             if (serial.IsOpen == true && APIHandler.GetAPIMode() == 0)
             {
+                NotBusy = false;
                 APIHandler.SetAPIMode(GB_API_Protocol.API_MODE_READ_ROM);             
                 AddTextToField(String.Format("Downloading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
             }
@@ -293,6 +316,7 @@ namespace GBC_Tool
         {
             if (serial.IsOpen == true && APIHandler.GetAPIMode() == 0)
             {
+                NotBusy = false;
                 APIHandler.SetAPIMode(GB_API_Protocol.API_MODE_READ_RAM);
                 AddTextToField(String.Format("Downloading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
             }
@@ -310,13 +334,10 @@ namespace GBC_Tool
 
                 if (dialog.ShowDialog() == true)
                 {
+                    NotBusy = false;
                     APIHandler.SetRamFilename(dialog.FileName);//Debug.WriteLine("we got a file! {0}{1}", dialog.FileName, Environment.NewLine);
                     APIHandler.SetAPIMode(GB_API_Protocol.API_MODE_WRITE_RAM);
                     AddTextToField(String.Format("Uploading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
-                }
-                else
-                {
-                    Debug.WriteLine("nope");
                 }
             }
         }

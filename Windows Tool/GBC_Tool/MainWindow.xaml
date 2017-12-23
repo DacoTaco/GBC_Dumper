@@ -24,12 +24,12 @@
                       HorizontalContentAlignment="Center" MaxDropDownHeight="100" Grid.Row="0" Grid.Column="1" MaxHeight="25" Margin="5,5,5,5"/>
             <ToggleButton Name="btConnect" Content="Connect" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="Connect_Click" 
                           Grid.Row="0" Grid.Column="2" MaxHeight="25" Margin="5,5,5,5"/>
-            
-            <Button Name="btnGetRom" Content="Get Rom" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="btnGetRom_Click" IsEnabled="{Binding Connected}"
+
+            <Button Name="btnGetRom" Content="Get Rom" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="btnGetRom_Click" IsEnabled="{Binding NotBusy}"
                     Grid.Row="1" Grid.Column="0" MaxHeight="25" Margin="5,5,5,5"/>
-            <Button Name="btnGetRam" Content="Get Ram" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="btnGetRam_Click" IsEnabled="{Binding Connected}"
+            <Button Name="btnGetRam" Content="Get Ram" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="btnGetRam_Click" IsEnabled="{Binding NotBusy}"
                     Grid.Row="1" Grid.Column="1" MaxHeight="25" Margin="5,5,5,5"/>
-            <Button Name="btnSendRam" Content="WRITE RAM" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="btnSendRam_Click" IsEnabled="{Binding Connected}"
+            <Button Name="btnSendRam" Content="WRITE RAM" HorizontalAlignment="Stretch" VerticalAlignment="Top" Click="btnSendRam_Click" IsEnabled="{Binding NotBusy}"
                     Grid.Row="1" Grid.Column="2" MaxHeight="25" Margin="5,5,5,5"/>
         </Grid>
         <StatusBar DockPanel.Dock="Bottom" Height="30">

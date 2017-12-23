@@ -13,6 +13,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#define API_GBC_SUPPORT_START 0x76
+#define API_GBC_ONLY 0x77
+#define API_GBC_HYBRID 0x78
+#define API_GBC_GB 0x79
+#define API_GBC_SUPPORT_END 0x7A
 #define API_GAMENAME_START 0x86
 #define API_GAMENAME_END 0x87
 #define API_FILESIZE_START 0x96
@@ -45,7 +50,7 @@ typedef uint8_t ROM_TYPE;
 #define TYPE_RAM 1
 
 //main API functions
-void API_Get_Memory(ROM_TYPE type,char* Name,uint16_t size);
+void API_Get_Memory(ROM_TYPE type,char* Name,uint16_t size,uint8_t GBCFlag);
 int8_t API_WaitForOK(void);
 int8_t API_GetGameInfo(void);
 int8_t API_WriteRam(void);
@@ -57,3 +62,4 @@ int8_t API_GetRam(void); //gets called by API_Get_Memory
 void API_Send_Abort(uint8_t type);
 void API_Send_Name(char* Name);
 void API_Send_Size(uint16_t size);
+void API_Send_GBC_Support(uint8_t GBCFlag);

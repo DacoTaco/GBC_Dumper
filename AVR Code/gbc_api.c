@@ -24,10 +24,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "serial.h"
 #include "GB_Cart.h"
 
-void API_Get_Memory(ROM_TYPE type,char* Name,uint16_t size)
+void API_Get_Memory(ROM_TYPE type,char* Name,uint16_t size,uint8_t GBCFlag)
 {
 	API_Send_Name(Name);
 	API_Send_Size(size);
+	API_Send_GBC_Support(GBCFlag);
 	
 	if(API_WaitForOK())
 	{
@@ -252,4 +253,26 @@ void API_Send_Size(uint16_t size)
 	cprintf_char(size & 0xFF);
 	cprintf_char(API_FILESIZE_END);
 	return;
+}
+void API_Send_GBC_Support(uint8_t GBCFlag)
+{
+	uint8_t toSend;
+	switch(GBCFlag)
+	{
+		case 0x80:
+			toSend = API_GBC_HYBRID;
+			break;
+		case 0xC0:
+			toSend = API_GBC_ONLY;
+			break;
+		case 0x00:
+			toSend = API_GBC_GB;
+			break;
+		default:
+			toSend = API_GBC_GB;
+			break;
+	}
+	cprintf_char(API_GBC_SUPPORT_START);
+	cprintf_char(toSend);
+	cprintf_char(API_GBC_SUPPORT_END);
 }

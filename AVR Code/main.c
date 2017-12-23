@@ -69,7 +69,7 @@ void ProcessCommand(void)
 			{
 				type = TYPE_RAM;
 			}
-			API_Get_Memory(type,GameInfo.Name,fileSize);
+			API_Get_Memory(type,GameInfo.Name,fileSize,GameInfo.GBCFlag);
 		}
 		//this is the API version of Writing the RAM
 		else if(strncmp(cmd,"API_WRITE_RAM",13) == 0)
