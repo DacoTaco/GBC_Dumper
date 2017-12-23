@@ -15,6 +15,11 @@ namespace Gameboy
     public static class GB_API_Protocol
     {
         //header functions
+        public const byte API_GBC_SUPPORT_START = 0x76;
+        public const byte API_GBC_ONLY = 0x77;
+        public const byte API_GBC_HYBRID = 0x78;
+        public const byte API_GBC_GB = 0x79;
+        public const byte API_GBC_SUPPORT_END = 0x7A;
         public const byte API_GAMENAME_START = 0x86;
         public const byte API_GAMENAME_END = 0x87;
         public const byte API_FILESIZE_START = 0x96;
@@ -55,6 +60,7 @@ namespace Gameboy
             public string CartName;
             public Int32 FileSize;
             public Int32 current_addr;
+            public bool? IsGBC;
         }
 
         //all variables used by the API handler
@@ -85,6 +91,7 @@ namespace Gameboy
             Info.CartName = string.Empty;
             Info.FileSize = 0;
             Info.current_addr = 0;
+            Info.IsGBC = null;
             IsWriting = false;
             RamFilepath = string.Empty;
             return;
@@ -120,7 +127,12 @@ namespace Gameboy
 
             string filename = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) + @"\" + Info.CartName;
             if (OpenRom)
-                filename += ".gb";
+            {
+                if (Info.IsGBC == true)
+                    filename += ".gbc";
+                else
+                    filename += ".gb";
+            }
             else
                 filename += ".sav";
 
@@ -134,7 +146,8 @@ namespace Gameboy
             FileMode mode = FileMode.Create;
             if (OpenOnly)
                 mode = FileMode.Open;
-            Filefs = System.IO.File.Open(Filename, mode);
+            //Open File with the selected mode, and allow others to still read the file!
+            Filefs = new FileStream(Filename, mode, FileAccess.ReadWrite, FileShare.Read);
         }
 
         private int GetHeaderInfo(byte[] buf, bool IsRom, bool IsWriting)
@@ -142,10 +155,37 @@ namespace Gameboy
             if (IsRom && IsWriting)
                 return -1;
 
+            //we sometimes get uncomplete data, so wait a bit to see if more data is coming.
+            System.Threading.Thread.Sleep(10);
+            if (serial.BytesToRead > 0)
+            {
+                //we have data!
+                int lenght = serial.BytesToRead;
+                byte[] data = new byte[lenght];
+                serial.Read(data,0,lenght);
+                buf = buf.Concat(data).ToArray();
+            }
+
             int bufSize = buf.Length > 0x25?0x25:buf.Length;
             int offset = 0;
             for (int i = 0; i < bufSize; i++)
             {
+                if (Info.IsGBC == null && i + 2 <= bufSize && buf[i] == GB_API_Protocol.API_GBC_SUPPORT_START && buf[i + 2] == GB_API_Protocol.API_GBC_SUPPORT_END)
+                {
+                    //retrieve data if the game is a GB,GBC hybrid or GBC only game
+                    switch (buf[i + 1])
+                    {
+                        default:
+                        case GB_API_Protocol.API_GBC_GB:
+                            Info.IsGBC = false;
+                            break;
+                        case GB_API_Protocol.API_GBC_HYBRID:
+                        case GB_API_Protocol.API_GBC_ONLY:
+                            Info.IsGBC = true;
+                            break;
+                    }
+                    offset = i + 3;
+                }
                 if (Info.FileSize <= 0 && i + 3 <= bufSize && buf[i] == GB_API_Protocol.API_FILESIZE_START && buf[i + 3] == GB_API_Protocol.API_FILESIZE_END)
                 {
                     //retrieve rom size which is in a 6 byte packet. 0x66 0xRombank1 0xRombank2 0x67
@@ -189,11 +229,18 @@ namespace Gameboy
                 {
                     if (buf[i + 1] == GB_API_Protocol.API_ABORT_ERROR || buf[i + 1] == GB_API_Protocol.API_ABORT_CMD)
                     {
-                        //TextField += (Environment.NewLine + "An Error was Given by the Controller!" + Environment.NewLine);
                         //there was an error. see field for more info. meanwhile, close all commands
                         ResetVariables();
                         return -3;
                     }
+                }
+                else if(i == bufSize -1 && buf[i] == GB_API_Protocol.API_OK && (Info.FileSize == 0))//( String.IsNullOrWhiteSpace(Info.CartName) || Info.FileSize == 0 || Info.IsGBC == null))
+                {
+                    //we got the OK from the information but we are lacking some information. bail out! send ABORT!
+                    byte[] data = new byte[] { GB_API_Protocol.API_ABORT, GB_API_Protocol.API_ABORT_CMD };
+                    serial.Write(data, 0, data.Length);
+                    ResetVariables();
+                    return -4;
                 }
             }
             return offset;
@@ -361,12 +408,13 @@ namespace Gameboy
                 {
                     //somehow we only got 1 byte. wait to see if we get more data for a while.
                     //if we dont, let the code handle it. it could be legit
-                    System.Threading.Thread.Sleep(5);
+                    System.Threading.Thread.Sleep(10);
                     if (serial.BytesToRead == 1)
                     {
                         //we have data!
                         byte new_data = (byte)(serial.ReadByte() & 0xFF);
                         buf = new byte[] { buf[0], new_data };
+                        bufSize = buf.Length;
                     }
 
                 }

@@ -144,7 +144,6 @@ int8_t API_WriteRam(void)
 	//we start our loop at addr -1 because we will add 1 asa we start the loop
 	for(uint16_t i = addr-1;i< end_addr;)
 	{		
-	
 		//receive first byte
 		//wait untill we get data...
 		while ( !(UCSRA & (_BV(RXC))) );	
@@ -166,7 +165,7 @@ int8_t API_WriteRam(void)
 			if(i >= end_addr && bank < banks)
 			{
 				bank++;
-				i = addr -1;
+				i = addr;
 				if(Bank_Type != MBC2)
 					SwitchRAMBank(bank,Bank_Type);	
 			}
@@ -191,6 +190,10 @@ int8_t API_WriteRam(void)
 			uint8_t data = GetRAMByte(i,Bank_Type);
 			cprintf_char(API_VERIFY);
 			cprintf_char(data);
+			/*cprintf_char((i >> 8) & 0xFF);
+			cprintf_char(i & 0xFF);
+			cprintf_char(bank);
+			cprintf_char(GetRAMByte(i+1,Bank_Type));*/
 		}
 		else if(data_recv[0] == API_ABORT)
 		{
