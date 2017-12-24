@@ -136,7 +136,7 @@ namespace GBC_Tool
             this.DataContext = this;
             RefreshSerial();
             string filename = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) + @"\output.txt";
-            Debugfs = System.IO.File.Create(filename);
+            Debugfs = new FileStream(filename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);//System.IO.File.Create(filename);
 
             return;
         }
@@ -213,9 +213,18 @@ namespace GBC_Tool
                 ret = APIHandler.HandleData(buf);
                 if (ret < 0)
                 {
-                    byte[] data = new byte[bufSize - 2];
-                    Array.Copy(buf, 2, data, 0, buf.Length - 2);
-                    AddTextToField(buf + (Environment.NewLine + "An Error was Given by the Controller!" + Environment.NewLine));
+                    int index = Array.IndexOf(buf, GB_API_Protocol.API_ABORT);
+                    if (index+2 > bufSize)
+                    {
+                        index = 0;
+                    }
+                    else
+                    {
+                        index += 2;
+                    }
+                    byte[] data = new byte[bufSize - index];
+                    Array.Copy(buf, index, data, 0, buf.Length - index);
+                    AddTextToField(Environment.NewLine + "An Error was Given by the Controller : " + Encoding.ASCII.GetString(data) + Environment.NewLine);
                     ResetVariables();
                 }
                 else if( ret > 0)

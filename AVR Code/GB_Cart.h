@@ -64,18 +64,18 @@ Connections we want,need and assigned to :
     CS_SRAM –> D4 (has 10k pulldown)
     A0 – A15 –> B0 - B7 & C0 - C7
     D0 – D7 –> A0 - A7
-    Reset –> D5 (has 10k resistor in between)
+    Reset –> D5 (has 10k resistor in between) and led to indicate if its busy or not
     GND -> input/Second GND
 
 */
 
-//ERROR_CODES
-#define ERR_FAULT_CART -10
-#define ERR_NO_MBC -20
-#define ERR_MBC_UNSUPPORTED -21
-#define ERR_MBC_SAVE_UNSUPPORTED -22
-#define ERR_NO_SAVE -29
-
+//general defines
+#ifdef SAVE_SPACE
+#define DISABLE_CORE_DUMP_FUNCTIONS
+#endif
+//disable the DumpROM,DumpRAM and WriteRAM functions to save space on the AVR
+//currently only disables WriteRAM since we have an API version of that
+//#define DISABLE_CORE_DUMP_FUNCTIONS
 
 //addresses defines
 #define _CALC_ADDR(x) (x-0x100)
@@ -128,6 +128,7 @@ typedef struct _cartInfo
 	uint8_t NewLicenseeCode[2]; // 0x144 - 0x145
 	uint8_t SGBSupported; //0x146
 	uint8_t CartType; //0x147 this is what tells us what MBC and save etc it has
+	uint8_t MBCType; //byte we use to store the MBC Type
 	uint16_t RomSize; //0x148 , if(Romsize > 0 && Romsize < 8 ) - > for(romsize) -> 32 * 2 else 32 
 	uint16_t RamSize; // 0x149 0 = 0, 1 = 2 , 2 = 8, 3 = 32 (table of 4)
 	uint8_t Region; // 0x14A
@@ -146,9 +147,11 @@ CartInfo GameInfo;
 
 //main functions. these are the most used by other code
 void SetupPins(void);
+#ifndef DISABLE_CORE_DUMP_FUNCTIONS
 int8_t DumpROM(void);
 int8_t DumpRAM(void);
 int8_t WriteRAM(void);
+#endif
 
 //other , usable functions by other code. these are used by the GB/C Cart code !
 void SetControlPin(uint8_t Pin,uint8_t state);

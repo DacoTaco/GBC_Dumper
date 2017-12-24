@@ -150,7 +150,7 @@ namespace Gameboy
             Filefs = new FileStream(Filename, mode, FileAccess.ReadWrite, FileShare.Read);
         }
 
-        private int GetHeaderInfo(byte[] buf, bool IsRom, bool IsWriting)
+        private int ProcessHeaderPacket(byte[] buf, bool IsRom, bool IsWriting)
         {
             if (IsRom && IsWriting)
                 return -1;
@@ -184,7 +184,8 @@ namespace Gameboy
                             Info.IsGBC = true;
                             break;
                     }
-                    offset = i + 3;
+                    i += 2;
+                    offset = i;
                 }
                 if (Info.FileSize <= 0 && i + 3 <= bufSize && buf[i] == GB_API_Protocol.API_FILESIZE_START && buf[i + 3] == GB_API_Protocol.API_FILESIZE_END)
                 {
@@ -205,7 +206,8 @@ namespace Gameboy
                     else
                     {
                         //skip to the bytes we need
-                        offset = i + 4;
+                        i += 3;
+                        offset = i;
                     }
                 }
                 else if (String.IsNullOrWhiteSpace(Info.CartName) && i + 2 <= bufSize && buf[i] == GB_API_Protocol.API_GAMENAME_START && buf[i + 2] == GB_API_Protocol.API_GAMENAME_END)
@@ -222,7 +224,8 @@ namespace Gameboy
                         int cnt = (strSize + i + 3 >= bufSize) ? (bufSize - i - 3) : strSize;
                         Info.CartName = Encoding.ASCII.GetString(buf, i + 3, cnt);
 
-                        offset = i + (3 + strSize);                       
+                        i += (2 + strSize);
+                        offset = i;                       
                     }
                 }
                 else if (i + 2 <= bufSize && buf[i] == GB_API_Protocol.API_ABORT)
@@ -234,7 +237,7 @@ namespace Gameboy
                         return -3;
                     }
                 }
-                else if(i == bufSize -1 && buf[i] == GB_API_Protocol.API_OK && (Info.FileSize == 0))//( String.IsNullOrWhiteSpace(Info.CartName) || Info.FileSize == 0 || Info.IsGBC == null))
+                else if (i == bufSize - 1 && buf[i] == GB_API_Protocol.API_OK && (Info.FileSize == 0))//( String.IsNullOrWhiteSpace(Info.CartName) || Info.FileSize == 0 || Info.IsGBC == null))
                 {
                     //we got the OK from the information but we are lacking some information. bail out! send ABORT!
                     byte[] data = new byte[] { GB_API_Protocol.API_ABORT, GB_API_Protocol.API_ABORT_CMD };
@@ -243,11 +246,14 @@ namespace Gameboy
                     return -4;
                 }
             }
+            if (offset > 0)
+                offset++;
+
             return offset;
         }
-        private int GetHeaderInfo(byte[] buf, bool IsRom)
+        private int ProcessHeaderPacket(byte[] buf, bool IsRom)
         {
-            return GetHeaderInfo(buf, IsRom,false);
+            return ProcessHeaderPacket(buf, IsRom,false);
         }
 
         public void SetRamFilename(string filepath)
@@ -361,7 +367,7 @@ namespace Gameboy
             byte[] data = null;
             if (IsWriting == false && Info.current_addr == 0)
             {
-                offset = GetHeaderInfo(buf, false, true);
+                offset = ProcessHeaderPacket(buf, false, true);
                 if (offset < 0)
                     return offset;
                 else if (offset > 0)
@@ -373,7 +379,6 @@ namespace Gameboy
                         Filefs = null;
                     }
                     OpenSaveFile();
-
 
                     if (buf[offset] == GB_API_Protocol.API_OK && Filefs != null)
                     {
@@ -495,15 +500,19 @@ namespace Gameboy
             int ret = 0;
             if (Info.FileSize <= 0 || String.IsNullOrWhiteSpace(Info.CartName))
             {
-                offset = GetHeaderInfo(buf, isRom);
-                if (offset < 0)
-                    return offset;
-                else if(offset > 0)
+                offset = ProcessHeaderPacket(buf, isRom);
+                if (offset < 0 || (Info.FileSize <= 0 || String.IsNullOrWhiteSpace(Info.CartName)))
+                {
+                    byte[] data = new byte[] { GB_API_Protocol.API_NOK };
+                    serial.Write(data, 0, data.Length);
+                    return -11;
+                }
+                else if (offset > 0)
                 {
                     //send ok to say we are ready!
                     byte[] data = new byte[] { GB_API_Protocol.API_OK };
-                    serial.Write(data,0,data.Length);
-                    //since last byte is the OK from the controller, we need to see if there is more data beyond it
+                    serial.Write(data, 0, data.Length);
+                    //since last byte is the OK from the controller, we need to see if there is more data beyond it. so +2 (byte 00 and the last OK after the offset)
                     if (offset + 1 >= bufSize)
                         return 0;
                     else

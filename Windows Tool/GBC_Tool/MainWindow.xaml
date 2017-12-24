@@ -45,7 +45,7 @@
         </StatusBar>
         <Grid DockPanel.Dock="Bottom" >
             <TextBox x:Name="txtOutput" Background="Black" Foreground="White" Text="{Binding TextField}" TextWrapping="Wrap" 
-                     VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Auto" TextChanged="txtOutput_TextChanged"/>
+                     VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Auto" TextChanged="txtOutput_TextChanged" IsReadOnly="True"/>
         </Grid> 
         
 

@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <string.h>
 #include <ctype.h>
 #include <stdint.h>
+#include "gbc_error.h"
 #include "GB_Cart.h"
 #include "serial.h"
 
@@ -49,11 +50,15 @@ void ChangeDataPinsMode(uint8_t mode)
 	{
 		//set as input;
 		DDRA &= ~(0xFF); //0b00000000;
+		//enable pull up resistors
+		//PORTA = 0xFF;
 	}
 	else
 	{
 		//set as output
 		DDRA |= (0xFF);//0b11111111;
+		//set output as 0x00
+		//PORTA = 0x00;
 	}
 
 }
@@ -101,7 +106,6 @@ void SetAddress(uint16_t address)
 		
 	uint8_t adr1 = address >> 8;
 	uint8_t adr2 = (uint8_t)(address & 0xFF);
-	//cprintf("setting address to 0x%02X%02X\r\n",adr1,adr2);
 	
 	PORTB = adr1;
 	PORTC = adr2;
@@ -202,17 +206,7 @@ uint8_t WriteRAMByte(uint16_t addr,uint8_t byte,uint8_t Bank_Type)
 }
 int8_t OpenRam(void)
 {
-	if(GameInfo.Name[0] == 0x00)
-	{
-		//header isn't loaded yet!
-		int8_t ret = GetGameInfo();
-		if(ret <= 0)
-		{
-			return ret;
-		}
-	}
-
-	uint8_t Bank_Type = GetMBCType(GameInfo.CartType);
+	uint8_t Bank_Type = GameInfo.MBCType;
 	
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
@@ -244,27 +238,10 @@ int8_t OpenRam(void)
 	return 1;
 }
 int8_t CloseRam(void)
-{
-	if(CheckControlPin(RST) == 0)
-	{
-		SetControlPin(RST,HIGH);
-	}
+{	
+	uint16_t init_addr = 0x0000;	
 	
-	uint16_t init_addr = 0x0000;
-	
-	if(GameInfo.Name[0] == 0x00)
-	{
-		//header isn't loaded yet!
-		int8_t ret = GetGameInfo();
-		if(ret <= 0)
-		{
-			return ret;
-		}
-	}
-	
-	
-	
-	uint8_t Bank_Type = GetMBCType(GameInfo.CartType);
+	uint8_t Bank_Type = GameInfo.MBCType;
 	//disable RAM again - VERY IMPORTANT -
 	if(Bank_Type == MBC1)
 		WriteByte(0x6000,0x00);
@@ -340,10 +317,13 @@ options :
 */
 int8_t GetHeader(int8_t option)
 {
-
+#ifdef SAVE_SPACE
+	//this saves alot of space, but at the cost of possible speed since we are forcing it to read everything
+	option = 0;
+#endif
 	CartInfo temp;
-	uint8_t header[0x51];
-	memset(header,0,0x51);	
+	uint8_t header[0x51] = {0};
+	//memset(header,0,0x51);	
 	
 	if(option == 0)
 	{
@@ -391,11 +371,13 @@ int8_t GetHeader(int8_t option)
 		for(int8_t i =0;i< 0x30;i++)
 		{
 			//cprintf("comparing %d : %X vs %X\r\n",i,ReadLogo[i],Logo[i]);
+			/*cprintf_char(ReadLogo[i]);
+			cprintf_char(Logo[i]);*/
 			if(ReadLogo[i] == Logo[i])
 				continue;
 			else
 			{
-				return ERR_FAULT_CART;
+				return ERR_LOGO_CHECK;
 			}
 		}
 	}
@@ -453,6 +435,7 @@ int8_t GetHeader(int8_t option)
 	temp.CartType = header[_CALC_ADDR(_ADDR_CART_TYPE)];
 	temp.RomSize = header[_CALC_ADDR(_ADDR_ROM_SIZE)];
 	temp.RamSize = header[_CALC_ADDR(_ADDR_RAM_SIZE)];	
+	temp.MBCType = GetMBCType(temp.CartType);
 	
 	GameInfo = temp;
 	return 1;
@@ -586,6 +569,7 @@ uint8_t GetMBCType(uint8_t CartType)
 
 //User End Functions
 //--------------------------
+#ifndef DISABLE_CORE_DUMP_FUNCTIONS
 int8_t DumpROM()
 {
 	SetControlPin(WD,HIGH);
@@ -618,7 +602,7 @@ int8_t DumpROM()
 		}
 		else if(bank > 1)
 		{
-			SwitchROMBank(bank,GetMBCType(GameInfo.CartType));
+			SwitchROMBank(bank,GameInfo.MBCType);//GetMBCType(GameInfo.CartType));
 		}
 		for(;addr < 0x8000;addr++)
 		{
@@ -649,7 +633,7 @@ int8_t DumpRAM()
 		}
 	}
 	
-	uint8_t Bank_Type = GetMBCType(GameInfo.CartType);
+	uint8_t Bank_Type = GameInfo.MBCType;//GetMBCType(GameInfo.CartType);
 	
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
@@ -678,8 +662,8 @@ int8_t DumpRAM()
 			
 		for(uint16_t i = addr;i< end_addr ;i++)
 		{
-			//cprintf("byte 0x%02X : 0x%02X\r\n",i-addr,GetRAMByte(i,Bank_Type));
 			cprintf_char(GetRAMByte(i,Bank_Type));
+			_delay_us(500);
 		}
 	}
 	
@@ -717,7 +701,7 @@ int8_t WriteRAM()
 	uint16_t addr = 0xA000;
 	uint16_t end_addr = 0xC000;
 	uint8_t banks = 0;
-	uint8_t Bank_Type = GetMBCType(GameInfo.CartType);
+	uint8_t Bank_Type = GameInfo.MBCType;//GetMBCType(GameInfo.CartType);
 	
 	ret = GetRamDetails(Bank_Type,&end_addr,&banks,GameInfo.RamSize);
 	if(ret < 0)
@@ -763,3 +747,4 @@ end_function:
 	sei();
 	return ret;
 }
+#endif

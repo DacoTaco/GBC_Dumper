@@ -1,3 +1,33 @@
+/*
+main - AVR code to use the GBC libraries to communicate with a GB/C cartridge
+Copyright (C) 2016-2017  DacoTaco
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation version 2.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+
+#ifdef SAVE_SPACE
+#undef _ALLOW_NONE_API_CMD
+#endif
+
+//allow the NONE API commands
+//#define _ALLOW_NONE_API_CMD
+
+//API Commands!
+#define API_READ_ROM "API_READ_ROM"
+#define API_READ_ROM_SIZE 12
+#define API_READ_RAM "API_READ_RAM"
+#define API_READ_RAM_SIZE 12
+#define API_WRITE_RAM "API_WRITE_RAM"
+#define API_WRITE_RAM_SIZE 13
+
 #include <inttypes.h>
 #include <avr/sleep.h>
 #include <avr/interrupt.h>
@@ -9,17 +39,13 @@
 #include <stdlib.h>
 #include <avr/eeprom.h>
 #include "serial.h"
-#include "GB_Cart.h"
+#include "gbc_error.h"
 #include "gbc_api.h"
-
-#define SetPin(Port, Bit)    Port |= (1 << Bit)
-#define ClearPin(Port, Bit)    Port &= ~(1 << Bit)
-
-//#define _ALLOW_NONE_API_CMD
+#include "GB_Cart.h"
 
 uint8_t cmd_size = 0;
-char cmd[0x21];
-uint8_t cmd_ready = 0;
+#define CMD_SIZE 0x21
+char cmd[CMD_SIZE];
 volatile uint8_t cmd_busy = 0;
 /*
 
@@ -36,78 +62,18 @@ void ProcessCommand(void)
 		//this is the API version of reading the ROM or RAM
 		if(strncmp(cmd,"API_READ_ROM",12) == 0 || strncmp(cmd,"API_READ_RAM",12) == 0 )
 		{
-			uint8_t ReadRom = (strncmp(cmd,"API_READ_ROM",12) == 0)?1:0;		
-			uint16_t fileSize = 0;
-			
-			if(ReadRom)
-			{
-				//because rom sizes are to big, we will just pass the banks amount
-				fileSize = GetRomBanks(GameInfo.RomSize);
-			}
-			else
-			{
-				if(GameInfo.RamSize == 0)
-				{
-					//no ram, BAIL IT
-					API_Send_Abort(API_ABORT_CMD);
-				}
-				uint16_t end_addr = 0;
-				uint8_t _banks;
-				GetRamDetails(GameInfo.CartType, &end_addr, &_banks,GameInfo.RamSize);
-				if(end_addr < 0xC000)
-				{
-					fileSize = end_addr - 0xA000;
-				}
-				else
-				{
-					fileSize = 0x2000 * _banks;
-				}
-			}
-			
+			uint8_t ReadRom = (strncmp(cmd,"API_READ_ROM",12) == 0)?1:0;					
 			ROM_TYPE type = TYPE_ROM;
 			if(!ReadRom)
 			{
 				type = TYPE_RAM;
 			}
-			API_Get_Memory(type,GameInfo.Name,fileSize,GameInfo.GBCFlag);
+			API_Get_Memory(type);
 		}
 		//this is the API version of Writing the RAM
 		else if(strncmp(cmd,"API_WRITE_RAM",13) == 0)
-		{
-			//for WRITERAM we need to send Ram size, wait for the OK(0x80) or NOK(anything NOT 0x80) signal, and then start receiving.
-			uint16_t fileSize = 0;
-			if(GameInfo.RamSize == 0)
-			{
-				//no ram, BAIL IT
-				API_Send_Abort(API_ABORT_CMD);
-				goto end_function;
-			}
-			uint16_t end_addr = 0;
-			uint8_t _banks;
-			GetRamDetails(GameInfo.CartType, &end_addr, &_banks,GameInfo.RamSize);
-			if(end_addr < 0xC000)
-			{
-				fileSize = end_addr - 0xA000;
-			}
-			else
-			{
-				fileSize = 0x2000 * _banks;
-			}
-			
-			API_Send_Size(fileSize);
-			if(API_WaitForOK())
-			{
-				//we got the OK!
-				//cprintf("We got the OK!\r\n");
-				API_WriteRam();
-			}
-			else
-			{
-				API_Send_Abort(API_ABORT_CMD);
-				goto end_function;
-			}
-			
-			
+		{			
+			API_WriteRam();	
 		}
 #ifdef _ALLOW_NONE_API_CMD
 		//all of the NONE API functions
@@ -121,7 +87,7 @@ void ProcessCommand(void)
 			cprintf("checking cart...\r\n");
 			cprintf("game inserted : %s\r\n",GameInfo.Name);
 			cprintf("MBC Type : 0x%x\r\n",GetMBCType(GameInfo.CartType));
-			cprintf("game bank amount : %u\r\n",GetRomBanks(GameInfo.RomSize));
+			cprintf("game banks : %u\r\n",GetRomBanks(GameInfo.RomSize));
 	
 			uint16_t banks = GameInfo.RamSize;
 			if(banks > 0)
@@ -132,7 +98,7 @@ void ProcessCommand(void)
 					banks *= 4;
 				}
 			}
-			cprintf("game ram size : %u\r\n",banks);
+			cprintf("ram size : %u\r\n",banks);
 			
 			if(strncmp(cmd,"READROM",7) == 0)
 			{
@@ -151,7 +117,6 @@ void ProcessCommand(void)
 			}
 			else if(strncmp(cmd,"WRITERAM",8) == 0)
 			{
-				//cprintf("RAM WRITING UNSUPPORTED ATM\r\n");
 				WriteRAM();
 				cprintf("\r\ndone\r\n");
 			}
@@ -160,7 +125,9 @@ void ProcessCommand(void)
 		else
 		{
 			API_Send_Abort(API_ABORT_ERROR);
-			cprintf("COMMAND '%s' UNKNOWN\r\n",cmd);
+			cprintf("COMMAND '");
+			cprintf(cmd);
+			cprintf("' UNKNOWN\r\n");
 		}
 	}
 	else
@@ -168,11 +135,17 @@ void ProcessCommand(void)
 		API_Send_Abort(API_ABORT_ERROR);
 		switch(ret)
 		{
+			case ERR_LOGO_CHECK:
+				cprintf("ERR_LOGO_CHECK\r\n");
+				break;
 			case ERR_FAULT_CART:
-				cprintf("Error Reading game : ERR_FAULT_CART\r\n");
+				cprintf("ERR_FAULT_CART\r\n");
 				break;
 			default :
-				cprintf("Unknown Error Reading Game, error : %d\r\n",ret);
+				cprintf("ERR_UNKNOWN\r\n");
+				/*cprintf("ERR_UNKNOWN_");
+				cprintf(ret);
+				cprintf("\r\n");*/
 				break;
 		}
 		
@@ -181,9 +154,8 @@ void ProcessCommand(void)
 	
 end_function:
 	cmd_busy = 0;
-	cmd_ready = 0;
 	cmd_size = 0;
-	memset(cmd,0,(sizeof(cmd) / sizeof(uint8_t)));
+	memset(cmd,0,CMD_SIZE);
 	return;
 }
 void ProcessChar(char byte)
@@ -199,14 +171,12 @@ void ProcessChar(char byte)
 	}
 	else if(cmd_size > 0 && (byte == '\n' || byte == '\r') )
 	{
-		cmd_ready = 1;
 		cprintf("\r\n");
 		ProcessCommand();
 		return;
 	}
 	else if( 
-		(cmd_ready == 0) && 
-		((cmd_size+1) < ((sizeof(cmd) / sizeof(uint8_t))-1))
+		(cmd_size+1) < ((sizeof(cmd) / sizeof(uint8_t))-1)
 	)
 	{
 		//space left!
@@ -228,14 +198,14 @@ int main(void)
 	//set it so that incoming msg's are ignored.
 	setRecvCallback(ProcessChar);
 	
-	cprintf("Ready to rock and roll!\r\n");
+	cprintf("Ready\r\n");
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
     while(1) 
 	{
-		if((PIND & 0b01000000)==0)
+		/*if((PIND & 0b01000000)==0)
 		{
-			
-		}
+		
+		}*/
     }
 }

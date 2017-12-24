@@ -26,9 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 // define some macros
 #define _BUFFER_SIZE 64
 
-//comment this out to reduce code size, but remove support for Variadic functions like in cprintf
-#define _VA_SUPPORT
-
 //Connection info
 #define BAUD 9600                                   // define baud
 #define BAUDRATE ((F_CPU)/(BAUD*16UL)-1)			// set baud rate value for UBRR
@@ -55,6 +52,12 @@ void usart_SendChar(char data) {
 
 //Send a string to the other side
 void usart_SendString(char *s) {
+	
+	if(s == NULL)
+	{
+		return;
+	}
+
     // loop through entire string
     while (*s) {
         usart_SendChar(*s);
@@ -65,8 +68,6 @@ void usart_SendString(char *s) {
 //Wait untill a single Char is received
 //kinda useless as we have the interrupt xD
 unsigned char usart_GetChar(void) {
-	if(_init == 0)
-		return 0;
     // Wait for incoming data
     while ( !(UCSRA & (_BV(RXC))) );
     // Return the data
@@ -97,26 +98,31 @@ void initConsole(void) {
 //Wait and retrieve 1 byte
 unsigned char Serial_GetByte(void)
 {
+	if(_init == 0)
+		return 0x00;
+		
 	return usart_GetChar();
 }             
-
-//Print a full string
-void cprintf_string(char* str)
-{
-	if(_init == 0)
-		return;
-	usart_SendString(str);
-	
-}
 
 //Print a single character
 void cprintf_char( unsigned char text )
 {
 	if(_init == 0)
 		return;
+
 	usart_SendChar(text);
 }
 
+//Print a full string
+void CPRINTF_STR_NAME(char* str)
+{
+	if(_init == 0)
+		return;
+
+	usart_SendString(str);	
+}
+
+#ifdef _VA_SUPPORT
 //Print a string
 void cprintf( char *text,... )
 {
@@ -124,7 +130,6 @@ void cprintf( char *text,... )
 		return;
 		
 	char *output = text;
-#ifdef _VA_SUPPORT
 	char astr[_BUFFER_SIZE+1];
 	memset(astr,0,_BUFFER_SIZE+1);
 	
@@ -135,11 +140,9 @@ void cprintf( char *text,... )
 	va_end(ap);
 	
 	output = astr;
-	
-#endif
-
 	usart_SendString(output);
 }
+#endif
 
 //Interrupt handler of receiving characters
 ISR(USART_RXC_vect)

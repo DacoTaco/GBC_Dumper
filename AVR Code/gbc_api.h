@@ -50,10 +50,11 @@ typedef uint8_t ROM_TYPE;
 #define TYPE_RAM 1
 
 //main API functions
-void API_Get_Memory(ROM_TYPE type,char* Name,uint16_t size,uint8_t GBCFlag);
-int8_t API_WaitForOK(void);
+int8_t API_CartInserted(void);
 int8_t API_GetGameInfo(void);
-int8_t API_WriteRam(void);
+void API_Get_Memory(ROM_TYPE type);
+int8_t API_WaitForOK(void);
+void API_WriteRam(void);
 
 
 //side functions that can be used if the API is used in a custom manor

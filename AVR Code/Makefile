@@ -109,6 +109,18 @@ OPT = s
 #     AVR [Extended] COFF format requires stabs, plus an avr-objcopy run.
 DEBUG = dwarf-2
 
+# Custom C/CPP define flags
+# Every define should be preceded by a -D which tells the compiler the flag is a define
+# Example : CUSTOMDEFINES = -D_VA_SUPPORT -DDEBUG
+#
+# _VA_SUPPORT is for Variadic functions in cprintf (accepting arguments)
+# _ALLOW_NONE_API_CMD is for the main source, to allow the none API commands
+# DISABLE_DUMP_FUNCTIONS is to disable the DumpROM,DumpRAM and WriteRAM functions to save space on the AVR
+# SAVE_SPACE is to set it so all code having defines for saving space will disable code to do so
+#
+CUSTOMDEFINES = -DSAVE_SPACE
+#CUSTOMDEFINES = -D_VA_SUPPORT -D_ALLOW_NONE_API_CMD
+
 
 # List any extra directories to look for include files here.
 #     Each directory must be seperated by a space.
@@ -150,6 +162,9 @@ CPPDEFS = -DF_CPU=$(F_CPU)UL
 CFLAGS = -g$(DEBUG)
 CFLAGS += $(CDEFS)
 CFLAGS += -O$(OPT)
+ifdef CUSTOMDEFINES
+CFLAGS += $(CUSTOMDEFINES)
+endif
 CFLAGS += -funsigned-char
 CFLAGS += -funsigned-bitfields
 CFLAGS += -fpack-struct
@@ -176,6 +191,9 @@ CFLAGS += $(CSTANDARD)
 CPPFLAGS = -g$(DEBUG)
 CPPFLAGS += $(CPPDEFS)
 CPPFLAGS += -O$(OPT)
+ifdef CUSTOMDEFINES
+CPPFLAGS += $(CUSTOMDEFINES)
+endif
 CPPFLAGS += -funsigned-char
 CPPFLAGS += -funsigned-bitfields
 CPPFLAGS += -fpack-struct

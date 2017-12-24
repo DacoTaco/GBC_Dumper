@@ -23,14 +23,110 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "gbc_api.h"
 #include "serial.h"
 #include "GB_Cart.h"
+#include "gbc_error.h"
 
-void API_Get_Memory(ROM_TYPE type,char* Name,uint16_t size,uint8_t GBCFlag)
+int8_t API_WaitForOK(void)
 {
-	API_Send_Name(Name);
-	API_Send_Size(size);
-	API_Send_GBC_Support(GBCFlag);
+	//disable interrupts, like serial interrupt for example :P 
+	//we will handle the data, kthxbye
+	cli();
+	int8_t ret = 0;
 	
-	if(API_WaitForOK())
+	cprintf_char(API_OK);
+	_delay_us(300);
+	uint8_t response = Serial_GetByte();
+	
+	switch(response)
+	{
+		default:
+		case API_NOK:
+			ret = 0;
+			break;
+		case API_ABORT:
+			ret = -1;
+			break;
+		case API_OK:
+			ret = 1;
+			break;
+	}
+	
+	sei();
+	return ret;
+}
+void API_ResetGameInfo(void)
+{
+	//reset GameInfo
+	//memset(&GameInfo,0,sizeof(CartInfo));
+	//code only checks byte 0 of the name. invalidate that and its ok :P
+	//this produces smaller code too xD
+	GameInfo.Name[0] = 0x00;
+}
+int8_t API_GetGameInfo(void)
+{
+	int8_t ret = 0;
+	SetControlPin(RST,HIGH);
+	ret = GetGameInfo();
+	SetControlPin(RST,LOW);
+	return ret;
+}
+int8_t API_GotCartInfo(void)
+{
+	if(GameInfo.Name[0] == 0x00)
+	{
+		int8_t ret = API_GetGameInfo();
+		if(ret <= 0)
+		{
+			return ret;
+		}
+		return 1;
+	}
+	return 1;
+}
+int8_t API_CartInserted(void)
+{
+	return API_GotCartInfo();
+}
+void API_Get_Memory(ROM_TYPE type)
+{
+	if(!API_GotCartInfo())
+	{
+		API_Send_Abort(API_ABORT_CMD);
+		return;
+	}
+	
+	uint16_t fileSize = 0;
+			
+	if(type == TYPE_ROM)
+	{
+		//because rom sizes are to big, we will just pass the banks amount
+		fileSize = GetRomBanks(GameInfo.RomSize);
+	}
+	else
+	{
+		if(GameInfo.RamSize == 0)
+		{
+			//no ram, BAIL IT
+			API_Send_Abort(API_ABORT_CMD);
+			return;
+		}
+		uint16_t end_addr = 0;
+		uint8_t _banks;
+		GetRamDetails(GameInfo.MBCType, &end_addr, &_banks,GameInfo.RamSize);
+		if(end_addr < 0xC000)
+		{
+			fileSize = end_addr - 0xA000;
+		}
+		else
+		{
+			fileSize = 0x2000 * _banks;
+		}
+	}
+	
+	API_Send_Name(GameInfo.Name);
+	API_Send_Size(fileSize);
+	API_Send_GBC_Support(GameInfo.GBCFlag);
+	
+	if(API_WaitForOK() > 0)
 	{
 		if(type == TYPE_RAM)
 		{
@@ -43,46 +139,17 @@ void API_Get_Memory(ROM_TYPE type,char* Name,uint16_t size,uint8_t GBCFlag)
 	}
 	else
 	{
-		cprintf_char(API_ABORT);
-		cprintf_char(API_ABORT_PACKET);
+		API_Send_Abort(API_ABORT_PACKET);
 	}
 }
-int8_t API_WaitForOK(void)
-{
-	//disable interrupts, like serial interrupt for example :P 
-	//we will handle the data, kthxbye
-	cli();
-	int8_t ret = 0;
-	
-	cprintf_char(API_OK);
-	_delay_us(300);
-	uint8_t response = Serial_GetByte();
-	
-	if(response == API_OK)
-		ret = 1;
-	else if(response == API_NOK)
+void API_WriteRam(void)
+{		
+	if(!API_GotCartInfo())
 	{
-		ret = 0;
-	}
-	else if(response >= API_ABORT)
-	{	
-		//an abort was the response!
-		ret = -1;
+		API_Send_Abort(API_ABORT_CMD);
+		return;
 	}
 	
-	sei();
-	return ret;
-}
-int8_t API_GetGameInfo(void)
-{
-	int8_t ret = 0;
-	SetControlPin(RST,HIGH);
-	ret = GetGameInfo();
-	SetControlPin(RST,LOW);
-	return ret;
-}
-int8_t API_WriteRam(void)
-{
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
 	SetControlPin(SRAM,HIGH);
@@ -91,36 +158,54 @@ int8_t API_WriteRam(void)
 	SetControlPin(RST,LOW);
 	_delay_us(50);
 	SetControlPin(RST,HIGH);
-	int8_t ret = 1;
 	
-	//disable interrupts, like serial interrupt for example :P 
-	//we will handle the data, kthxbye
-	cli();
-	
-	if(GameInfo.Name[0] == 0x00)
+	if(GameInfo.RamSize == 0)
 	{
-		//header isn't loaded yet!
-		ret = GetGameInfo();
-		if(ret <= 0)
-		{	
-			goto end_function;
-		}
+		//no ram, BAIL IT
+		API_Send_Abort(API_ABORT_CMD);
+		goto end_function;
 	}
 
+	uint16_t fileSize = 0;
 	uint16_t addr = 0xA000;
 	uint16_t end_addr = 0xC000;
 	uint8_t banks = 0;
-	uint8_t Bank_Type = GetMBCType(GameInfo.CartType);
+	uint8_t Bank_Type = GameInfo.MBCType;
 	
-	ret = GetRamDetails(Bank_Type,&end_addr,&banks,GameInfo.RamSize);
-	if(ret < 0)
+	if(GetRamDetails(Bank_Type,&end_addr,&banks,GameInfo.RamSize) < 0)
+	{	
+		API_Send_Abort(API_ABORT_CMD);
 		goto end_function;
+	}
+		
+	//precheck and send everything
+	//for WRITERAM we need to send Ram size, wait for the OK(0x80) or NOK(anything NOT 0x80) signal, and then start receiving.
+	if(end_addr < 0xC000)
+	{
+		fileSize = end_addr - 0xA000;
+	}
+	else
+	{
+		fileSize = 0x2000 * banks;
+	}
 	
+	API_Send_Size(fileSize);
+	if(API_WaitForOK() <= 0)
+	{
+		API_Send_Abort(API_ABORT_CMD);
+		goto end_function;
+	}
+	
+	
+	//we got the OK!	
 	OpenRam();
 	
 	//send the Start, we are ready for loop!
-	cprintf_char(API_TASK_START);	
-			
+	cprintf_char(API_TASK_START);
+	/*cprintf_char((addr >> 8) & 0xFF);
+	cprintf_char(addr & 0xFF);
+	cprintf_char((end_addr >> 8) & 0xFF);
+	cprintf_char(end_addr & 0xFF);	*/	
 	/*this will look as following : 
 	//the handshake is done and the PC is waiting for the START!
 	//this function will look as following : 
@@ -141,6 +226,9 @@ int8_t API_WriteRam(void)
 	if(Bank_Type != MBC2)
 		SwitchRAMBank(bank,Bank_Type);
 	
+	//disable interrupts, like serial interrupt for example :P 
+	//we will handle the data, kthxbye
+	cli();
 	//we start our loop at addr -1 because we will add 1 asa we start the loop
 	for(uint16_t i = addr-1;i< end_addr;)
 	{		
@@ -215,29 +303,109 @@ int8_t API_WriteRam(void)
 end_function:
 	//re-enable interrupts!
 	SetControlPin(RST,LOW);
+	API_ResetGameInfo();
 	sei();
-	return ret;
+	return;
 }
 int8_t API_GetRom(void)
 {
 	SetControlPin(RST,HIGH);
 	
-	DumpROM();
+	//DumpROM();
+	SetControlPin(WD,HIGH);
+	SetControlPin(RD,HIGH);
+	SetControlPin(SRAM,HIGH);	
+	
+	if(!API_GotCartInfo())
+	{
+		API_Send_Abort(API_ABORT_CMD);
+		return ERR_NO_INFO;
+	}
+	
+	uint16_t banks = GetRomBanks(GameInfo.RomSize);
+	
+	for(uint16_t bank = 1;bank < banks;bank++)
+	{
+		uint16_t addr = 0x4000;
+		SwitchROMBank(bank,GameInfo.MBCType);
+		if(bank <= 1)
+		{
+			addr = 0x00;
+		}
+
+		for(;addr < 0x8000;addr++)
+		{
+			cprintf_char(GetByte(addr));
+		}
+	}
 	
 	SetControlPin(RST,LOW);
+	API_ResetGameInfo();
 	return 1;
 }
 int8_t API_GetRam(void)
 {
 	SetControlPin(RST,HIGH);
-	DumpRAM();
+	
+	SetControlPin(WD,HIGH);
+	SetControlPin(RD,HIGH);
+	SetControlPin(SRAM,HIGH);
+	
+	//reset game cart. this causes all banks & states to reset
 	SetControlPin(RST,LOW);
+	_delay_us(50);
+	SetControlPin(RST,HIGH);
+	
+	if(!API_GotCartInfo())
+	{
+		API_Send_Abort(API_ABORT_CMD);
+		return ERR_NO_INFO;
+	}
+	
+	uint8_t Bank_Type = GameInfo.MBCType;
+	
+	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
+		return ERR_NO_MBC;
+		
+	if(GameInfo.RamSize <= 0)
+		return ERR_NO_SAVE;
+
+	
+	//read RAM Address'
+	uint16_t addr = 0xA000;
+	uint16_t end_addr = 0xC000; //actually ends at 0xBFFF
+	uint8_t banks = 0;
+	
+	int8_t ret = GetRamDetails(Bank_Type,&end_addr,&banks,GameInfo.RamSize);
+	
+	if(ret < 0)
+		return ret;
+		
+	OpenRam();
+
+	for(uint8_t bank = 0;bank < banks;bank++)
+	{
+		//if we aren't dealing with MBC2, set bank to 0!
+		if(Bank_Type != MBC2)
+			SwitchRAMBank(bank,Bank_Type);
+			
+		for(uint16_t i = addr;i< end_addr ;i++)
+		{
+			cprintf_char(GetRAMByte(i,Bank_Type));
+			_delay_us(500);
+		}
+	}
+	
+	CloseRam();	
+	SetControlPin(RST,LOW);
+	API_ResetGameInfo();
 	return 1;
 }
 void API_Send_Abort(uint8_t type)
 {
 	cprintf_char(API_ABORT);
 	cprintf_char(type);
+	API_ResetGameInfo();
 }
 
 void API_Send_Name(char* Name)
@@ -245,7 +413,7 @@ void API_Send_Name(char* Name)
 	cprintf_char(API_GAMENAME_START);
 	cprintf_char(strnlen(Name,17));
 	cprintf_char(API_GAMENAME_END);
-	cprintf("%s",Name);
+	cprintf(Name);
 	return;
 }
 
