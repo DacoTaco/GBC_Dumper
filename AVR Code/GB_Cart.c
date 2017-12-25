@@ -51,14 +51,14 @@ void ChangeDataPinsMode(uint8_t mode)
 		//set as input;
 		DDRA &= ~(0xFF); //0b00000000;
 		//enable pull up resistors
-		//PORTA = 0xFF;
+		PORTA = 0xFF;
 	}
 	else
 	{
 		//set as output
 		DDRA |= (0xFF);//0b11111111;
 		//set output as 0x00
-		//PORTA = 0x00;
+		PORTA = 0x00;
 	}
 
 }
@@ -323,6 +323,7 @@ int8_t GetHeader(int8_t option)
 #endif
 	CartInfo temp;
 	uint8_t header[0x51] = {0};
+	uint8_t FF_cnt = 0;
 	//memset(header,0,0x51);	
 	
 	if(option == 0)
@@ -330,6 +331,12 @@ int8_t GetHeader(int8_t option)
 		for(uint8_t i = 0 ; i < ((sizeof(header) / sizeof(uint8_t))-1);i++)
 		{
 			header[i] = GetByte(0x100+i);
+			if(i >= 0 && i<=4 && header[i] == 0xFF)
+			{
+				FF_cnt++;
+			}
+			if(FF_cnt >= 3)
+				return ERR_FAULT_CART;
 		}	
 	}
 	else
@@ -338,6 +345,12 @@ int8_t GetHeader(int8_t option)
 		for(uint8_t i = 0 ; i < 0x30;i++)
 		{
 			header[_CALC_ADDR(_ADDR_LOGO+i)] = GetByte(0x104+i);
+			if(i >= 0 && i<=4 && header[_CALC_ADDR(_ADDR_LOGO+i)] == 0xFF)
+			{
+				FF_cnt++;
+			}
+			if(FF_cnt >= 3)
+				return ERR_FAULT_CART;
 		}
 		//read old licenseecode
 		header[_CALC_ADDR(_ADDR_OLD_LICODE)] = GetByte(_ADDR_OLD_LICODE);
@@ -352,6 +365,20 @@ int8_t GetHeader(int8_t option)
 		header[_CALC_ADDR(_ADDR_ROM_SIZE)] = GetByte(_ADDR_ROM_SIZE);
 		header[_CALC_ADDR(_ADDR_RAM_SIZE)] = GetByte(_ADDR_RAM_SIZE);
 	}
+	
+	/*cprintf("data :");
+	cprintf_char(header[_CALC_ADDR(_ADDR_LOGO)]);
+	cprintf_char(header[_CALC_ADDR(_ADDR_LOGO+1)]);
+	cprintf_char(header[_CALC_ADDR(_ADDR_LOGO+2)]);
+	cprintf_char(header[_CALC_ADDR(_ADDR_LOGO+3)]);
+	cprintf("lolk");*/
+	/*if(
+	(header[_CALC_ADDR(_ADDR_LOGO)] == 0xFF && 
+	(header[_CALC_ADDR(_ADDR_LOGO)+1] == 0xFF )
+	{
+		//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
+		return ERR_FAULT_CART;
+	}*/
 	
 	//read and compare the logo. this should give it a quick check if its ok or not
 	{

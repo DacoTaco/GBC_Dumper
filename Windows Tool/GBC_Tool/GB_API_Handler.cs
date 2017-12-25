@@ -49,7 +49,13 @@ namespace Gameboy
         public const byte TYPE_ROM = 0;
         public const byte TYPE_RAM = 1;
     }
-
+    public static class GB_API_Error
+	{
+        public const int ERROR_PRECHECK = -1;
+        public const int ERROR_INVALID_PARAM = -2;
+        public const int ERROR_ABORT = -3;
+        public const int ERROR_INVALID_DATA = -4;
+	}
     public class GB_API_Handler
     {
         /// <summary>
@@ -153,7 +159,7 @@ namespace Gameboy
         private int ProcessHeaderPacket(byte[] buf, bool IsRom, bool IsWriting)
         {
             if (IsRom && IsWriting)
-                return -1;
+                return GB_API_Error.ERROR_PRECHECK;
 
             //we sometimes get uncomplete data, so wait a bit to see if more data is coming.
             System.Threading.Thread.Sleep(10);
@@ -201,7 +207,7 @@ namespace Gameboy
                     if (Info.FileSize < 0x0800 || Info.FileSize > 0x400000) //we have an invalid valid rom or ram
                     {
                         ResetVariables();
-                        return -1;
+                        return GB_API_Error.ERROR_INVALID_PARAM;
                     }
                     else
                     {
@@ -217,7 +223,7 @@ namespace Gameboy
                     if (i + strSize > bufSize)
                     {
                         ResetVariables();
-                        return -2;
+                        return GB_API_Error.ERROR_INVALID_PARAM;
                     }
                     else
                     {
@@ -234,7 +240,7 @@ namespace Gameboy
                     {
                         //there was an error. see field for more info. meanwhile, close all commands
                         ResetVariables();
-                        return -3;
+                        return GB_API_Error.ERROR_ABORT;
                     }
                 }
                 else if (i == bufSize - 1 && buf[i] == GB_API_Protocol.API_OK && (Info.FileSize == 0))//( String.IsNullOrWhiteSpace(Info.CartName) || Info.FileSize == 0 || Info.IsGBC == null))
@@ -243,7 +249,7 @@ namespace Gameboy
                     byte[] data = new byte[] { GB_API_Protocol.API_ABORT, GB_API_Protocol.API_ABORT_CMD };
                     serial.Write(data, 0, data.Length);
                     ResetVariables();
-                    return -4;
+                    return GB_API_Error.ERROR_INVALID_DATA;
                 }
             }
             if (offset > 0)
@@ -503,9 +509,16 @@ namespace Gameboy
                 offset = ProcessHeaderPacket(buf, isRom);
                 if (offset < 0 || (Info.FileSize <= 0 || String.IsNullOrWhiteSpace(Info.CartName)))
                 {
-                    byte[] data = new byte[] { GB_API_Protocol.API_NOK };
-                    serial.Write(data, 0, data.Length);
-                    return -11;
+                    if (offset != GB_API_Error.ERROR_ABORT)
+                    {
+                        //if an error was thrown that isn't abort, send NOK so the controller exists its function
+                        byte[] data = new byte[] { GB_API_Protocol.API_NOK };
+                        serial.Write(data, 0, data.Length);
+                    }
+                    if (offset < 0)
+                        return offset;
+                    else
+                        return GB_API_Error.ERROR_INVALID_PARAM;
                 }
                 else if (offset > 0)
                 {

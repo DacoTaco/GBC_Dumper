@@ -39,7 +39,7 @@ namespace GBC_Tool
 
         
         //variables used by the interface
-        FileStream Debugfs = null;
+        static FileStream Debugfs = null;
         GB_API_Handler APIHandler = new GB_API_Handler();
         Serial serial = Serial.Instance;
 
@@ -193,6 +193,7 @@ namespace GBC_Tool
 
             byte[] data = Encoding.ASCII.GetBytes(text);
             Debugfs.Write(data, 0, data.Length);
+            Debugfs.Flush();
             TextField += text;
         }
 
