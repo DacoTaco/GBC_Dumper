@@ -225,7 +225,7 @@ namespace GBC_Tool
                     }
                     byte[] data = new byte[bufSize - index];
                     Array.Copy(buf, index, data, 0, buf.Length - index);
-                    AddTextToField(Environment.NewLine + "An Error was Given by the Controller : " + Encoding.ASCII.GetString(data) + Environment.NewLine);
+                    AddTextToField(Environment.NewLine + "An Error (" + ret + ") was Given by the Controller : " + Encoding.ASCII.GetString(data) + Environment.NewLine);
                     ResetVariables();
                 }
                 else if( ret > 0)

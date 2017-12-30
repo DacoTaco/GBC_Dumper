@@ -93,6 +93,8 @@ namespace Gameboy
                 Filefs.Close();
                 Filefs = null;
             }
+            PrevPacket = new byte[] {0x00,0x00};
+            PrevByte = 0x00;
             APIMode = 0x00;
             Info.CartName = string.Empty;
             Info.FileSize = 0;
@@ -204,7 +206,8 @@ namespace Gameboy
                         Info.FileSize = Info.FileSize * 0x4000;
                     }
 
-                    if (Info.FileSize < 0x0800 || Info.FileSize > 0x400000) //we have an invalid valid rom or ram
+                    //MBC2 is 0x200(minimum) and 0x8000 max(32KB)
+                    if (Info.FileSize < 0x0200 || Info.FileSize > 0x400000) //we have an invalid valid rom or ram
                     {
                         ResetVariables();
                         return GB_API_Error.ERROR_INVALID_PARAM;

@@ -152,7 +152,7 @@ uint8_t GetRAMByte(uint16_t address,uint8_t Bank_Type)
 	if(Bank_Type == MBC2)
 	{
 		//MBC2 only has the lower 4 bits as data, so we return it as 0xFx
-		return 0xF0 | (ret & 0x0F);
+		return (0xF0 | ret );
 	}
 	else
 	{
@@ -665,7 +665,7 @@ int8_t DumpRAM()
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 		
-	if(GameInfo.RamSize <= 0)
+	if(GameInfo.MBCType != MBC2 && GameInfo.RamSize <= 0)
 		return ERR_NO_SAVE;
 
 	

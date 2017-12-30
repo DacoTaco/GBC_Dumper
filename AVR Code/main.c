@@ -109,7 +109,7 @@ void ProcessCommand(void)
 			else if(strncmp(cmd,"READRAM",7) == 0)
 			{
 				cprintf("Dumping RAM...\r\n");
-				if(GameInfo.RamSize > 0)
+				if(GameInfo.RamSize > 0 || GameInfo.MBCType == MBC2 && GameInfo.RamSize == 0)
 				{
 					DumpRAM();
 				}

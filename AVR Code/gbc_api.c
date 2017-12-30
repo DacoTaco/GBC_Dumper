@@ -103,7 +103,9 @@ void API_Get_Memory(ROM_TYPE type)
 	}
 	else
 	{
-		if(GameInfo.RamSize == 0)
+		//every MBC type has ramsize as the amount of banks
+		//...except MBC2 which needs ramsize to be set to 0, because its RAM is included in MBC2
+		if(GameInfo.MBCType != MBC2 && GameInfo.RamSize == 0)
 		{
 			//no ram, BAIL IT
 			API_Send_Abort(API_ABORT_CMD);
@@ -111,7 +113,14 @@ void API_Get_Memory(ROM_TYPE type)
 		}
 		uint16_t end_addr = 0;
 		uint8_t _banks;
-		GetRamDetails(GameInfo.MBCType, &end_addr, &_banks,GameInfo.RamSize);
+		
+		if(GetRamDetails(GameInfo.MBCType, &end_addr, &_banks,GameInfo.RamSize) < 0)
+		{
+			//ram error, BAIL IT
+			API_Send_Abort(API_ABORT_CMD);
+			return;
+		}
+		
 		if(end_addr < 0xC000)
 		{
 			fileSize = end_addr - 0xA000;
@@ -159,7 +168,7 @@ void API_WriteRam(void)
 	_delay_us(50);
 	SetControlPin(RST,HIGH);
 	
-	if(GameInfo.RamSize == 0)
+	if(GameInfo.MBCType != MBC2 && GameInfo.RamSize == 0)
 	{
 		//no ram, BAIL IT
 		API_Send_Abort(API_ABORT_CMD);
@@ -367,7 +376,7 @@ int8_t API_GetRam(void)
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 		
-	if(GameInfo.RamSize <= 0)
+	if(GameInfo.MBCType != MBC2 && GameInfo.RamSize <= 0)
 		return ERR_NO_SAVE;
 
 	
