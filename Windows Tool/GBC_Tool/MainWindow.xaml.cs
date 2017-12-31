@@ -121,7 +121,7 @@ namespace GBC_Tool
                 cbComPorts.ItemsSource = serial.ComPorts;
                 cbComPorts.SelectedIndex = 0;
                 cbBaudRate.ItemsSource = serial.BaudRates;
-                cbBaudRate.SelectedItem = 9600;
+                cbBaudRate.SelectedItem = 38400;
             }
             else
             {

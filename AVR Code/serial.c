@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define _BUFFER_SIZE 64
 
 //Connection info
-#define BAUD 9600                                   // define baud
+#define BAUD 38400//19200//9600                                   // define baud
 #define BAUDRATE ((F_CPU)/(BAUD*16UL)-1)			// set baud rate value for UBRR
 
 char _init = 0;

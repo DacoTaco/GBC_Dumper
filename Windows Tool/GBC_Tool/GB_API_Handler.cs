@@ -152,15 +152,19 @@ namespace Gameboy
                 return;    
 
             FileMode mode = FileMode.Create;
+            FileAccess access = FileAccess.ReadWrite;
             if (OpenOnly)
+            {
                 mode = FileMode.Open;
+                access = FileAccess.Read;
+            }
             //Open File with the selected mode, and allow others to still read the file!
-            Filefs = new FileStream(Filename, mode, FileAccess.ReadWrite, FileShare.Read);
+            Filefs = new FileStream(Filename, mode, access, FileShare.Read);
         }
 
-        private int ProcessHeaderPacket(byte[] buf, bool IsRom, bool IsWriting)
+        private int ProcessHeaderPacket(ref byte[] buf, bool IsRom, bool IsWriting)
         {
-            if (IsRom && IsWriting)
+            if ((IsRom && IsWriting) || buf == null)
                 return GB_API_Error.ERROR_PRECHECK;
 
             //we sometimes get uncomplete data, so wait a bit to see if more data is coming.
@@ -260,9 +264,9 @@ namespace Gameboy
 
             return offset;
         }
-        private int ProcessHeaderPacket(byte[] buf, bool IsRom)
+        private int ProcessHeaderPacket(ref byte[] buf, bool IsRom)
         {
-            return ProcessHeaderPacket(buf, IsRom,false);
+            return ProcessHeaderPacket(ref buf, IsRom,false);
         }
 
         public void SetRamFilename(string filepath)
@@ -376,7 +380,7 @@ namespace Gameboy
             byte[] data = null;
             if (IsWriting == false && Info.current_addr == 0)
             {
-                offset = ProcessHeaderPacket(buf, false, true);
+                offset = ProcessHeaderPacket(ref buf, false, true);
                 if (offset < 0)
                     return offset;
                 else if (offset > 0)
@@ -509,7 +513,7 @@ namespace Gameboy
             int ret = 0;
             if (Info.FileSize <= 0 || String.IsNullOrWhiteSpace(Info.CartName))
             {
-                offset = ProcessHeaderPacket(buf, isRom);
+                offset = ProcessHeaderPacket(ref buf, isRom);
                 if (offset < 0 || (Info.FileSize <= 0 || String.IsNullOrWhiteSpace(Info.CartName)))
                 {
                     if (offset != GB_API_Error.ERROR_ABORT)
