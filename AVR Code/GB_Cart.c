@@ -43,6 +43,7 @@ void SetControlPin(uint8_t Pin,uint8_t state)
 	{
 		CTRL_PORT &= ~(1 << Pin); // Pin goes low
 	}
+	_delay_us(10);
 }
 void ChangeDataPinsMode(uint8_t mode)
 {
@@ -112,7 +113,7 @@ void SetAddress(uint16_t address)
 	
 	_delay_us(5);
 }
-uint8_t GetByte(uint16_t address)
+uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 {
 	uint8_t data = 0;
 
@@ -127,32 +128,37 @@ uint8_t GetByte(uint16_t address)
 	//pass Address to cartridge via the address bus
 	SetAddress(address);
 	
-	_delay_us(10);
+	//set Sram control pin low. we do this -AFTER- address is set because MBC2 latches to the address as soon as SRAM is set low. 
+	//making the SetAddress do nothing, it'll latch to the address it was set before the SetAddress
+	if(ReadRom <= 0)
+	{
+		SetControlPin(SRAM,LOW);
+	}
 	
 	//set cartridge in read mode
 	SetControlPin(RD,LOW);	
-	_delay_us(50);
 	
 	data = PINA;
 	
 	SetControlPin(RD,HIGH);
-	_delay_us(10);
+	
+	if(ReadRom <= 0)
+	{
+		SetControlPin(SRAM,HIGH);
+	}
 	
 	return data;
 }
-uint8_t GetRAMByte(uint16_t address,uint8_t Bank_Type)
+uint8_t ReadByte(uint16_t address)
+{
+	return _ReadByte(1,address);
+}
+uint8_t ReadRAMByte(uint16_t address,uint8_t Bank_Type)
 {
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 	
-	if(CheckControlPin(RST) == 0)
-	{
-		SetControlPin(RST,HIGH);
-	}
-	
-	SetControlPin(SRAM,LOW);
-	uint8_t ret = GetByte(address);
-	SetControlPin(SRAM,HIGH);
+	uint8_t ret = _ReadByte(0,address);
 	
 	if(Bank_Type == MBC2)
 	{
@@ -163,9 +169,10 @@ uint8_t GetRAMByte(uint16_t address,uint8_t Bank_Type)
 	{
 		return ret;
 	}
+	
 }
-uint8_t WriteByte(uint16_t addr,uint8_t byte)
-{	
+uint8_t _WriteByte(int8_t WriteRom, uint16_t addr,uint8_t byte)
+{
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
 	if(CheckControlPin(RST) == 0)
@@ -177,15 +184,29 @@ uint8_t WriteByte(uint16_t addr,uint8_t byte)
 	PORTA = byte;
 	SetAddress(addr);
 	
-	SetControlPin(WD,LOW);
-	_delay_us(50);
+	//set Sram control pin low. we do this -AFTER- address is set because MBC2 latches to the address as soon as SRAM is set low. 
+	//making the SetAddress do nothing, it'll latch to the address it was set before the SetAddress
+	if(WriteRom <= 0)
+	{
+		SetControlPin(SRAM,LOW);
+	}
 	
+	SetControlPin(WD,LOW);
+	//SetControlPin has a delay
 	SetControlPin(WD,HIGH);
-	_delay_us(10);
+	if(WriteRom <= 0)
+	{
+		SetControlPin(SRAM,HIGH);
+	}
+	
 	PORTA = 0x00;
 	ChangeDataPinsMode(INPUT);
 	
 	return 1;
+}
+uint8_t WriteByte(uint16_t addr,uint8_t byte)
+{	
+	return _WriteByte(1,addr,byte);
 }
 uint8_t WriteRAMByte(uint16_t addr,uint8_t byte,uint8_t Bank_Type)
 {
@@ -193,21 +214,7 @@ uint8_t WriteRAMByte(uint16_t addr,uint8_t byte,uint8_t Bank_Type)
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 		
-	if(CheckControlPin(RST) == 0)
-	{
-		SetControlPin(RST,HIGH);
-	}
-	SetControlPin(WD,HIGH);
-	SetControlPin(RD,HIGH);
-	SetControlPin(SRAM,HIGH);
-		
-	SetControlPin(SRAM,LOW);
-	uint8_t ret = WriteByte(addr,byte);
-	_delay_us(20);
-	SetControlPin(SRAM,HIGH);
-
-	return ret;
-
+	return _WriteByte(0,addr,byte);
 }
 int8_t OpenRam(void)
 {
@@ -228,7 +235,7 @@ int8_t OpenRam(void)
 	{
 		//the ghost read fix from https://www.insidegadgets.com/2011/03/28/gbcartread-arduino-based-gameboy-cart-reader-%E2%80%93-part-2-read-the-ram/
 		//he said it otherwise had issues with MBC2 :/
-		GetByte(0x0134);
+		ReadByte(0x0134);
 	}
 		
 	//set banking mode to RAM
@@ -339,13 +346,16 @@ int8_t GetHeader(int8_t option)
 	{
 		for(uint8_t i = 0 ; i < ((sizeof(header) / sizeof(uint8_t))-1);i++)
 		{
-			header[i] = GetByte(0x100+i);
+			header[i] = ReadByte(0x100+i);
 			if(i >= 0 && i<=4 && header[i] == 0xFF)
 			{
 				FF_cnt++;
 			}
 			if(FF_cnt >= 3)
+			{
+				//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
 				return ERR_FAULT_CART;
+			}
 		}	
 	}
 	else
@@ -353,41 +363,30 @@ int8_t GetHeader(int8_t option)
 		//read logo
 		for(uint8_t i = 0 ; i < 0x30;i++)
 		{
-			header[_CALC_ADDR(_ADDR_LOGO+i)] = GetByte(0x104+i);
+			header[_CALC_ADDR(_ADDR_LOGO+i)] = ReadByte(0x104+i);
 			if(i >= 0 && i<=4 && header[_CALC_ADDR(_ADDR_LOGO+i)] == 0xFF)
 			{
 				FF_cnt++;
 			}
 			if(FF_cnt >= 3)
+			{
+				//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
 				return ERR_FAULT_CART;
+			}
 		}
 		//read old licenseecode
-		header[_CALC_ADDR(_ADDR_OLD_LICODE)] = GetByte(_ADDR_OLD_LICODE);
+		header[_CALC_ADDR(_ADDR_OLD_LICODE)] = ReadByte(_ADDR_OLD_LICODE);
 		//read name
 		for(uint8_t i = 0;i <= 16;i++)
 		{
-			header[_CALC_ADDR(_ADDR_NAME+i)] = GetByte(_ADDR_NAME+i);
+			header[_CALC_ADDR(_ADDR_NAME+i)] = ReadByte(_ADDR_NAME+i);
 		}
 		//read Cart Type
-		header[_CALC_ADDR(_ADDR_CART_TYPE)] = GetByte(_ADDR_CART_TYPE);
+		header[_CALC_ADDR(_ADDR_CART_TYPE)] = ReadByte(_ADDR_CART_TYPE);
 		//read rom&ram size
-		header[_CALC_ADDR(_ADDR_ROM_SIZE)] = GetByte(_ADDR_ROM_SIZE);
-		header[_CALC_ADDR(_ADDR_RAM_SIZE)] = GetByte(_ADDR_RAM_SIZE);
+		header[_CALC_ADDR(_ADDR_ROM_SIZE)] = ReadByte(_ADDR_ROM_SIZE);
+		header[_CALC_ADDR(_ADDR_RAM_SIZE)] = ReadByte(_ADDR_RAM_SIZE);
 	}
-	
-	/*cprintf("data :");
-	cprintf_char(header[_CALC_ADDR(_ADDR_LOGO)]);
-	cprintf_char(header[_CALC_ADDR(_ADDR_LOGO+1)]);
-	cprintf_char(header[_CALC_ADDR(_ADDR_LOGO+2)]);
-	cprintf_char(header[_CALC_ADDR(_ADDR_LOGO+3)]);
-	cprintf("lolk");*/
-	/*if(
-	(header[_CALC_ADDR(_ADDR_LOGO)] == 0xFF && 
-	(header[_CALC_ADDR(_ADDR_LOGO)+1] == 0xFF )
-	{
-		//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
-		return ERR_FAULT_CART;
-	}*/
 	
 	//read and compare the logo. this should give it a quick check if its ok or not
 	{
@@ -642,7 +641,7 @@ int8_t DumpROM()
 		}
 		for(;addr < 0x8000;addr++)
 		{
-			cprintf_char(GetByte(addr));
+			cprintf_char(ReadByte(addr));
 		}
 	}
 	SetControlPin(RST,LOW);
@@ -698,8 +697,8 @@ int8_t DumpRAM()
 			
 		for(uint16_t i = addr;i< end_addr ;i++)
 		{
-			cprintf_char(GetRAMByte(i,Bank_Type));
-			_delay_us(500);
+			cprintf_char(ReadRAMByte(i,Bank_Type));
+			_delay_us(20);
 		}
 	}
 	
@@ -766,7 +765,7 @@ int8_t WriteRAM()
 			data_recv = UDR;
 			
 			WriteRAMByte(i,data_recv,Bank_Type);	
-			uint8_t data = GetRAMByte(i,Bank_Type);
+			uint8_t data = ReadRAMByte(i,Bank_Type);
 			cprintf_char(data);
 			
 		}

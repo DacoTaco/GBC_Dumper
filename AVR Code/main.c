@@ -160,9 +160,6 @@ void ProcessCommand(void)
 				cprintf("ERR_UNKNOWN :'");
 				cprintf_char(ret);
 				cprintf("'\r\n");
-				/*cprintf("ERR_UNKNOWN_");
-				cprintf(ret);
-				cprintf("\r\n");*/
 				break;
 		}		
 		goto end_function;

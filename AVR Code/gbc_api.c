@@ -34,7 +34,7 @@ int8_t API_WaitForOK(void)
 	
 	cprintf_char(API_OK);
 	_delay_us(300);
-	uint8_t response = Serial_GetByte();
+	uint8_t response = Serial_ReadByte();
 	
 	switch(response)
 	{
@@ -227,6 +227,7 @@ int8_t API_WriteRam(void)
 	cprintf_char(addr & 0xFF);
 	cprintf_char((end_addr >> 8) & 0xFF);
 	cprintf_char(end_addr & 0xFF);	*/
+	
 	/*this will look as following : 
 	//the handshake is done and the PC is waiting for the START!
 	//this function will look as following : 
@@ -251,11 +252,11 @@ int8_t API_WriteRam(void)
 	//disable interrupts, like serial interrupt for example :P 
 	//we will handle the data, kthxbye
 	cli();
+	
 	//we start our loop at addr -1 because we will add 1 asa we start the loop
 	for(uint16_t i = addr-1;i< end_addr;)
 	{		
 		//receive first byte
-		//wait untill we get data...
 		while ( !(UCSRA & (_BV(RXC))) );	
 		//add the delay because the while tends to exit once in a while to early and it makes us retrieve the wrong byte. for example 0xFA often tended to become 00. used to be 5ms
 		_delay_us(30);
@@ -288,7 +289,7 @@ int8_t API_WriteRam(void)
 			
 			//Write and read written byte for verification
 			WriteRAMByte(i,data_recv[1],Bank_Type);
-			uint8_t data = GetRAMByte(i,Bank_Type);
+			uint8_t data = ReadRAMByte(i,Bank_Type);
 			
 			cprintf_char(API_VERIFY);
 			cprintf_char(data);
@@ -297,13 +298,9 @@ int8_t API_WriteRam(void)
 		{
 			//data was decided NOT OK, we go back and retry!
 			WriteRAMByte(i,data_recv[1],Bank_Type);			
-			uint8_t data = GetRAMByte(i,Bank_Type);
+			uint8_t data = ReadRAMByte(i,Bank_Type);
 			cprintf_char(API_VERIFY);
 			cprintf_char(data);
-			/*cprintf_char((i >> 8) & 0xFF);
-			cprintf_char(i & 0xFF);
-			cprintf_char(bank);
-			cprintf_char(GetRAMByte(i+1,Bank_Type));*/
 		}
 		else if(data_recv[0] == API_ABORT)
 		{
@@ -332,12 +329,14 @@ end_function:
 }
 int8_t API_GetRom(void)
 {
-	SetControlPin(RST,HIGH);
+	//reset cart
+	SetControlPin(RST,LOW);
 	
 	//DumpROM();
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
 	SetControlPin(SRAM,HIGH);	
+	SetControlPin(RST,HIGH);
 	
 	int8_t ret = API_GotCartInfo();
 	if(!ret)
@@ -359,7 +358,7 @@ int8_t API_GetRom(void)
 
 		for(;addr < 0x8000;addr++)
 		{
-			cprintf_char(GetByte(addr));
+			cprintf_char(ReadByte(addr));
 			_delay_us(1);
 		}
 	}
@@ -377,8 +376,6 @@ int8_t API_GetRam(void)
 	SetControlPin(RD,HIGH);
 	SetControlPin(SRAM,HIGH);
 	
-	//reset game cart. this causes all banks & states to reset
-	//SetControlPin(RST,LOW);
 	_delay_us(1);
 	SetControlPin(RST,HIGH);
 	
@@ -409,24 +406,17 @@ int8_t API_GetRam(void)
 	
 	OpenRam();
 	_delay_us(5);
-	/*cprintf_char(addr >> 8);
-	cprintf_char(addr & 0xFF);
-	cprintf_char(end_addr >> 8);
-	cprintf_char(end_addr & 0xFF);*/
+
 	for(uint8_t bank = 0;bank < banks;bank++)
 	{
 		//if we aren't dealing with MBC2, set bank to 0!
 		if(Bank_Type != MBC2)
 			SwitchRAMBank(bank,Bank_Type);	
 		
-		for(uint16_t i = addr;i< end_addr ;i++)//end_addr;i >= addr;i--)//addr+1;i< end_addr ;i++)
+		for(uint16_t i = addr;i< end_addr ;i++)
 		{
-			//extra get the byte. im having MBC2 issues where the first byte is repeated and the bytes are pushed forward 1 position
-			//this extra read seems to fix the issue, but adding a delay between setting addr and reading doesnt...
-			//GetRAMByte(i,Bank_Type);
-			uint8_t data = GetRAMByte(i,Bank_Type);
-			cprintf_char(data);
-			_delay_ms(1);			
+			cprintf_char(ReadRAMByte(i,Bank_Type));
+			_delay_us(20);			
 		}
 	}
 	

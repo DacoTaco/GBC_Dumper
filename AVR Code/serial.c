@@ -96,7 +96,7 @@ void initConsole(void) {
 	return;
 }
 //Wait and retrieve 1 byte
-unsigned char Serial_GetByte(void)
+unsigned char Serial_ReadByte(void)
 {
 	if(_init == 0)
 		return 0x00;
