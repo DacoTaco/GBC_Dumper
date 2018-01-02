@@ -14,6 +14,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 //ERROR_CODES
+#define ERR_PACKET_FAILURE -6
+#define ERR_NOK_RETURNED -7
 #define ERR_LOGO_CHECK -8
 #define ERR_NO_INFO -9
 #define ERR_FAULT_CART -10

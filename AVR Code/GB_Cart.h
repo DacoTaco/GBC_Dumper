@@ -155,6 +155,7 @@ int8_t WriteRAM(void);
 
 //other , usable functions by other code. these are used by the GB/C Cart code !
 void SetControlPin(uint8_t Pin,uint8_t state);
+void SetAddress(uint16_t address);
 int8_t CheckControlPin(uint8_t Pin);
 uint8_t GetByte(uint16_t address);
 uint8_t GetRAMByte(uint16_t address,uint8_t Bank_Type);

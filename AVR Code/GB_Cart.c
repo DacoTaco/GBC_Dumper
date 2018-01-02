@@ -109,6 +109,8 @@ void SetAddress(uint16_t address)
 	
 	PORTB = adr1;
 	PORTC = adr2;
+	
+	_delay_us(5);
 }
 uint8_t GetByte(uint16_t address)
 {
@@ -124,14 +126,17 @@ uint8_t GetByte(uint16_t address)
 		
 	//pass Address to cartridge via the address bus
 	SetAddress(address);
-
+	
+	_delay_us(10);
+	
 	//set cartridge in read mode
 	SetControlPin(RD,LOW);	
-	_delay_us(10);
+	_delay_us(50);
 	
 	data = PINA;
 	
 	SetControlPin(RD,HIGH);
+	_delay_us(10);
 	
 	return data;
 }
@@ -173,7 +178,7 @@ uint8_t WriteByte(uint16_t addr,uint8_t byte)
 	SetAddress(addr);
 	
 	SetControlPin(WD,LOW);
-	_delay_us(20);
+	_delay_us(50);
 	
 	SetControlPin(WD,HIGH);
 	_delay_us(10);
@@ -269,6 +274,10 @@ void SwitchROMBank(int8_t bank,uint8_t Bank_Type)
 	{
 		addr = 0x2000;
 	}
+	if(Bank_Type == MBC5)
+	{
+		addr2 = 0x3000;
+	}
 	
 	switch(Bank_Type)
 	{
@@ -283,8 +292,8 @@ void SwitchROMBank(int8_t bank,uint8_t Bank_Type)
 			WriteByte(addr,bank & 0x1F);
 			break;
 		case MBC5:
-			WriteByte(addr,bank & 0x7F);
-			WriteByte(addr2,bank >> 7);
+			WriteByte(addr,bank & 0xFF);
+			WriteByte(addr2,bank >> 8);
 			break;
 		default:
 		case MBC3:
@@ -439,7 +448,7 @@ int8_t GetHeader(int8_t option)
 	}
 
 	memset(temp.Name,0,17);
-	for(uint8_t i = 0;i <= NameSize;i++)
+	for(uint8_t i = 0;i < NameSize;i++)
 	{
 		temp.Name[i] = header[_CALC_ADDR(_ADDR_NAME+i)];
 	}
@@ -746,16 +755,12 @@ int8_t WriteRAM()
 		
 		uint8_t data_recv;
 		
-		//switch bank!
-		if(Bank_Type != MBC2)
-			SwitchRAMBank(bank,Bank_Type);
-		
 		for(uint16_t i = addr;i< end_addr;i++)
 		{					
 			// Wait for incoming data
 			while ( !(UCSRA & (_BV(RXC))) );	
 			//add the delay because the while tends to exit once in a while to early and it makes us retrieve the wrong byte. for example 0xFA often tended to become 00
-			//a 5s delay seemed to cause it different times? :/
+			//a 5ms delay seemed to cause it different times? :/
 			_delay_ms(1);
 			// Return the data
 			data_recv = UDR;

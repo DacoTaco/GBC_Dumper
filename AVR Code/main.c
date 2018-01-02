@@ -68,12 +68,12 @@ void ProcessCommand(void)
 			{
 				type = TYPE_RAM;
 			}
-			API_Get_Memory(type);
+			ret = API_Get_Memory(type);
 		}
 		//this is the API version of Writing the RAM
 		else if(strncmp(cmd,"API_WRITE_RAM",13) == 0)
 		{			
-			API_WriteRam();	
+			ret = API_WriteRam();	
 		}
 #ifdef _ALLOW_NONE_API_CMD
 		//all of the NONE API functions
@@ -130,11 +130,26 @@ void ProcessCommand(void)
 			cprintf("' UNKNOWN\r\n");
 		}
 	}
-	else
+	
+	//process errors
+	if(ret < 0)
 	{
-		API_Send_Abort(API_ABORT_ERROR);
+		//if there is no Gameinfo/Cart detected that means we are here from cart detection. therefor send an abort.
+		//else, just process. it has send its own abort!
+		if(!API_CartInserted())
+			API_Send_Abort(API_ABORT_ERROR);
+		
 		switch(ret)
 		{
+			case ERR_PACKET_FAILURE:
+				cprintf("ERR_NO_SAVE");
+				break;
+			case ERR_NOK_RETURNED:
+				cprintf("ERR_NO_SAVE");
+				break;
+			case ERR_NO_SAVE:
+				cprintf("ERR_NO_SAVE");
+				break;
 			case ERR_LOGO_CHECK:
 				cprintf("ERR_LOGO_CHECK\r\n");
 				break;
@@ -142,13 +157,14 @@ void ProcessCommand(void)
 				cprintf("ERR_FAULT_CART\r\n");
 				break;
 			default :
-				cprintf("ERR_UNKNOWN\r\n");
+				cprintf("ERR_UNKNOWN :'");
+				cprintf_char(ret);
+				cprintf("'\r\n");
 				/*cprintf("ERR_UNKNOWN_");
 				cprintf(ret);
 				cprintf("\r\n");*/
 				break;
-		}
-		
+		}		
 		goto end_function;
 	}
 	
@@ -171,7 +187,7 @@ void ProcessChar(char byte)
 	}
 	else if(cmd_size > 0 && (byte == '\n' || byte == '\r') )
 	{
-		cprintf("\r\n");
+		//cprintf("\r\n");
 		ProcessCommand();
 		return;
 	}
@@ -184,7 +200,7 @@ void ProcessChar(char byte)
 		cmd_size++;
 	}
 	
-	cprintf_char(byte);
+	//cprintf_char(byte);
 	return;
 }
 int main(void)

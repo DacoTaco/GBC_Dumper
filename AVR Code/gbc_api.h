@@ -52,9 +52,9 @@ typedef uint8_t ROM_TYPE;
 //main API functions
 int8_t API_CartInserted(void);
 int8_t API_GetGameInfo(void);
-void API_Get_Memory(ROM_TYPE type);
+int8_t API_Get_Memory(ROM_TYPE type);
 int8_t API_WaitForOK(void);
-void API_WriteRam(void);
+int8_t API_WriteRam(void);
 
 
 //side functions that can be used if the API is used in a custom manor

@@ -84,14 +84,18 @@ int8_t API_GotCartInfo(void)
 }
 int8_t API_CartInserted(void)
 {
-	return API_GotCartInfo();
+	/*return API_GotCartInfo();*/
+	if(GameInfo.Name[0] == 0x00)
+		return 0;
+	return 1;
 }
-void API_Get_Memory(ROM_TYPE type)
+int8_t API_Get_Memory(ROM_TYPE type)
 {
-	if(!API_GotCartInfo())
+	int8_t ret = API_GotCartInfo();
+	if(!ret)
 	{
 		API_Send_Abort(API_ABORT_CMD);
-		return;
+		return ret;
 	}
 	
 	uint16_t fileSize = 0;
@@ -109,7 +113,7 @@ void API_Get_Memory(ROM_TYPE type)
 		{
 			//no ram, BAIL IT
 			API_Send_Abort(API_ABORT_CMD);
-			return;
+			return ERR_NO_SAVE;
 		}
 		uint16_t end_addr = 0;
 		uint8_t _banks;
@@ -118,7 +122,7 @@ void API_Get_Memory(ROM_TYPE type)
 		{
 			//ram error, BAIL IT
 			API_Send_Abort(API_ABORT_CMD);
-			return;
+			return ERR_NO_SAVE;
 		}
 		
 		if(end_addr < 0xC000)
@@ -134,29 +138,34 @@ void API_Get_Memory(ROM_TYPE type)
 	API_Send_Name(GameInfo.Name);
 	API_Send_Size(fileSize);
 	API_Send_GBC_Support(GameInfo.GBCFlag);
+	ret = 1;
 	
 	if(API_WaitForOK() > 0)
 	{
 		if(type == TYPE_RAM)
 		{
-			API_GetRam();
+			ret = API_GetRam();
 		}
 		else
 		{
-			API_GetRom();
+			ret = API_GetRom();
 		}
 	}
 	else
 	{
 		API_Send_Abort(API_ABORT_PACKET);
+		return ERR_NOK_RETURNED;
 	}
+	
+	return ret;
 }
-void API_WriteRam(void)
+int8_t API_WriteRam(void)
 {		
-	if(!API_GotCartInfo())
+	int8_t ret = API_GotCartInfo();
+	if(!ret)
 	{
 		API_Send_Abort(API_ABORT_CMD);
-		return;
+		return ret;
 	}
 	
 	SetControlPin(WD,HIGH);
@@ -172,6 +181,7 @@ void API_WriteRam(void)
 	{
 		//no ram, BAIL IT
 		API_Send_Abort(API_ABORT_CMD);
+		ret = ERR_NO_SAVE;
 		goto end_function;
 	}
 
@@ -184,6 +194,7 @@ void API_WriteRam(void)
 	if(GetRamDetails(Bank_Type,&end_addr,&banks,GameInfo.RamSize) < 0)
 	{	
 		API_Send_Abort(API_ABORT_CMD);
+		ret = ERR_NO_SAVE;
 		goto end_function;
 	}
 		
@@ -202,6 +213,7 @@ void API_WriteRam(void)
 	if(API_WaitForOK() <= 0)
 	{
 		API_Send_Abort(API_ABORT_CMD);
+		ret = ERR_NOK_RETURNED;
 		goto end_function;
 	}
 	
@@ -214,7 +226,7 @@ void API_WriteRam(void)
 	/*cprintf_char((addr >> 8) & 0xFF);
 	cprintf_char(addr & 0xFF);
 	cprintf_char((end_addr >> 8) & 0xFF);
-	cprintf_char(end_addr & 0xFF);	*/	
+	cprintf_char(end_addr & 0xFF);	*/
 	/*this will look as following : 
 	//the handshake is done and the PC is waiting for the START!
 	//this function will look as following : 
@@ -230,6 +242,7 @@ void API_WriteRam(void)
 	
 	uint8_t data_recv[2];
 	uint8_t bank = 0;
+	ret = 1;
 	
 	//switch bank!
 	if(Bank_Type != MBC2)
@@ -283,7 +296,7 @@ void API_WriteRam(void)
 		if(data_recv[0] == API_NOK)
 		{
 			//data was decided NOT OK, we go back and retry!
-			WriteRAMByte(i,data_recv[1],Bank_Type);
+			WriteRAMByte(i,data_recv[1],Bank_Type);			
 			uint8_t data = GetRAMByte(i,Bank_Type);
 			cprintf_char(API_VERIFY);
 			cprintf_char(data);
@@ -295,6 +308,7 @@ void API_WriteRam(void)
 		else if(data_recv[0] == API_ABORT)
 		{
 			//we received an abort. QUIT!!
+			ret = ERR_PACKET_FAILURE;
 			cprintf_char(API_ABORT);
 			cprintf_char(API_ABORT_PACKET);
 			break;
@@ -314,7 +328,7 @@ end_function:
 	SetControlPin(RST,LOW);
 	API_ResetGameInfo();
 	sei();
-	return;
+	return ret;
 }
 int8_t API_GetRom(void)
 {
@@ -325,10 +339,11 @@ int8_t API_GetRom(void)
 	SetControlPin(RD,HIGH);
 	SetControlPin(SRAM,HIGH);	
 	
-	if(!API_GotCartInfo())
+	int8_t ret = API_GotCartInfo();
+	if(!ret)
 	{
 		API_Send_Abort(API_ABORT_CMD);
-		return ERR_NO_INFO;
+		return ret;
 	}
 	
 	uint16_t banks = GetRomBanks(GameInfo.RomSize);
@@ -345,6 +360,7 @@ int8_t API_GetRom(void)
 		for(;addr < 0x8000;addr++)
 		{
 			cprintf_char(GetByte(addr));
+			_delay_us(1);
 		}
 	}
 	
@@ -354,15 +370,16 @@ int8_t API_GetRom(void)
 }
 int8_t API_GetRam(void)
 {
-	SetControlPin(RST,HIGH);
+	//reset game cart. this causes all banks & states to reset
+	SetControlPin(RST,LOW);
 	
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
 	SetControlPin(SRAM,HIGH);
 	
 	//reset game cart. this causes all banks & states to reset
-	SetControlPin(RST,LOW);
-	_delay_us(50);
+	//SetControlPin(RST,LOW);
+	_delay_us(1);
 	SetControlPin(RST,HIGH);
 	
 	if(!API_GotCartInfo())
@@ -389,19 +406,27 @@ int8_t API_GetRam(void)
 	
 	if(ret < 0)
 		return ret;
-		
+	
 	OpenRam();
-
+	_delay_us(5);
+	/*cprintf_char(addr >> 8);
+	cprintf_char(addr & 0xFF);
+	cprintf_char(end_addr >> 8);
+	cprintf_char(end_addr & 0xFF);*/
 	for(uint8_t bank = 0;bank < banks;bank++)
 	{
 		//if we aren't dealing with MBC2, set bank to 0!
 		if(Bank_Type != MBC2)
-			SwitchRAMBank(bank,Bank_Type);
-			
-		for(uint16_t i = addr;i< end_addr ;i++)
+			SwitchRAMBank(bank,Bank_Type);	
+		
+		for(uint16_t i = addr;i< end_addr ;i++)//end_addr;i >= addr;i--)//addr+1;i< end_addr ;i++)
 		{
-			cprintf_char(GetRAMByte(i,Bank_Type));
-			_delay_us(500);
+			//extra get the byte. im having MBC2 issues where the first byte is repeated and the bytes are pushed forward 1 position
+			//this extra read seems to fix the issue, but adding a delay between setting addr and reading doesnt...
+			//GetRAMByte(i,Bank_Type);
+			uint8_t data = GetRAMByte(i,Bank_Type);
+			cprintf_char(data);
+			_delay_ms(1);			
 		}
 	}
 	
@@ -446,8 +471,8 @@ void API_Send_GBC_Support(uint8_t GBCFlag)
 			toSend = API_GBC_ONLY;
 			break;
 		case 0x00:
-			toSend = API_GBC_GB;
-			break;
+			/*toSend = API_GBC_GB;
+			break;*/
 		default:
 			toSend = API_GBC_GB;
 			break;

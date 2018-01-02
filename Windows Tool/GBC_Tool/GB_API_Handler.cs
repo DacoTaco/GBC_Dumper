@@ -556,6 +556,7 @@ namespace Gameboy
                     if ((Info.current_addr + (bufSize - offset)) < Info.FileSize)
                     {
                         Filefs.Write(buf, offset, bufSize - offset);
+                        Filefs.Flush();
                         Info.current_addr += bufSize - offset;
                         //ret = Info.current_addr;
                         ret = GB_API_Protocol.API_OK;
@@ -564,6 +565,7 @@ namespace Gameboy
                     {
                         //end of file
                         Filefs.Write(buf, offset, Info.FileSize - Info.current_addr);
+                        Filefs.Flush();
                         Info.current_addr = Info.FileSize;
                         //ret = Info.current_addr;
                         ret = GB_API_Protocol.API_TASK_FINISHED;
