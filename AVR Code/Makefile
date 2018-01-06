@@ -121,6 +121,12 @@ DEBUG = dwarf-2
 CUSTOMDEFINES = -DSAVE_SPACE
 #CUSTOMDEFINES = -D_VA_SUPPORT -D_ALLOW_NONE_API_CMD
 
+ifeq ($(MCU),atmega32)
+	CUSTOMDEFINES += -D__ATMEGA32__
+else ifeq ($(MCU),atmega8)
+	CUSTOMDEFINES += -D__ATMEGA8__
+endif
+
 
 # List any extra directories to look for include files here.
 #     Each directory must be seperated by a space.
@@ -447,12 +453,13 @@ HEXSIZE = $(SIZE) --target=$(FORMAT) $(TARGET).hex
 ELFSIZE = $(SIZE) --mcu=$(MCU) --format=avr $(TARGET).elf
 
 sizebefore:
-	@if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_BEFORE); $(ELFSIZE); \
+	@if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_BEFORE); $(ELFSIZE); avr-size $(TARGET).elf; \
 	2>/dev/null; echo; fi
 
 sizeafter:
-	@if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); \
+	@if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); avr-size $(TARGET).elf; \
 	2>/dev/null; echo; fi
+	
 
 
 
@@ -607,6 +614,7 @@ clean_list :
 	@echo
 	@echo $(MSG_CLEANING)
 	$(REMOVE) $(TARGET).hex
+	$(REMOVE) $(TARGET).bin
 	$(REMOVE) $(TARGET).eep
 	$(REMOVE) $(TARGET).cof
 	$(REMOVE) $(TARGET).elf

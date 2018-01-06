@@ -207,6 +207,7 @@ int main(void)
 	//set it so that incoming msg's are ignored.
 	setRecvCallback(ProcessChar);
 	cprintf("Ready\r\n");
+
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
     while(1) 

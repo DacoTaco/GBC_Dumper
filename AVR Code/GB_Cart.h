@@ -103,16 +103,58 @@ Connections we want,need and assigned to :
 #define MBC4 0x40
 #define MBC5 0x50
 
-#define CTRL_PORT PORTD
-#define CTRL_PIN PIND
-#define RD PD2
-//0b00000100;
-#define WD PD3
-//0b00001000;
-#define SRAM PD4
-//0b00010000;
-#define RST PD5
-//0b00100000;
+//define all pins for a specific chip!
+#ifdef __ATMEGA32__
+
+	#define DATA_PORT PORTA
+	#define DATA_DDR DDRA
+	#define DATA_PIN PINA
+	
+	#define ADDR_DDR1 DDRB
+	#define ADDR_DDR2 DDRC
+	#define ADDR_PORT1 PORTB
+	#define ADDR_PORT2 PORTC
+
+	
+	#define CTRL_DDR DDRD
+	#define CTRL_PORT PORTD
+	#define CTRL_PIN PIND
+	#define RD PD2
+	//0b00000100;
+	#define WD PD3
+	//0b00001000;
+	#define SRAM PD4
+	//0b00010000;
+	#define RST PD5
+	//0b00100000;
+	
+#elif defined(__ATMEGA8__)
+	
+	#define DATA_PORT PORTB
+	#define DATA_DDR DDRB
+	#define DATA_PIN PINB
+
+	#define ADDR_CTRL_DDR DDRC
+	#define ADDR_CTRL_PORT PORTC
+	#define ADDR_CTRL_PIN PINC
+	
+	#define ADDR_CTRL_DATA PC2
+	#define ADDR_CTRL_CLK PC3
+	#define ADDR_CTRL_LATCH PC4
+	
+	#define CTRL_DDR DDRD
+	#define CTRL_PORT PORTD
+	#define CTRL_PIN PIND
+	
+	#define RD PD5
+	//0b00100000;
+	#define WD PD6
+	//0b01000000;
+	#define SRAM PD7
+	//0b10000000;
+	#define RST PD2
+	//0b00000100;
+#endif
 
 #define HIGH 1
 #define LOW 0

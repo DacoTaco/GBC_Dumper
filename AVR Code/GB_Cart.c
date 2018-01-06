@@ -24,8 +24,31 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "GB_Cart.h"
 #include "serial.h"
 
+#define SetPin(x,y) _setPin(&x,(1<<y))
+#define ClearPin(x,y) _clearPin(&x,(1<<y))
+
 //the Barebone functions
 //--------------------------------
+void _setPin(volatile uint8_t *port,uint8_t mask)
+{
+	*port |= mask;
+}
+void _clearPin(volatile uint8_t *port,uint8_t mask)
+{
+	*port &= ~mask;
+}
+void SetControlPin(uint8_t Pin,uint8_t state)
+{
+	if(state > 0)
+	{
+		SetPin(CTRL_PORT,Pin);//CTRL_PORT |= (1 << Pin); // pin goes high
+	}	
+	else
+	{
+		ClearPin(CTRL_PORT,Pin); //CTRL_PORT &= ~(1 << Pin); // Pin goes low
+	}
+	_delay_us(10);
+}
 int8_t CheckControlPin(uint8_t Pin)
 {
 	if((CTRL_PIN & (1<< Pin))==0)
@@ -33,33 +56,21 @@ int8_t CheckControlPin(uint8_t Pin)
 	else
 		return HIGH;
 }
-void SetControlPin(uint8_t Pin,uint8_t state)
-{
-	if(state > 0)
-	{
-		CTRL_PORT |= (1 << Pin); // pin goes high
-	}	
-	else
-	{
-		CTRL_PORT &= ~(1 << Pin); // Pin goes low
-	}
-	_delay_us(10);
-}
 void ChangeDataPinsMode(uint8_t mode)
 {
 	if(mode == 0)
 	{
 		//set as input;
-		DDRA &= ~(0xFF); //0b00000000;
+		DATA_DDR &= ~(0xFF); //0b00000000;
 		//enable pull up resistors
-		PORTA = 0xFF;
+		DATA_PORT = 0xFF;
 	}
 	else
 	{
 		//set as output
-		DDRA |= (0xFF);//0b11111111;
+		DATA_DDR |= (0xFF);//0b11111111;
 		//set output as 0x00
-		PORTA = 0x00;
+		DATA_PORT = 0x00;
 	}
 
 }
@@ -74,22 +85,27 @@ void SetupPins(void)
 	//SPCR = 0;
 	
 	//setup data pins as input
-	//DDRA = 0b00000000;
+	//DATA_DDR = 0b00000000;
 	ChangeDataPinsMode(INPUT);
 	
-	//enable address pins A0 - A7 as output
-	DDRB = 0xFF;
-	DDRC = 0xFF;
 	
+#ifdef __ATMEGA32__
+	//enable address pins A0 - A7 as output
+	ADDR_DDR1 = 0xFF;
+	ADDR_DDR2 = 0xFF;
+#elif defined(__ATMEGA8__)
+	//set the pins as output, init-ing the pins for the shift register
+	ADDR_CTRL_DDR |= ( (1 << ADDR_CTRL_DATA) | (1 << ADDR_CTRL_CLK) | (1 << ADDR_CTRL_LATCH) );
+#endif	
 	//disable the external interrupt flags. just to be sure we get those pins correctly. had some issues before, dont know why
 	/*GICR &= ~(1 << INT0);
 	GICR &= ~(1 << INT1);
 	GICR &= ~(1 << INT2);*/
 	
 	//setup D pins as well for the other, as output
-	DDRD |= 0b01111100;
+	CTRL_DDR |= ( (1 << 0b01000000) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) );//0b01111100;
 	//FUCK TRISTATE BULLSHIT xD set the mode of the pins correctly!
-	PORTD |= 0b01111100;
+	CTRL_PORT |= ( (1 << 0b01000000) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) ); //0b01111100;
 	
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
@@ -104,13 +120,43 @@ void SetAddress(uint16_t address)
 	{
 		SetControlPin(RST,HIGH);
 	}
-		
+			
+#ifdef __ATMEGA32__
 	uint8_t adr1 = address >> 8;
 	uint8_t adr2 = (uint8_t)(address & 0xFF);
 	
-	PORTB = adr1;
-	PORTC = adr2;
+	ADDR_PORT1 = adr1;
+	ADDR_PORT2 = adr2;
+#elif defined(__ATMEGA8__)
+	//write the first 8 bits to the shift register
+	for(uint8_t i=0;i<16;i++)
+	{
+		if(address & 0b1000000000000000)
+		{
+			//set the data bit as high
+			SetPin(ADDR_CTRL_PORT,ADDR_CTRL_DATA);
+		}
+		else
+		{
+			//set the data bit as low
+			ClearPin(ADDR_CTRL_PORT,ADDR_CTRL_DATA);
+		}
+		
+		//pulse the shifting register to set the bit
+		SetPin(ADDR_CTRL_PORT,ADDR_CTRL_CLK);
+		_delay_us(1);
+		ClearPin(ADDR_CTRL_PORT,ADDR_CTRL_CLK);
+		
+		//shift with 1 bit, so we can take on the next bit
+		address = address << 1;
+	}
 	
+	//all bits transfered. time to let the shifting register latch the data and set the pins accordingly
+	SetPin(ADDR_CTRL_PORT,ADDR_CTRL_LATCH);
+	_delay_loop_1(1);
+	ClearPin(ADDR_CTRL_PORT,ADDR_CTRL_LATCH);
+	
+#endif
 	_delay_us(5);
 }
 uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
@@ -133,7 +179,7 @@ uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 	//set cartridge in read mode
 	SetControlPin(RD,LOW);	
 	
-	data = PINA;
+	data = DATA_PIN;
 	
 	SetControlPin(RD,HIGH);
 	
@@ -173,7 +219,7 @@ uint8_t _WriteByte(int8_t WriteRom, uint16_t addr,uint8_t byte)
 	SetControlPin(RD,HIGH);
 	
 	ChangeDataPinsMode(OUTPUT);
-	PORTA = byte;
+	DATA_PORT = byte;
 	SetAddress(addr);
 	
 	//set Sram control pin low. we do this -AFTER- address is set because MBC2 latches to the address as soon as SRAM is set low. 
@@ -191,7 +237,7 @@ uint8_t _WriteByte(int8_t WriteRom, uint16_t addr,uint8_t byte)
 		SetControlPin(SRAM,HIGH);
 	}
 	
-	PORTA = 0x00;
+	DATA_PORT = 0x00;
 	ChangeDataPinsMode(INPUT);
 	
 	return 1;
@@ -351,6 +397,7 @@ int8_t GetHeader(int8_t option)
 			if(FF_cnt >= 3)
 			{
 				//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
+				SetControlPin(RST,LOW);
 				return ERR_FAULT_CART;
 			}
 		}
@@ -392,6 +439,7 @@ int8_t GetHeader(int8_t option)
 				continue;
 			else
 			{
+				SetControlPin(RST,LOW);
 				return ERR_LOGO_CHECK;
 			}
 		}
@@ -453,6 +501,7 @@ int8_t GetHeader(int8_t option)
 	temp.MBCType = GetMBCType(temp.CartType);
 	
 	GameInfo = temp;
+	SetControlPin(RST,LOW);
 	return 1;
 	
 }
