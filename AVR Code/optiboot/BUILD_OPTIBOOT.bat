@@ -1,0 +1,4 @@
+@echo off
+@cls
+make atmega32 BAUD_RATE=38400 FREQ=8000000L
+make atmega8 BAUD_RATE=38400 FREQ=8000000L

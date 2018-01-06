@@ -158,17 +158,17 @@ void SetControlPin(uint8_t Pin,uint8_t state);
 void SetAddress(uint16_t address);
 int8_t CheckControlPin(uint8_t Pin);
 uint8_t ReadByte(uint16_t address);
-uint8_t ReadRAMByte(uint16_t address,uint8_t Bank_Type);
-uint8_t WriteRAMByte(uint16_t addr,uint8_t byte,uint8_t Bank_Type);
+uint8_t ReadRAMByte(uint16_t address);
+uint8_t WriteRAMByte(uint16_t addr,uint8_t byte);
 uint8_t WriteByte(uint16_t addr,uint8_t byte);
 int8_t OpenRam(void);
 int8_t CloseRam(void);
 
-void SwitchRAMBank(int8_t bank,uint8_t Bank_Type);
-void SwitchROMBank(int8_t bank,uint8_t Bank_Type);
+void SwitchRAMBank(int8_t bank);
+void SwitchROMBank(int8_t bank);
 
 uint16_t GetRomBanks(uint8_t RomSize);
-int8_t GetRamDetails(uint8_t Bank_Type, uint16_t *end_addr, uint8_t *banks,uint8_t RamSize);
+int8_t GetRamDetails(uint16_t *end_addr, uint8_t *banks,uint8_t RamSize);
 uint8_t GetMBCType(uint8_t CartType);
 int8_t GetGameInfo(void);
 

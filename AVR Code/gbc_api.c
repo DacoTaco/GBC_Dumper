@@ -118,7 +118,7 @@ int8_t API_Get_Memory(ROM_TYPE type)
 		uint16_t end_addr = 0;
 		uint8_t _banks;
 		
-		if(GetRamDetails(GameInfo.MBCType, &end_addr, &_banks,GameInfo.RamSize) < 0)
+		if(GetRamDetails(&end_addr, &_banks,GameInfo.RamSize) < 0)
 		{
 			//ram error, BAIL IT
 			API_Send_Abort(API_ABORT_CMD);
@@ -191,7 +191,7 @@ int8_t API_WriteRam(void)
 	uint8_t banks = 0;
 	uint8_t Bank_Type = GameInfo.MBCType;
 	
-	if(GetRamDetails(Bank_Type,&end_addr,&banks,GameInfo.RamSize) < 0)
+	if(GetRamDetails(&end_addr,&banks,GameInfo.RamSize) < 0)
 	{	
 		API_Send_Abort(API_ABORT_CMD);
 		ret = ERR_NO_SAVE;
@@ -247,7 +247,7 @@ int8_t API_WriteRam(void)
 	
 	//switch bank!
 	if(Bank_Type != MBC2)
-		SwitchRAMBank(bank,Bank_Type);
+		SwitchRAMBank(bank);
 	
 	//disable interrupts, like serial interrupt for example :P 
 	//we will handle the data, kthxbye
@@ -278,7 +278,7 @@ int8_t API_WriteRam(void)
 				bank++;
 				i = addr;
 				if(Bank_Type != MBC2)
-					SwitchRAMBank(bank,Bank_Type);	
+					SwitchRAMBank(bank);	
 			}
 			
 			//if we have written everything , on all banks , gtfo. we are done
@@ -288,8 +288,8 @@ int8_t API_WriteRam(void)
 			}
 			
 			//Write and read written byte for verification
-			WriteRAMByte(i,data_recv[1],Bank_Type);
-			uint8_t data = ReadRAMByte(i,Bank_Type);
+			WriteRAMByte(i,data_recv[1]);
+			uint8_t data = ReadRAMByte(i);
 			
 			cprintf_char(API_VERIFY);
 			cprintf_char(data);
@@ -297,8 +297,8 @@ int8_t API_WriteRam(void)
 		if(data_recv[0] == API_NOK)
 		{
 			//data was decided NOT OK, we go back and retry!
-			WriteRAMByte(i,data_recv[1],Bank_Type);			
-			uint8_t data = ReadRAMByte(i,Bank_Type);
+			WriteRAMByte(i,data_recv[1]);			
+			uint8_t data = ReadRAMByte(i);
 			cprintf_char(API_VERIFY);
 			cprintf_char(data);
 		}
@@ -350,7 +350,7 @@ int8_t API_GetRom(void)
 	for(uint16_t bank = 1;bank < banks;bank++)
 	{
 		uint16_t addr = 0x4000;
-		SwitchROMBank(bank,GameInfo.MBCType);
+		SwitchROMBank(bank);
 		if(bank <= 1)
 		{
 			addr = 0x00;
@@ -399,7 +399,7 @@ int8_t API_GetRam(void)
 	uint16_t end_addr = 0xC000; //actually ends at 0xBFFF
 	uint8_t banks = 0;
 	
-	int8_t ret = GetRamDetails(Bank_Type,&end_addr,&banks,GameInfo.RamSize);
+	int8_t ret = GetRamDetails(&end_addr,&banks,GameInfo.RamSize);
 	
 	if(ret < 0)
 		return ret;
@@ -411,11 +411,11 @@ int8_t API_GetRam(void)
 	{
 		//if we aren't dealing with MBC2, set bank to 0!
 		if(Bank_Type != MBC2)
-			SwitchRAMBank(bank,Bank_Type);	
+			SwitchRAMBank(bank);	
 		
 		for(uint16_t i = addr;i< end_addr ;i++)
 		{
-			cprintf_char(ReadRAMByte(i,Bank_Type));
+			cprintf_char(ReadRAMByte(i));
 			_delay_us(20);			
 		}
 	}

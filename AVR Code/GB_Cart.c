@@ -119,11 +119,6 @@ uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
-	//check if rst is set high. if not, set it high
-	if(CheckControlPin(RST) == 0)
-	{
-		SetControlPin(RST,HIGH);
-	}
 		
 	//pass Address to cartridge via the address bus
 	SetAddress(address);
@@ -153,8 +148,9 @@ uint8_t ReadByte(uint16_t address)
 {
 	return _ReadByte(1,address);
 }
-uint8_t ReadRAMByte(uint16_t address,uint8_t Bank_Type)
+uint8_t ReadRAMByte(uint16_t address)
 {
+	uint8_t Bank_Type = GameInfo.MBCType;
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 	
@@ -175,10 +171,6 @@ uint8_t _WriteByte(int8_t WriteRom, uint16_t addr,uint8_t byte)
 {
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
-	if(CheckControlPin(RST) == 0)
-	{
-		SetControlPin(RST,HIGH);
-	}
 	
 	ChangeDataPinsMode(OUTPUT);
 	PORTA = byte;
@@ -208,10 +200,10 @@ uint8_t WriteByte(uint16_t addr,uint8_t byte)
 {	
 	return _WriteByte(1,addr,byte);
 }
-uint8_t WriteRAMByte(uint16_t addr,uint8_t byte,uint8_t Bank_Type)
+uint8_t WriteRAMByte(uint16_t addr,uint8_t byte)
 {
 
-	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
+	if(GameInfo.MBCType == MBC_NONE || GameInfo.MBCType == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 		
 	return _WriteByte(0,addr,byte);
@@ -223,10 +215,6 @@ int8_t OpenRam(void)
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 	
-	if(CheckControlPin(RST) == 0)
-	{
-		SetControlPin(RST,HIGH);
-	}
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
 	SetControlPin(SRAM,HIGH);	
@@ -263,15 +251,12 @@ int8_t CloseRam(void)
 
 	return 1;
 }
-void SwitchROMBank(int8_t bank,uint8_t Bank_Type)
+void SwitchROMBank(int8_t bank)
 {	
+	uint8_t Bank_Type = GameInfo.MBCType;
+	
 	if(Bank_Type == MBC_NONE)
 		return;
-		
-	if(CheckControlPin(RST) == 0)
-	{
-		SetControlPin(RST,HIGH);
-	}
 
 	//first some preperations
 	uint16_t addr = 0x2100;
@@ -312,13 +297,8 @@ void SwitchROMBank(int8_t bank,uint8_t Bank_Type)
 	
 	return;
 }
-void SwitchRAMBank(int8_t bank,uint8_t Bank_Type)
+void SwitchRAMBank(int8_t bank)
 {
-	if(CheckControlPin(RST) == 0)
-	{
-		SetControlPin(RST,HIGH);
-	}
-	
 	WriteByte(0x4000,bank);	
 	return;
 }
@@ -501,11 +481,13 @@ uint16_t GetRomBanks(uint8_t RomSize)
 		return 2 << GameInfo.RomSize;
 	}
 }
-int8_t GetRamDetails(uint8_t Bank_Type, uint16_t *end_addr, uint8_t *banks,uint8_t RamSize)
+int8_t GetRamDetails(uint16_t *end_addr, uint8_t *banks,uint8_t RamSize)
 {
 	if(end_addr == NULL || banks == NULL)
 		return ERR_MBC_SAVE_UNSUPPORTED;
-		
+	
+	uint8_t Bank_Type = GameInfo.MBCType;
+	
 	if(Bank_Type == MBC2)
 	{		
 		//Set the Ram Size & end addr. MBC2 is euh...special :P
@@ -548,6 +530,7 @@ uint8_t GetMBCType(uint8_t CartType)
 	
 	switch(CartType)
 	{
+		case 0xFF: //HuC1 + RAM + BATTERY
 		case 0x01: //MBC1
 		case 0x02: //MBC1 + ROM
 		case 0x03: //MBC1 + ROM + BATTERY
@@ -567,7 +550,6 @@ uint8_t GetMBCType(uint8_t CartType)
 		case 0xFC: //POCKET CAMERA
 		case 0xFD: //BANDAI TAMA5
 		case 0xFE: //HuC3
-		case 0xFF: //HuC1 + RAM + BATTERY
 		case 0x0F: //MBC3 + TIMER + BATTERY
 		case 0x10: //MBC3 + TIMER + RAM + BATTERY
 		case 0x11: //MBC3
@@ -637,7 +619,7 @@ int8_t DumpROM()
 		}
 		else if(bank > 1)
 		{
-			SwitchROMBank(bank,GameInfo.MBCType);//GetMBCType(GameInfo.CartType));
+			SwitchROMBank(bank);//GetMBCType(GameInfo.CartType));
 		}
 		for(;addr < 0x8000;addr++)
 		{
@@ -673,7 +655,7 @@ int8_t DumpRAM()
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 		
-	if(GameInfo.MBCType != MBC2 && GameInfo.RamSize <= 0)
+	if(Bank_Type != MBC2 && GameInfo.RamSize <= 0)
 		return ERR_NO_SAVE;
 
 	
@@ -682,7 +664,7 @@ int8_t DumpRAM()
 	uint16_t end_addr = 0xC000; //actually ends at 0xBFFF
 	uint8_t banks = 0;
 	
-	int8_t ret = GetRamDetails(Bank_Type,&end_addr,&banks,GameInfo.RamSize);
+	int8_t ret = GetRamDetails(&end_addr,&banks,GameInfo.RamSize);
 	
 	if(ret < 0)
 		return ret;
@@ -693,11 +675,11 @@ int8_t DumpRAM()
 	{
 		//if we aren't dealing with MBC2, set bank to 0!
 		if(Bank_Type != MBC2)
-			SwitchRAMBank(bank,Bank_Type);
+			SwitchRAMBank(bank);
 			
 		for(uint16_t i = addr;i< end_addr ;i++)
 		{
-			cprintf_char(ReadRAMByte(i,Bank_Type));
+			cprintf_char(ReadRAMByte(i));
 			_delay_us(20);
 		}
 	}
@@ -738,7 +720,7 @@ int8_t WriteRAM()
 	uint8_t banks = 0;
 	uint8_t Bank_Type = GameInfo.MBCType;//GetMBCType(GameInfo.CartType);
 	
-	ret = GetRamDetails(Bank_Type,&end_addr,&banks,GameInfo.RamSize);
+	ret = GetRamDetails(&end_addr,&banks,GameInfo.RamSize);
 	if(ret < 0)
 		goto end_function;
 	
@@ -750,7 +732,7 @@ int8_t WriteRAM()
 		//uint8_t bank = 0;
 		//if we aren't dealing with MBC2, set bank to 0!
 		if(Bank_Type != MBC2)
-			SwitchRAMBank(bank,Bank_Type);		
+			SwitchRAMBank(bank);		
 		
 		uint8_t data_recv;
 		
@@ -764,8 +746,8 @@ int8_t WriteRAM()
 			// Return the data
 			data_recv = UDR;
 			
-			WriteRAMByte(i,data_recv,Bank_Type);	
-			uint8_t data = ReadRAMByte(i,Bank_Type);
+			WriteRAMByte(i,data_recv);	
+			uint8_t data = ReadRAMByte(i);
 			cprintf_char(data);
 			
 		}

@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <inttypes.h>
 #include <avr/sleep.h>
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 #include <util/delay.h>
 #include <string.h>
 #include <ctype.h>
@@ -46,7 +47,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 uint8_t cmd_size = 0;
 #define CMD_SIZE 0x21
 char cmd[CMD_SIZE];
-volatile uint8_t cmd_busy = 0;
 /*
 
 //things that are broken : 
@@ -55,14 +55,14 @@ volatile uint8_t cmd_busy = 0;
 
 void ProcessCommand(void)
 {
-	cmd_busy = 1;
+	cli();
 	int8_t ret = API_GetGameInfo();
 	if(ret > 0)
 	{
 		//this is the API version of reading the ROM or RAM
-		if(strncmp(cmd,"API_READ_ROM",12) == 0 || strncmp(cmd,"API_READ_RAM",12) == 0 )
+		if(strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0 || strncmp(cmd,"API_READ_RAM",API_READ_RAM_SIZE) == 0 )
 		{
-			uint8_t ReadRom = (strncmp(cmd,"API_READ_ROM",12) == 0)?1:0;					
+			uint8_t ReadRom = (strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0)?1:0;					
 			ROM_TYPE type = TYPE_ROM;
 			if(!ReadRom)
 			{
@@ -71,7 +71,7 @@ void ProcessCommand(void)
 			ret = API_Get_Memory(type);
 		}
 		//this is the API version of Writing the RAM
-		else if(strncmp(cmd,"API_WRITE_RAM",13) == 0)
+		else if(strncmp(cmd,"API_WRITE_RAM",API_WRITE_RAM_SIZE) == 0)
 		{			
 			ret = API_WriteRam();	
 		}
@@ -142,19 +142,19 @@ void ProcessCommand(void)
 		switch(ret)
 		{
 			case ERR_PACKET_FAILURE:
-				cprintf("ERR_NO_SAVE");
+				cprintf("PCKT_FAILURE");
 				break;
 			case ERR_NOK_RETURNED:
-				cprintf("ERR_NO_SAVE");
+				cprintf("NOK_RET");
 				break;
 			case ERR_NO_SAVE:
-				cprintf("ERR_NO_SAVE");
+				cprintf("NO_SAV");
 				break;
 			case ERR_LOGO_CHECK:
-				cprintf("ERR_LOGO_CHECK\r\n");
+				cprintf("LOGO_CHECK\r\n");
 				break;
 			case ERR_FAULT_CART:
-				cprintf("ERR_FAULT_CART\r\n");
+				cprintf("FAULT_CART\r\n");
 				break;
 			default :
 				cprintf("ERR_UNKNOWN :'");
@@ -166,17 +166,13 @@ void ProcessCommand(void)
 	}
 	
 end_function:
-	cmd_busy = 0;
 	cmd_size = 0;
 	memset(cmd,0,CMD_SIZE);
+	sei();
 	return;
 }
 void ProcessChar(char byte)
 {
-	//ignore incoming data when busy
-	if(cmd_busy == 1)
-		return;
-	
 	if(byte == API_HANDSHAKE_REQUEST)
 	{
 		cprintf_char(API_HANDSHAKE_ACCEPT);
@@ -210,7 +206,6 @@ int main(void)
 
 	//set it so that incoming msg's are ignored.
 	setRecvCallback(ProcessChar);
-	
 	cprintf("Ready\r\n");
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
@@ -218,7 +213,7 @@ int main(void)
 	{
 		/*if((PIND & 0b01000000)==0)
 		{
-		
+			_delay_ms(100);
 		}*/
     }
 }
