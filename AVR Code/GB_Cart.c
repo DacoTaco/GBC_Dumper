@@ -103,9 +103,9 @@ void SetupPins(void)
 	GICR &= ~(1 << INT2);*/
 	
 	//setup D pins as well for the other, as output
-	CTRL_DDR |= ( (1 << 0b01000000) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) );//0b01111100;
+	CTRL_DDR |= ( (1 << BTN) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) );//0b01111100;
 	//FUCK TRISTATE BULLSHIT xD set the mode of the pins correctly!
-	CTRL_PORT |= ( (1 << 0b01000000) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) ); //0b01111100;
+	CTRL_PORT |= ( (1 << BTN) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) ); //0b01111100;
 	
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
@@ -128,7 +128,8 @@ void SetAddress(uint16_t address)
 	ADDR_PORT1 = adr1;
 	ADDR_PORT2 = adr2;
 #elif defined(__ATMEGA8__)
-	//write the first 8 bits to the shift register
+	//write the 16 bits to the shift register
+	ClearPin(ADDR_CTRL_PORT,ADDR_CTRL_LATCH);
 	for(uint8_t i=0;i<16;i++)
 	{
 		if(address & 0b1000000000000000)
@@ -149,12 +150,9 @@ void SetAddress(uint16_t address)
 		
 		//shift with 1 bit, so we can take on the next bit
 		address = address << 1;
-	}
-	
+	}	
 	//all bits transfered. time to let the shifting register latch the data and set the pins accordingly
 	SetPin(ADDR_CTRL_PORT,ADDR_CTRL_LATCH);
-	_delay_loop_1(1);
-	ClearPin(ADDR_CTRL_PORT,ADDR_CTRL_LATCH);
 	
 #endif
 	_delay_us(5);

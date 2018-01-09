@@ -178,10 +178,10 @@ void ProcessChar(char byte)
 		cprintf_char(API_HANDSHAKE_ACCEPT);
 		return;
 	}
-	else if(cmd_size > 0 && (byte == '\n' || byte == '\r') )
+	else if(byte == '\n' || byte == '\r')
 	{
-		//cprintf("\r\n");
-		ProcessCommand();
+		if(cmd_size > 0)
+			ProcessCommand();
 		return;
 	}
 	else if( 
@@ -206,14 +206,23 @@ int main(void)
 
 	//set it so that incoming msg's are ignored.
 	setRecvCallback(ProcessChar);
+#ifdef __ATMEGA8__
+	cprintf("Atmega8 says : ");
+#elif defined(__ATMEGA32__)
+	cprintf("Atmega32 says : ");
+#endif
+
 	cprintf("Ready\r\n");
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
+	uint16_t addr = 0x2000;
     while(1) 
 	{
-		/*if((PIND & 0b01000000)==0)
+		/*if((CTRL_PIN & BTN)==0)
 		{
+			SetAddress(addr);
+			addr++;
 			_delay_ms(100);
 		}*/
     }

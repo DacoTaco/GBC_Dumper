@@ -127,6 +127,9 @@ Connections we want,need and assigned to :
 	//0b00010000;
 	#define RST PD5
 	//0b00100000;
+	#define BTN PD6
+	//0b01000000
+	
 	
 #elif defined(__ATMEGA8__)
 	
@@ -146,14 +149,16 @@ Connections we want,need and assigned to :
 	#define CTRL_PORT PORTD
 	#define CTRL_PIN PIND
 	
-	#define RD PD5
+	#define RD PD2
 	//0b00100000;
-	#define WD PD6
+	#define WD PD3
 	//0b01000000;
-	#define SRAM PD7
+	#define SRAM PD4
 	//0b10000000;
-	#define RST PD2
+	#define RST PD5
 	//0b00000100;
+	#define BTN PD3
+	//0b00001000
 #endif
 
 #define HIGH 1

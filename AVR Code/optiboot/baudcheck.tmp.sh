@@ -1,5 +1,5 @@
 # 1 "baudcheck.c"
-# 1 "H:\\Projects\\AVRProjects\\GBC_Dumper\\AVR Code\\optiboot\\bootloaders\\optiboot//"
+# 1 "H:\\Projects\\AVRProjects\\GBC_Dumper\\AVR Code\\optiboot//"
 # 1 "<built-in>"
 # 1 "<command-line>"
 # 1 "baudcheck.c"
