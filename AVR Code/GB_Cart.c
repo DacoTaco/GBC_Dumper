@@ -81,31 +81,38 @@ void SetupPins(void)
     MCUCSR = (1<<JTD);*/
 	
 	//disable SPI
-	//SPCR &= ~(1 << 6);
-	//SPCR = 0;
+	/*SPCR &= ~(1 << 6);
+	SPCR = 0;*/
 	
 	//setup data pins as input
 	//DATA_DDR = 0b00000000;
 	ChangeDataPinsMode(INPUT);
 	
 	
-#ifdef __ATMEGA32__
+#ifdef SHIFTING_MODE
+
+	//set the pins as output, init-ing the pins for the shift register
+	ADDR_CTRL_DDR |= ( (1 << ADDR_CTRL_DATA) | (1 << ADDR_CTRL_CLK) | (1 << ADDR_CTRL_LATCH) );
+	
+#else //#elif defined(NORMAL_MODE)
+
 	//enable address pins A0 - A7 as output
 	ADDR_DDR1 = 0xFF;
 	ADDR_DDR2 = 0xFF;
-#elif defined(__ATMEGA8__)
-	//set the pins as output, init-ing the pins for the shift register
-	ADDR_CTRL_DDR |= ( (1 << ADDR_CTRL_DATA) | (1 << ADDR_CTRL_CLK) | (1 << ADDR_CTRL_LATCH) );
+	
 #endif	
+
 	//disable the external interrupt flags. just to be sure we get those pins correctly. had some issues before, dont know why
 	/*GICR &= ~(1 << INT0);
 	GICR &= ~(1 << INT1);
-	GICR &= ~(1 << INT2);*/
+#ifdef __ATMEGA32__
+	GICR &= ~(1 << INT2);
+#endif*/
 	
 	//setup D pins as well for the other, as output
-	CTRL_DDR |= ( (1 << BTN) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) );//0b01111100;
+	CTRL_DDR |= ( (0 << BTN) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) );//0b01111100;
 	//FUCK TRISTATE BULLSHIT xD set the mode of the pins correctly!
-	CTRL_PORT |= ( (1 << BTN) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) ); //0b01111100;
+	CTRL_PORT |= ((1 << BTN) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) ); //0b01111100;
 	
 	SetControlPin(WD,HIGH);
 	SetControlPin(RD,HIGH);
@@ -121,13 +128,8 @@ void SetAddress(uint16_t address)
 		SetControlPin(RST,HIGH);
 	}
 			
-#ifdef __ATMEGA32__
-	uint8_t adr1 = address >> 8;
-	uint8_t adr2 = (uint8_t)(address & 0xFF);
-	
-	ADDR_PORT1 = adr1;
-	ADDR_PORT2 = adr2;
-#elif defined(__ATMEGA8__)
+#ifdef SHIFTING_MODE
+
 	//write the 16 bits to the shift register
 	ClearPin(ADDR_CTRL_PORT,ADDR_CTRL_LATCH);
 	for(uint8_t i=0;i<16;i++)
@@ -154,7 +156,14 @@ void SetAddress(uint16_t address)
 	//all bits transfered. time to let the shifting register latch the data and set the pins accordingly
 	SetPin(ADDR_CTRL_PORT,ADDR_CTRL_LATCH);
 	
+#else //#elif defined(NORMAL_MODE)
+	uint8_t adr1 = address >> 8;
+	uint8_t adr2 = (uint8_t)(address & 0xFF);
+	
+	ADDR_PORT1 = adr1;
+	ADDR_PORT2 = adr2;
 #endif
+
 	_delay_us(5);
 }
 uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
@@ -176,7 +185,7 @@ uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 	
 	//set cartridge in read mode
 	SetControlPin(RD,LOW);	
-	
+
 	data = DATA_PIN;
 	
 	SetControlPin(RD,HIGH);

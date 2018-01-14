@@ -121,10 +121,11 @@ DEBUG = dwarf-2
 CUSTOMDEFINES = -DSAVE_SPACE
 #CUSTOMDEFINES = -D_VA_SUPPORT -D_ALLOW_NONE_API_CMD
 
-ifeq ($(MCU),atmega32)
-	CUSTOMDEFINES += -D__ATMEGA32__
-else ifeq ($(MCU),atmega8)
-	CUSTOMDEFINES += -D__ATMEGA8__
+ifeq ($(MCU),atmega8)
+	CUSTOMDEFINES += -DSHIFTING_MODE
+else
+	#else ifeq ($(MCU),atmega8)
+	CUSTOMDEFINES += -DNORMAL_MODE
 endif
 
 

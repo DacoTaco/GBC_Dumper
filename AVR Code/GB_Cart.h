@@ -104,7 +104,7 @@ Connections we want,need and assigned to :
 #define MBC5 0x50
 
 //define all pins for a specific chip!
-#ifdef __ATMEGA32__
+#ifdef NORMAL_MODE
 
 	#define DATA_PORT PORTA
 	#define DATA_DDR DDRA
@@ -131,12 +131,12 @@ Connections we want,need and assigned to :
 	//0b01000000
 	
 	
-#elif defined(__ATMEGA8__)
-	
+#elif defined(SHIFTING_MODE)
+
 	#define DATA_PORT PORTB
 	#define DATA_DDR DDRB
 	#define DATA_PIN PINB
-
+	
 	#define ADDR_CTRL_DDR DDRC
 	#define ADDR_CTRL_PORT PORTC
 	#define ADDR_CTRL_PIN PINC
@@ -157,8 +157,8 @@ Connections we want,need and assigned to :
 	//0b10000000;
 	#define RST PD5
 	//0b00000100;
-	#define BTN PD3
-	//0b00001000
+	#define BTN PD6
+	//0b00100000
 #endif
 
 #define HIGH 1

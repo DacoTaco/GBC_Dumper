@@ -198,32 +198,36 @@ void ProcessChar(char byte)
 }
 int main(void)
 {
+	//fire up the usart
+	initConsole();
+	
 	//setup the pins!
 	SetupPins();
-	
-    // fire up the usart
-	initConsole();
 
 	//set it so that incoming msg's are ignored.
 	setRecvCallback(ProcessChar);
-#ifdef __ATMEGA8__
+	
+/*#ifdef __ATMEGA8__
 	cprintf("Atmega8 says : ");
 #elif defined(__ATMEGA32__)
 	cprintf("Atmega32 says : ");
-#endif
+#endif*/
 
 	cprintf("Ready\r\n");
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
-	uint16_t addr = 0x2000;
+	uint16_t addr = 0x6000;//0x200;
+	//WriteByte(0x6000,0);
     while(1) 
 	{
-		/*if((CTRL_PIN & BTN)==0)
+		if(CheckControlPin(BTN) == LOW)
 		{
-			SetAddress(addr);
+			//SetAddress(addr);
+			/*cprintf_char(ReadByte(0x0137));
+			cprintf("tested\r\n");
 			addr++;
-			_delay_ms(100);
-		}*/
+			_delay_ms(100);*/
+		}
     }
 }
