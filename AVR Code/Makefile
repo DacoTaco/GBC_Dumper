@@ -1,89 +1,40 @@
-# Hey Emacs, this is a -*- makefile -*-
-#----------------------------------------------------------------------------
-# WinAVR Makefile Template written by Eric B. Weddington, Jörg Wunsch, et al.
-#
-# Released to the Public Domain
-#
-# Additional material for this makefile was written by:
-# Peter Fleury
-# Tim Henigan
-# Colin O'Flynn
-# Reiner Patommel
-# Markus Pfaff
-# Sander Pool
-# Frederik Rouleau
-# Carlos Lamas
-#
-#----------------------------------------------------------------------------
-# On command line:
-#
-# make all = Make software.
-#
-# make clean = Clean out built project files.
-#
-# make coff = Convert ELF to AVR COFF.
-#
-# make extcoff = Convert ELF to AVR Extended COFF.
-#
-# make program = Download the hex file to the device, using avrdude.
-#                Please customize the avrdude settings below first!
-#
-# make debug = Start either simulavr or avarice as specified for debugging, 
-#              with avr-gdb or avr-insight as the front end for debugging.
-#
-# make filename.s = Just compile filename.c into the assembler code only.
-#
-# make filename.i = Create a preprocessed source file for use in submitting
-#                   bug reports to the GCC project.
-#
-# To rebuild project do "make clean" then "make all".
-#----------------------------------------------------------------------------
 
+#------------------------------------
+#			General Setup
+#------------------------------------
 
 # MCU name
 MCU = atmega8
-
-
-# Processor frequency.
-#     This will define a symbol, F_CPU, in all source code files equal to the 
-#     processor frequency. You can then use this symbol in your source code to 
-#     calculate timings. Do NOT tack on a 'UL' at the end, this will be done
-#     automatically to create a 32-bit value in your source code.
-#     Typical values are:
-#         F_CPU =  1000000
-#         F_CPU =  1843200
-#         F_CPU =  2000000
-#         F_CPU =  3686400
-#         F_CPU =  4000000
-#         F_CPU =  7372800
-#         F_CPU =  8000000
-#         F_CPU = 11059200
-#         F_CPU = 14745600
-#         F_CPU = 16000000
-#         F_CPU = 18432000
-#         F_CPU = 20000000
+# Processor frequency. -WITHOUT- UL
 F_CPU = 8000000
-
-
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex
-
-
 # Target file name (without extension).
-TARGET = main
+TARGET = GBC_Dumper
+# Location of the external code. if it is the same location as this makefile, put a . or nothing at all
+EXTERNAL_LOC = ../../AVR_Utilities
+VPATH=$(EXTERNAL_LOC)
+
+
+#------------------------------------
+#			Building Settings
+#------------------------------------
 
 
 # Object files directory
 #     To put object files in current directory, use a dot (.), do NOT make
 #     this an empty or blank macro!
-OBJDIR = .
+OBJDIR = obj
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = $(TARGET).c serial.c GB_Cart.c gbc_api.c
+EXT_SRC = $(EXTERNAL_LOC)/serial.c
+SRC = $(TARGET).c GB_Cart.c gbc_api.c
+
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
+EXT_CPPSRC = 
 CPPSRC = 
 
 
@@ -133,7 +84,7 @@ endif
 #     Each directory must be seperated by a space.
 #     Use forward slashes for directory separators.
 #     For a directory that has spaces, enclose it in quotes.
-EXTRAINCDIRS += include
+EXTRAINCDIRS += include $(EXTERNAL_LOC)
 
 
 # Compiler flag to set the C Standard level.
@@ -183,7 +134,7 @@ CFLAGS += -Wstrict-prototypes
 #CFLAGS += -Wundef
 #CFLAGS += -Wunreachable-code
 #CFLAGS += -Wsign-compare
-CFLAGS += -Wa,-adhlns=$(<:%.c=$(OBJDIR)/%.lst)
+CFLAGS += -Wa,-adhlns=$(addprefix $(OBJDIR)/,$(notdir $(<:%.c=%.lst)))
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 
@@ -213,7 +164,7 @@ CPPFLAGS += -Wundef
 #CPPFLAGS += -Wstrict-prototypes
 #CPPFLAGS += -Wunreachable-code
 #CPPFLAGS += -Wsign-compare
-CPPFLAGS += -Wa,-adhlns=$(<:%.cpp=$(OBJDIR)/%.lst)
+CPPFLAGS += -Wa,--adhlns=$(addprefix $(OBJDIR)/,$(notdir $(<:%.cpp=%.lst)))
 CPPFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 #CPPFLAGS += $(CSTANDARD)
 
@@ -227,8 +178,8 @@ CPPFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 #             files -- see avr-libc docs [FIXME: not yet described there]
 #  -listing-cont-lines: Sets the maximum number of continuation lines of hex 
 #       dump that will be displayed for a given single line of source input.
-ASFLAGS = $(ADEFS) -Wa,-adhlns=$(<:%.S=$(OBJDIR)/%.lst),-gstabs,--listing-cont-lines=100
-
+ASFLAGS = $(ADEFS) -Wa,-adhlns=$(addprefix $(OBJDIR)/,$(notdir $(<:%.S=%.lst))),-gstabs,--listing-cont-lines=100
+#ASFLAGS = $(ADEFS) -Wa,-adhlns=$(<:%.S=$(OBJDIR)/%.lst),-gstabs,--listing-cont-lines=100
 
 #---------------- Library Options ----------------
 # Minimalistic printf version
@@ -399,10 +350,12 @@ MSG_CREATING_LIBRARY = Creating library:
 
 
 # Define all object files.
-OBJ = $(SRC:%.c=$(OBJDIR)/%.o) $(CPPSRC:%.cpp=$(OBJDIR)/%.o) $(ASRC:%.S=$(OBJDIR)/%.o) 
+OBJ_EXT = $(addprefix $(OBJDIR)/,$(notdir $(EXT_SRC:%.c=%.o))) $(addprefix $(OBJDIR)/,$(notdir $(EXT_CPPSRC:%.c=%.o))) $(addprefix $(OBJDIR)/,$(notdir $(EXT_ASRC:%.c=%.o)))
+OBJ = $(SRC:%.c=$(OBJDIR)/%.o) $(CPPSRC:%.cpp=$(OBJDIR)/%.o) $(ASRC:%.S=$(OBJDIR)/%.o) $(OBJ_EXT) $(addprefix $(OBJDIR)/,$(notdir $(EXT_SRC:%.c=%.o))) $(addprefix $(OBJDIR)/,$(notdir $(EXT_CPPSRC:%.c=%.o))) $(addprefix $(OBJDIR)/,$(notdir $(EXT_ASRC:%.c=%.o)))
 
 # Define all listing files.
-LST = $(SRC:%.c=$(OBJDIR)/%.lst) $(CPPSRC:%.cpp=$(OBJDIR)/%.lst) $(ASRC:%.S=$(OBJDIR)/%.lst) 
+LST_EXT = $(addprefix $(OBJDIR)/,$(notdir $(EXT_SRC:%.c=%.lst))) $(addprefix $(OBJDIR)/,$(notdir $(EXT_CPPSRC:%.c=%.lst))) $(addprefix $(OBJDIR)/,$(notdir $(EXT_ASRC:%.c=%.lst)))
+LST = $(SRC:%.c=$(OBJDIR)/%.lst) $(CPPSRC:%.cpp=$(OBJDIR)/%.lst) $(ASRC:%.S=$(OBJDIR)/%.lst) $(LST_EXT)
 
 
 # Compiler flags to generate dependency files.
@@ -425,8 +378,6 @@ all: begin gccversion sizebefore build sizeafter end
 # Change the build target to build a HEX file or a library.
 build: elf hex eep lss sym
 #build: lib
-
-
 elf: $(TARGET).elf
 hex: $(TARGET).hex
 eep: $(TARGET).eep
@@ -573,17 +524,27 @@ extcoff: $(TARGET).elf
 
 
 # Compile: create object files from C source files.
+
 $(OBJDIR)/%.o : %.c
 	@echo
 	@echo $(MSG_COMPILING) $<
 	$(CC) -c $(ALL_CFLAGS) $< -o $@ 
-
+	
+$(EXTERNAL_LOC)/obj/%.o : %.c
+	@echo
+	@echo $(MSG_COMPILING) $<
+	$(CC) -c $(ALL_CFLAGS) $< -o $@ 
 
 # Compile: create object files from C++ source files.
 $(OBJDIR)/%.o : %.cpp
 	@echo
 	@echo $(MSG_COMPILING_CPP) $<
 	$(CC) -c $(ALL_CPPFLAGS) $< -o $@ 
+	
+$(EXTERNAL_LOC)/obj/%.o : %.cpp
+	@echo
+	@echo $(MSG_COMPILING) $<
+	$(CC) -c $(ALL_CFLAGS) $< -o $@ 
 
 
 # Compile: create assembler files from C source files.
@@ -601,6 +562,11 @@ $(OBJDIR)/%.o : %.S
 	@echo
 	@echo $(MSG_ASSEMBLING) $<
 	$(CC) -c $(ALL_ASFLAGS) $< -o $@
+	
+$(EXTERNAL_LOC)/obj/%.o : %.S
+	@echo
+	@echo $(MSG_COMPILING) $<
+	$(CC) -c $(ALL_CFLAGS) $< -o $@ 
 
 
 # Create preprocessed source for use in sending a bug report.
@@ -624,6 +590,8 @@ clean_list :
 	$(REMOVE) $(TARGET).lss
 	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.o)
 	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.lst)
+	$(REMOVE) $(addprefix $(OBJDIR)/,$(notdir $(EXT_SRC:%.c=%.o)))
+	$(REMOVE) $(addprefix $(OBJDIR)/,$(notdir $(EXT_SRC:%.c=%.lst)))
 	$(REMOVE) $(SRC:.c=.s)
 	$(REMOVE) $(SRC:.c=.d)
 	$(REMOVE) $(SRC:.c=.i)
