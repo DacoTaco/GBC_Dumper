@@ -13,13 +13,10 @@ FORMAT = ihex
 TARGET = GBC_Dumper
 # Location of the external code. if it is the same location as this makefile, put a . or nothing at all
 EXTERNAL_LOC = ../../AVR_Utilities
-VPATH=$(EXTERNAL_LOC)
-
 
 #------------------------------------
 #			Building Settings
 #------------------------------------
-
 
 # Object files directory
 #     To put object files in current directory, use a dot (.), do NOT make
@@ -69,7 +66,7 @@ DEBUG = dwarf-2
 # DISABLE_DUMP_FUNCTIONS is to disable the DumpROM,DumpRAM and WriteRAM functions to save space on the AVR
 # SAVE_SPACE is to set it so all code having defines for saving space will disable code to do so
 #
-CUSTOMDEFINES = -DSAVE_SPACE
+CUSTOMDEFINES = -DSAVE_SPACE -DBAUD=38400
 #CUSTOMDEFINES = -D_VA_SUPPORT -D_ALLOW_NONE_API_CMD
 
 ifeq ($(MCU),atmega8)
@@ -79,6 +76,8 @@ else
 	CUSTOMDEFINES += -DNORMAL_MODE
 endif
 
+#set the VPATH to the external location. this makes it possible to build external source!
+VPATH=$(EXTERNAL_LOC)
 
 # List any extra directories to look for include files here.
 #     Each directory must be seperated by a space.
@@ -97,14 +96,21 @@ CSTANDARD = -std=gnu99
 
 # Place -D or -U options here for C sources
 CDEFS = -DF_CPU=$(F_CPU)UL
-
+ifdef CUSTOMDEFINES
+CDEFS += $(CUSTOMDEFINES)
+endif
 
 # Place -D or -U options here for ASM sources
 ADEFS = -DF_CPU=$(F_CPU)
-
+ifdef CUSTOMDEFINES
+ADEFS += $(CUSTOMDEFINES)
+endif
 
 # Place -D or -U options here for C++ sources
 CPPDEFS = -DF_CPU=$(F_CPU)UL
+ifdef CUSTOMDEFINES
+CPPDEFS += $(CUSTOMDEFINES)
+endif
 #CPPDEFS += -D__STDC_LIMIT_MACROS
 #CPPDEFS += -D__STDC_CONSTANT_MACROS
 
@@ -120,9 +126,6 @@ CPPDEFS = -DF_CPU=$(F_CPU)UL
 CFLAGS = -g$(DEBUG)
 CFLAGS += $(CDEFS)
 CFLAGS += -O$(OPT)
-ifdef CUSTOMDEFINES
-CFLAGS += $(CUSTOMDEFINES)
-endif
 CFLAGS += -funsigned-char
 CFLAGS += -funsigned-bitfields
 CFLAGS += -fpack-struct
@@ -149,9 +152,6 @@ CFLAGS += $(CSTANDARD)
 CPPFLAGS = -g$(DEBUG)
 CPPFLAGS += $(CPPDEFS)
 CPPFLAGS += -O$(OPT)
-ifdef CUSTOMDEFINES
-CPPFLAGS += $(CUSTOMDEFINES)
-endif
 CPPFLAGS += -funsigned-char
 CPPFLAGS += -funsigned-bitfields
 CPPFLAGS += -fpack-struct
