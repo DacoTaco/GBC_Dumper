@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdlib.h>
 #include <avr/eeprom.h>
 #include "serial.h"
+#include "i2c.h"
 #include "gbc_error.h"
 #include "gbc_api.h"
 #include "GB_Cart.h"
@@ -205,7 +206,7 @@ int main(void)
 	SetupPins();
 
 	//set it so that incoming msg's are ignored.
-	setRecvCallback(ProcessChar);
+	setSerialRecvCallback(ProcessChar);
 	
 /*#ifdef __ATMEGA8__
 	cprintf("Atmega8 says : ");
@@ -217,12 +218,23 @@ int main(void)
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
-	uint16_t addr = 0x6000;//0x200;
+	//uint16_t addr = 0x6000;//0x200;
 	//WriteByte(0x6000,0);
     while(1) 
 	{
 		if(CheckControlPin(BTN) == LOW)
 		{
+#ifdef GPIO_EXTENDER_MODE
+			/*i2c_Write(ADDR_CHIP_1,0x00);
+			i2c_Write(ADDR_CHIP_1,0xFF);
+			cprintf("retrieving data from PCF...\n\r");
+			uint8_t ret = i2c_Read(ADDR_CHIP_1,0);
+			cprintf("data 1 : 0x%02X\n\r",ret);
+			ret = i2c_Read(ADDR_CHIP_2,0);
+			cprintf("data 2 : 0x%02X\n\r",ret);
+			cprintf("done\n\r");*/
+			_delay_ms(200);		
+#endif
 			//SetAddress(addr);
 			/*cprintf_char(ReadByte(0x0137));
 			cprintf("tested\r\n");

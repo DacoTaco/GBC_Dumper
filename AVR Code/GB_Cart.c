@@ -24,6 +24,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "GB_Cart.h"
 #include "serial.h"
 
+#ifdef GPIO_EXTENDER_MODE
+#include "mcp23008.h"
+#endif
+
 #define SetPin(x,y) _setPin(&x,(1<<y))
 #define ClearPin(x,y) _clearPin(&x,(1<<y))
 
@@ -84,18 +88,32 @@ void SetupPins(void)
 	/*SPCR &= ~(1 << 6);
 	SPCR = 0;*/
 	
+#ifdef GPIO_EXTENDER_MODE
+	
+	//setup i2c, as its the source of everything xD
+	mcp23008_init(ADDR_CHIP_1);
+	mcp23008_init(ADDR_CHIP_2);
+	//i2c_Init();
+	
+	//setup data pins as input
+	//DATA_DDR = 0b00000000;
+	ChangeDataPinsMode(INPUT); 
+	
+#elif defined(SHIFTING_MODE)
+
 	//setup data pins as input
 	//DATA_DDR = 0b00000000;
 	ChangeDataPinsMode(INPUT);
 	
-	
-#ifdef SHIFTING_MODE
-
 	//set the pins as output, init-ing the pins for the shift register
 	ADDR_CTRL_DDR |= ( (1 << ADDR_CTRL_DATA) | (1 << ADDR_CTRL_CLK) | (1 << ADDR_CTRL_LATCH) );
-	
-#else //#elif defined(NORMAL_MODE)
 
+#else //elif defined(NORMAL_MODE)
+	
+	//setup data pins as input
+	//DATA_DDR = 0b00000000;
+	ChangeDataPinsMode(INPUT); 
+	
 	//enable address pins A0 - A7 as output
 	ADDR_DDR1 = 0xFF;
 	ADDR_DDR2 = 0xFF;
@@ -128,7 +146,17 @@ void SetAddress(uint16_t address)
 		SetControlPin(RST,HIGH);
 	}
 			
-#ifdef SHIFTING_MODE
+#ifdef GPIO_EXTENDER_MODE
+	uint8_t adr1 = address >> 8;
+	uint8_t adr2 = (uint8_t)(address & 0xFF);
+	
+	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
+	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0x00);
+	
+	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,adr1);
+	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,adr2);
+
+#elif defined(SHIFTING_MODE)
 
 	//write the 16 bits to the shift register
 	ClearPin(ADDR_CTRL_PORT,ADDR_CTRL_LATCH);

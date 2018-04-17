@@ -74,7 +74,6 @@ Connections we want,need and assigned to :
 #define DISABLE_CORE_DUMP_FUNCTIONS
 #endif
 //disable the DumpROM,DumpRAM and WriteRAM functions to save space on the AVR
-//currently only disables WriteRAM since we have an API version of that
 //#define DISABLE_CORE_DUMP_FUNCTIONS
 
 //addresses defines
@@ -104,32 +103,29 @@ Connections we want,need and assigned to :
 #define MBC5 0x50
 
 //define all pins for a specific chip!
-#ifdef NORMAL_MODE
+#ifdef GPIO_EXTENDER_MODE	
 
-	#define DATA_PORT PORTA
-	#define DATA_DDR DDRA
-	#define DATA_PIN PINA
-	
-	#define ADDR_DDR1 DDRB
-	#define ADDR_DDR2 DDRC
-	#define ADDR_PORT1 PORTB
-	#define ADDR_PORT2 PORTC
-
+	#define DATA_PORT PORTB
+	#define DATA_DDR DDRB
+	#define DATA_PIN PINB
 	
 	#define CTRL_DDR DDRD
 	#define CTRL_PORT PORTD
 	#define CTRL_PIN PIND
-	#define RD PD2
-	//0b00000100;
-	#define WD PD3
-	//0b00001000;
-	#define SRAM PD4
-	//0b00010000;
-	#define RST PD5
-	//0b00100000;
-	#define BTN PD6
-	//0b01000000
 	
+	#define ADDR_CHIP_1 0b01000000
+	#define ADDR_CHIP_2 0b01000010
+	
+	#define RD PD2
+	//0b00100000;
+	#define WD PD3
+	//0b01000000;
+	#define SRAM PD4
+	//0b10000000;
+	#define RST PD5
+	//0b00000100;
+	#define BTN PD6
+	//0b00100000
 	
 #elif defined(SHIFTING_MODE)
 
@@ -159,6 +155,33 @@ Connections we want,need and assigned to :
 	//0b00000100;
 	#define BTN PD6
 	//0b00100000
+	
+#else
+		
+	#define DATA_PORT PORTA
+	#define DATA_DDR DDRA
+	#define DATA_PIN PINA
+	
+	#define ADDR_DDR1 DDRB
+	#define ADDR_DDR2 DDRC
+	#define ADDR_PORT1 PORTB
+	#define ADDR_PORT2 PORTC
+
+	
+	#define CTRL_DDR DDRD
+	#define CTRL_PORT PORTD
+	#define CTRL_PIN PIND
+	#define RD PD2
+	//0b00000100;
+	#define WD PD3
+	//0b00001000;
+	#define SRAM PD4
+	//0b00010000;
+	#define RST PD5
+	//0b00100000;
+	#define BTN PD6
+	//0b01000000
+	
 #endif
 
 #define HIGH 1

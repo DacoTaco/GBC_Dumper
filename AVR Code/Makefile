@@ -25,7 +25,7 @@ OBJDIR = obj
 
 
 # List C source files here. (C dependencies are automatically generated.)
-EXT_SRC = $(EXTERNAL_LOC)/serial.c
+EXT_SRC = $(EXTERNAL_LOC)/serial.c $(EXTERNAL_LOC)/i2c.c $(EXTERNAL_LOC)/mcp23008.c
 SRC = $(TARGET).c GB_Cart.c gbc_api.c
 
 
@@ -65,12 +65,12 @@ DEBUG = dwarf-2
 # _ALLOW_NONE_API_CMD is for the main source, to allow the none API commands
 # DISABLE_DUMP_FUNCTIONS is to disable the DumpROM,DumpRAM and WriteRAM functions to save space on the AVR
 # SAVE_SPACE is to set it so all code having defines for saving space will disable code to do so
-#
-CUSTOMDEFINES = -DSAVE_SPACE -DBAUD=38400
+#SHIFTING_MODE
+CUSTOMDEFINES = -DBAUD=38400 -DSAVE_SPACE
 #CUSTOMDEFINES = -D_VA_SUPPORT -D_ALLOW_NONE_API_CMD
 
 ifeq ($(MCU),atmega8)
-	CUSTOMDEFINES += -DSHIFTING_MODE
+	CUSTOMDEFINES += -DGPIO_EXTENDER_MODE -DSCL_CLOCK=400
 else
 	#else ifeq ($(MCU),atmega8)
 	CUSTOMDEFINES += -DNORMAL_MODE
