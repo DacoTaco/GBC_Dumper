@@ -40,14 +40,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdlib.h>
 #include <avr/eeprom.h>
 #include "serial.h"
-#include "i2c.h"
+#include "mcp23008.h"
 #include "gbc_error.h"
 #include "gbc_api.h"
 #include "GB_Cart.h"
 
+
 uint8_t cmd_size = 0;
 #define CMD_SIZE 0x21
 char cmd[CMD_SIZE];
+uint8_t process_cmd = 0;
+
 /*
 
 //things that are broken : 
@@ -56,7 +59,8 @@ char cmd[CMD_SIZE];
 
 void ProcessCommand(void)
 {
-	cli();
+	process_cmd = 0;
+	DisableSerialInterrupt();
 	int8_t ret = API_GetGameInfo();
 	if(ret > 0)
 	{
@@ -169,7 +173,7 @@ void ProcessCommand(void)
 end_function:
 	cmd_size = 0;
 	memset(cmd,0,CMD_SIZE);
-	sei();
+	EnableSerialInterrupt();
 	return;
 }
 void ProcessChar(char byte)
@@ -182,7 +186,9 @@ void ProcessChar(char byte)
 	else if(byte == '\n' || byte == '\r')
 	{
 		if(cmd_size > 0)
-			ProcessCommand();
+			//set variable instead of processing command. something in the lines of disabling interrupt while in one that just doesn't work out nicely
+			//ProcessCommand();
+			process_cmd = 1;
 		return;
 	}
 	else if( 
@@ -218,28 +224,37 @@ int main(void)
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
-	//uint16_t addr = 0x6000;//0x200;
-	//WriteByte(0x6000,0);
+	//uint16_t addr = 0x104;//0x200;//0x8421;
     while(1) 
 	{
-		if(CheckControlPin(BTN) == LOW)
+		if(process_cmd)
 		{
-#ifdef GPIO_EXTENDER_MODE
-			/*i2c_Write(ADDR_CHIP_1,0x00);
-			i2c_Write(ADDR_CHIP_1,0xFF);
-			cprintf("retrieving data from PCF...\n\r");
-			uint8_t ret = i2c_Read(ADDR_CHIP_1,0);
-			cprintf("data 1 : 0x%02X\n\r",ret);
-			ret = i2c_Read(ADDR_CHIP_2,0);
-			cprintf("data 2 : 0x%02X\n\r",ret);
-			cprintf("done\n\r");*/
-			_delay_ms(200);		
-#endif
-			//SetAddress(addr);
-			/*cprintf_char(ReadByte(0x0137));
-			cprintf("tested\r\n");
-			addr++;
-			_delay_ms(100);*/
+			ProcessCommand();
+		}
+		if(CheckBtnPin(BTN) == LOW)
+		{
+			/*cprintf("Btn pressed!\n\r");
+			/*uint8_t data = 0;
+			data = ReadByte(addr);
+			cprintf("data : ");
+			cprintf_char(data);	
+			cprintf("\n\r");
+
+			SetControlPin(RD,HIGH);	
+			if(CheckControlPin(RST) == 1)
+			{
+				SetControlPin(RST,LOW);
+			}*/
+			
+			/*cmd[0] = 'T';
+			cmd[1] = 'E';
+			cmd[2] = 'S';
+			cmd[3] = 'T';
+			cmd_size = 4;
+			cprintf("processing command...\n\r");
+			ProcessCommand();
+			//addr++;
+			_delay_ms(200);*/
 		}
     }
 }

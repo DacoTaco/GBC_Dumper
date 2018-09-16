@@ -29,7 +29,7 @@ int8_t API_WaitForOK(void)
 {
 	//disable interrupts, like serial interrupt for example :P 
 	//we will handle the data, kthxbye
-	cli();
+	DisableSerialInterrupt();
 	int8_t ret = 0;
 	
 	cprintf_char(API_OK);
@@ -50,7 +50,7 @@ int8_t API_WaitForOK(void)
 			break;
 	}
 	
-	sei();
+	EnableSerialInterrupt();
 	return ret;
 }
 void API_ResetGameInfo(void)
@@ -251,7 +251,7 @@ int8_t API_WriteRam(void)
 	
 	//disable interrupts, like serial interrupt for example :P 
 	//we will handle the data, kthxbye
-	cli();
+	DisableSerialInterrupt();
 	
 	//we start our loop at addr -1 because we will add 1 asa we start the loop
 	for(uint16_t i = addr-1;i< end_addr;)
@@ -324,7 +324,7 @@ end_function:
 	//re-enable interrupts!
 	SetControlPin(RST,LOW);
 	API_ResetGameInfo();
-	sei();
+	EnableSerialInterrupt();
 	return ret;
 }
 int8_t API_GetRom(void)

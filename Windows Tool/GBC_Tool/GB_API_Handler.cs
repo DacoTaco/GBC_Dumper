@@ -56,19 +56,18 @@ namespace Gameboy
         public const int ERROR_ABORT = -3;
         public const int ERROR_INVALID_DATA = -4;
 	}
+    /// <summary>
+    /// structure used to hold all current game info
+    /// </summary>
+    public struct GameInfo
+    {
+        public string CartName;
+        public Int32 FileSize;
+        public Int32 current_addr;
+        public bool? IsGBC;
+    }
     public class GB_API_Handler
     {
-        /// <summary>
-        /// structure used to hold all current game info
-        /// </summary>
-        public struct GameInfo
-        {
-            public string CartName;
-            public Int32 FileSize;
-            public Int32 current_addr;
-            public bool? IsGBC;
-        }
-
         //all variables used by the API handler
         public GameInfo Info = new GameInfo();
         private FileStream Filefs = null;
@@ -95,7 +94,7 @@ namespace Gameboy
             }
             PrevPacket = new byte[] {0x00,0x00};
             PrevByte = 0x00;
-            APIMode = 0x00;
+            SetAPIMode(0x00);
             Info.CartName = string.Empty;
             Info.FileSize = 0;
             Info.current_addr = 0;
@@ -167,8 +166,16 @@ namespace Gameboy
             if ((IsRom && IsWriting) || buf == null)
                 return GB_API_Error.ERROR_PRECHECK;
 
+            short sleep_cnt = 0;
             //we sometimes get uncomplete data, so wait a bit to see if more data is coming.
-            System.Threading.Thread.Sleep(10);
+            while (serial.BytesToRead == 0)
+            {
+                System.Threading.Thread.Sleep(1);
+                sleep_cnt++;
+                if (sleep_cnt > 4000)
+                    break;
+            }
+            
             if (serial.BytesToRead > 0)
             {
                 //we have data!
@@ -371,7 +378,7 @@ namespace Gameboy
         }
         public int HandleWriteRam(byte[] buf)
         {
-            if (buf == null || buf.Length <= 0)
+            if (buf == null || buf.Length <= 0 || APIMode != GB_API_Protocol.API_MODE_WRITE_RAM)
                 return 0;
 
             int offset = 0;

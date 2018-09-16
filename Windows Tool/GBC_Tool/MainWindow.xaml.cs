@@ -142,39 +142,46 @@ namespace GBC_Tool
         }
         private void ConnectPort()
         {
-            //connect to serial port! 
-            //set all variables and lets go!
-            serial.PortName = cbComPorts.SelectedItem.ToString();
-            serial.BaudRate = Convert.ToInt32(cbBaudRate.SelectedItem);
-            serial.Handshake = System.IO.Ports.Handshake.None;
-            serial.Parity = Parity.None;
-            serial.DataBits = 8;
-            serial.StopBits = StopBits.One;
-            //connection.DtrEnable = false;
-            //connection.RtsEnable = false;
-            serial.ReadTimeout = 200;
-            serial.WriteTimeout = 50;
-            serial.ReceivedBytesThreshold = 1;
-            
-            serial.Open();
-
-            int ret = APIHandler.AttemptAPIHandshake();
-            if (ret >= 0)
+            try
             {
-                //handshake was succesful
-                serial.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(HandleReceive);
-                Connected = true;
-                if (ret == 0)
+                //connect to serial port! 
+                //set all variables and lets go!
+                serial.PortName = cbComPorts.SelectedItem.ToString();
+                serial.BaudRate = Convert.ToInt32(cbBaudRate.SelectedItem);
+                serial.Handshake = System.IO.Ports.Handshake.None;
+                serial.Parity = Parity.None;
+                serial.DataBits = 8;
+                serial.StopBits = StopBits.One;
+                //connection.DtrEnable = false;
+                //connection.RtsEnable = false;
+                serial.ReadTimeout = 200;
+                serial.WriteTimeout = 50;
+                serial.ReceivedBytesThreshold = 1;
+
+                serial.Open();
+
+                int ret = APIHandler.AttemptAPIHandshake();
+                if (ret >= 0)
                 {
-                    AddTextToField("Controller did not give a correct response, still keeping connection open..." + Environment.NewLine);
+                    //handshake was succesful
+                    serial.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(HandleReceive);
+                    Connected = true;
+                    if (ret == 0)
+                    {
+                        AddTextToField("Controller did not give a correct response, still keeping connection open..." + Environment.NewLine);
+                    }
+                }
+                else
+                {
+                    //fail
+                    serial.Close();
                 }
             }
-            else
+            catch (Exception ex)
             {
-                //fail
-                serial.Close();
-            }
 
+                throw ex;
+            }   
         }
         //disconnect port
         private void DisconnectPort()
@@ -362,15 +369,23 @@ namespace GBC_Tool
         //event handler for connecting
         private void Connect_Click(object sender, RoutedEventArgs e)
         {
-            if (btConnect.IsChecked == true)
+            try
             {
-                AddTextToField(String.Format("connecting... "));
-                ConnectPort();
-                AddTextToField(String.Format("Connected! {0}", Environment.NewLine));
+                if (btConnect.IsChecked == true)
+                {
+                    AddTextToField(String.Format("connecting... "));
+                    ConnectPort();
+                    AddTextToField(String.Format("Connected! {0}", Environment.NewLine));
+                }
+                else
+                {
+                    DisconnectPort();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                DisconnectPort();
+                AddTextToField(String.Format("Failed to connect to COM port : {0}{1}", Environment.NewLine, ex.Message));
+                btConnect.IsChecked = false;
             }
         }
 
