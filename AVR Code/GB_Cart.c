@@ -45,36 +45,50 @@ void SetControlPin(uint8_t Pin,uint8_t state)
 {
 	if(state > 0)
 	{
-		SetPin(CTRL_PORT,Pin);//CTRL_PORT |= (1 << Pin); // pin goes high
+		SetPin(CTRL_PORT,Pin); // pin goes high
 	}	
 	else
 	{
-		ClearPin(CTRL_PORT,Pin); //CTRL_PORT &= ~(1 << Pin); // Pin goes low
+		ClearPin(CTRL_PORT,Pin); // Pin goes low
 	}
 	_delay_us(10);
 }
 int8_t CheckControlPin(uint8_t Pin)
 {
-	if((CTRL_PIN & (1<< Pin))==0)
+	if((CTRL_PIN & (1<< Pin)) == 0)
 		return LOW;
-	else
-		return HIGH;
+	return HIGH;
 }
 void ChangeDataPinsMode(uint8_t mode)
 {
 	if(mode == 0)
 	{
 		//set as input;
+#ifdef GPIO_EXTENDER_MODE	
+		mcp23008_WriteReg(DATA_CHIP_1,IODIR,0xFF);
+		
+		//enable pull up
+		mcp23008_WriteReg(DATA_CHIP_1,GPPU,0xFF);
+#else
 		DATA_DDR &= ~(0xFF); //0b00000000;
 		//enable pull up resistors
 		DATA_PORT = 0xFF;
+#endif
 	}
 	else
 	{
 		//set as output
+#ifdef GPIO_EXTENDER_MODE
+		//disable pull ups
+		mcp23008_WriteReg(DATA_CHIP_1,GPPU,0x00);
+		
+		//set output
+		mcp23008_WriteReg(DATA_CHIP_1,IODIR,0x00);	
+#else
 		DATA_DDR |= (0xFF);//0b11111111;
 		//set output as 0x00
 		DATA_PORT = 0x00;
+#endif
 	}
 
 }
@@ -93,26 +107,15 @@ void SetupPins(void)
 	//setup i2c, as its the source of everything xD
 	mcp23008_init(ADDR_CHIP_1);
 	mcp23008_init(ADDR_CHIP_2);
+	mcp23008_init(DATA_CHIP_1);
 	//i2c_Init();
 	
-	//setup data pins as input
-	//DATA_DDR = 0b00000000;
-	ChangeDataPinsMode(INPUT); 
-	
 #elif defined(SHIFTING_MODE)
-
-	//setup data pins as input
-	//DATA_DDR = 0b00000000;
-	ChangeDataPinsMode(INPUT);
 	
 	//set the pins as output, init-ing the pins for the shift register
 	ADDR_CTRL_DDR |= ( (1 << ADDR_CTRL_DATA) | (1 << ADDR_CTRL_CLK) | (1 << ADDR_CTRL_LATCH) );
 
 #else //elif defined(NORMAL_MODE)
-	
-	//setup data pins as input
-	//DATA_DDR = 0b00000000;
-	ChangeDataPinsMode(INPUT); 
 	
 	//enable address pins A0 - A7 as output
 	ADDR_DDR1 = 0xFF;
@@ -126,6 +129,9 @@ void SetupPins(void)
 #ifdef __ATMEGA32__
 	GICR &= ~(1 << INT2);
 #endif*/
+
+	//setup data pins as input
+	ChangeDataPinsMode(INPUT); 
 	
 	//setup D pins as well for the other, as output
 	CTRL_DDR |= ( (0 << BTN) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) );//0b01111100;
@@ -147,14 +153,14 @@ void SetAddress(uint16_t address)
 	}
 			
 #ifdef GPIO_EXTENDER_MODE
-	uint8_t adr1 = address >> 8;
-	uint8_t adr2 = (uint8_t)(address & 0xFF);
+	uint8_t addr_upper = address >> 8;
+	uint8_t addr_lower = (uint8_t)(address & 0xFF);
 	
 	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
 	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0x00);
 	
-	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,adr1);
-	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,adr2);
+	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,addr_lower);
+	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,addr_upper);
 
 #elif defined(SHIFTING_MODE)
 
@@ -213,9 +219,10 @@ uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 	
 	//set cartridge in read mode
 	SetControlPin(RD,LOW);	
-
-	data = DATA_PIN;
+	_delay_us(5);
 	
+	GET_DATA(data);
+
 	SetControlPin(RD,HIGH);
 	
 	if(ReadRom <= 0)
@@ -254,7 +261,8 @@ uint8_t _WriteByte(int8_t WriteRom, uint16_t addr,uint8_t byte)
 	SetControlPin(RD,HIGH);
 	
 	ChangeDataPinsMode(OUTPUT);
-	DATA_PORT = byte;
+	//DATA_PORT = byte;
+	SET_DATA(byte);
 	SetAddress(addr);
 	
 	//set Sram control pin low. we do this -AFTER- address is set because MBC2 latches to the address as soon as SRAM is set low. 
@@ -272,7 +280,8 @@ uint8_t _WriteByte(int8_t WriteRom, uint16_t addr,uint8_t byte)
 		SetControlPin(SRAM,HIGH);
 	}
 	
-	DATA_PORT = 0x00;
+	//DATA_PORT = 0x00;
+	SET_DATA(0x00);
 	ChangeDataPinsMode(INPUT);
 	
 	return 1;
@@ -402,7 +411,6 @@ int8_t GetHeader(int8_t option)
 	uint8_t header[0x51] = {0};
 	uint8_t FF_cnt = 0;
 	//memset(header,0,0x51);	
-	
 	if(option == 0)
 	{
 		for(uint8_t i = 0 ; i < ((sizeof(header) / sizeof(uint8_t))-1);i++)
@@ -467,9 +475,6 @@ int8_t GetHeader(int8_t option)
 		//compare!	
 		for(int8_t i =0;i< 0x30;i++)
 		{
-			//cprintf("comparing %d : %X vs %X\r\n",i,ReadLogo[i],Logo[i]);
-			/*cprintf_char(ReadLogo[i]);
-			cprintf_char(Logo[i]);*/
 			if(ReadLogo[i] == Logo[i])
 				continue;
 			else
@@ -734,7 +739,7 @@ int8_t DumpRAM()
 		}
 	}
 	
-	uint8_t Bank_Type = GameInfo.MBCType;//GetMBCType(GameInfo.CartType);
+	uint8_t Bank_Type = GameInfo.MBCType;
 	
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
@@ -787,7 +792,7 @@ int8_t WriteRAM()
 	
 	//disable interrupts, like serial interrupt for example :P 
 	//we will handle the data, kthxbye
-	cli();
+	DisableSerialInterrupt();
 	
 	if(GameInfo.Name[0] == 0x00)
 	{
@@ -841,7 +846,7 @@ int8_t WriteRAM()
 end_function:
 	SetControlPin(RST,LOW);
 	//re-enable interrupts!
-	sei();
+	EnableSerialInterrupt();
 	return ret;
 }
 #endif

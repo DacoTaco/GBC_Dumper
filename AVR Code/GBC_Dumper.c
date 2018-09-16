@@ -231,7 +231,7 @@ int main(void)
 		{
 			ProcessCommand();
 		}
-		if(CheckBtnPin(BTN) == LOW)
+		if(CheckControlPin(BTN) == LOW)
 		{
 			/*cprintf("Btn pressed!\n\r");
 			/*uint8_t data = 0;

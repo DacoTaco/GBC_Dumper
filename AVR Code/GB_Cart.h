@@ -104,34 +104,37 @@ Connections we want,need and assigned to :
 
 //define all pins for a specific chip!
 #ifdef GPIO_EXTENDER_MODE	
-
-	#define DATA_PORT PORTB
-	#define DATA_DDR DDRB
-	#define DATA_PIN PINB
+	
+	#define GET_DATA(x) { uint8_t d; mcp23008_ReadReg(DATA_CHIP_1, GPIO,&d); x = d; }
+	#define SET_DATA(x) { mcp23008_WriteReg(DATA_CHIP_1, GPIO,x);}
 	
 	#define CTRL_DDR DDRD
 	#define CTRL_PORT PORTD
 	#define CTRL_PIN PIND
 	
-	#define ADDR_CHIP_1 0b01000000
-	#define ADDR_CHIP_2 0b01000010
+	//the MCP23008 addresses consist of 0b0100xxxy. xxx = the chip set address & y = the read/write bit. hence the shift to the left
+	//but no worries, the mcp23008 library keeps that in check for us in case we fuck up
+	#define BASE_ADDR_CHIPS 0b01000000
 	
-	#define RD PD2
-	//0b00100000;
-	#define WD PD3
-	//0b01000000;
-	#define SRAM PD4
-	//0b10000000;
-	#define RST PD5
-	//0b00000100;
-	#define BTN PD6
-	//0b00100000
+	#define DATA_CHIP_1 (BASE_ADDR_CHIPS | ( 0b000 << 1))
+	#define ADDR_CHIP_1 (BASE_ADDR_CHIPS | ( 0b001 << 1))
+	#define ADDR_CHIP_2 (BASE_ADDR_CHIPS | ( 0b010 << 1))
+	
+	
+	#define RD PD5
+	#define WD PD6
+	#define SRAM PD7
+	#define RST PD3
+	#define BTN PD4
 	
 #elif defined(SHIFTING_MODE)
 
 	#define DATA_PORT PORTB
 	#define DATA_DDR DDRB
 	#define DATA_PIN PINB
+	
+	#define GET_DATA(x) (x = DATA_PIN)
+	#define SET_DATA(x) (DATA_PORT = byte)
 	
 	#define ADDR_CTRL_DDR DDRC
 	#define ADDR_CTRL_PORT PORTC
@@ -161,6 +164,9 @@ Connections we want,need and assigned to :
 	#define DATA_PORT PORTA
 	#define DATA_DDR DDRA
 	#define DATA_PIN PINA
+	
+	#define GET_DATA(x) (x = DATA_PIN)
+	#define SET_DATA(x) (DATA_PORT = byte)
 	
 	#define ADDR_DDR1 DDRB
 	#define ADDR_DDR2 DDRC
