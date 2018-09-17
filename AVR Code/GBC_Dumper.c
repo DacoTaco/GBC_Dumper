@@ -224,7 +224,7 @@ int main(void)
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
-	//uint16_t addr = 0x104;//0x200;//0x8421;
+	//uint16_t addr = 0x13FF;//0x104;//0x200;//0x8421;
     while(1) 
 	{
 		if(process_cmd)
@@ -234,17 +234,17 @@ int main(void)
 		if(CheckControlPin(BTN) == LOW)
 		{
 			/*cprintf("Btn pressed!\n\r");
-			/*uint8_t data = 0;
+			uint8_t data = 0;
 			data = ReadByte(addr);
 			cprintf("data : ");
 			cprintf_char(data);	
-			cprintf("\n\r");
+			cprintf("\n\r");*/
 
-			SetControlPin(RD,HIGH);	
+			/*SetControlPin(RD,HIGH);	
 			if(CheckControlPin(RST) == 1)
 			{
 				SetControlPin(RST,LOW);
-			}*/
+			}*/		
 			
 			/*cmd[0] = 'T';
 			cmd[1] = 'E';

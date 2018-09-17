@@ -3,6 +3,8 @@
 #			General Setup
 #------------------------------------
 
+#old fuse settings : 0x04 0xDA
+#new fuse settings : 0x3F 0xDA
 # MCU name
 MCU = atmega8
 # Processor frequency. -WITHOUT- UL
@@ -70,7 +72,7 @@ CUSTOMDEFINES = -DBAUD=38400 -DSAVE_SPACE
 #CUSTOMDEFINES = -D_VA_SUPPORT -D_ALLOW_NONE_API_CMD -DSCL_CLOCK=400
 
 ifeq ($(MCU),atmega8)
-	CUSTOMDEFINES += -DGPIO_EXTENDER_MODE -DSCL_CLOCK=400
+	CUSTOMDEFINES += -DGPIO_EXTENDER_MODE -DSCL_CLOCK=800
 else
 	#else ifeq ($(MCU),atmega8)
 	CUSTOMDEFINES += -DNORMAL_MODE

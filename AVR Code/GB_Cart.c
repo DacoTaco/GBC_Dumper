@@ -189,6 +189,7 @@ void SetAddress(uint16_t address)
 	}	
 	//all bits transfered. time to let the shifting register latch the data and set the pins accordingly
 	SetPin(ADDR_CTRL_PORT,ADDR_CTRL_LATCH);
+	_delay_us(5);
 	
 #else //#elif defined(NORMAL_MODE)
 	uint8_t adr1 = address >> 8;
@@ -196,9 +197,8 @@ void SetAddress(uint16_t address)
 	
 	ADDR_PORT1 = adr1;
 	ADDR_PORT2 = adr2;
-#endif
-
 	_delay_us(5);
+#endif
 }
 uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 {
@@ -219,7 +219,7 @@ uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 	
 	//set cartridge in read mode
 	SetControlPin(RD,LOW);	
-	_delay_us(5);
+	_delay_us(2);
 	
 	GET_DATA(data);
 
@@ -323,7 +323,7 @@ int8_t OpenRam(void)
 	//Init the MBC Ram!
 	uint16_t init_addr = 0x0000; 
 	WriteByte(init_addr,0x0A);
-	_delay_us(20);
+	_delay_us(10);
 	
 	return 1;
 }
