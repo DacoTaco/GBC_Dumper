@@ -172,7 +172,7 @@ namespace Gameboy
             {
                 System.Threading.Thread.Sleep(1);
                 sleep_cnt++;
-                if (sleep_cnt > 4000)
+                if (sleep_cnt > 1000)
                     break;
             }
             

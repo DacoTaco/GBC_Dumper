@@ -51,7 +51,11 @@ void SetControlPin(uint8_t Pin,uint8_t state)
 	{
 		ClearPin(CTRL_PORT,Pin); // Pin goes low
 	}
-	_delay_us(10);
+	//_delay_us(5);
+	asm ("nop");
+	asm ("nop");
+	asm ("nop");
+	
 }
 int8_t CheckControlPin(uint8_t Pin)
 {
@@ -91,6 +95,9 @@ void ChangeDataPinsMode(uint8_t mode)
 #endif
 	}
 
+	asm("nop");
+	asm("nop");
+	asm("nop");
 }
 void SetupPins(void)
 {
@@ -219,7 +226,7 @@ uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 	
 	//set cartridge in read mode
 	SetControlPin(RD,LOW);	
-	_delay_us(2);
+	//_delay_us(2);
 	
 	GET_DATA(data);
 
@@ -323,7 +330,8 @@ int8_t OpenRam(void)
 	//Init the MBC Ram!
 	uint16_t init_addr = 0x0000; 
 	WriteByte(init_addr,0x0A);
-	_delay_us(10);
+	//replaced with nop's in setinputmode
+	//_delay_us(5);
 	
 	return 1;
 }
@@ -337,7 +345,7 @@ int8_t CloseRam(void)
 		WriteByte(0x6000,0x00);
 		
 	WriteByte(init_addr,0x00);
-	_delay_us(20);
+	//_delay_us(10);
 
 	return 1;
 }
@@ -383,7 +391,7 @@ void SwitchROMBank(int8_t bank)
 			break;
 	}
 	
-	_delay_us(1);
+	//_delay_us(1);
 	
 	return;
 }
@@ -831,7 +839,7 @@ int8_t WriteRAM()
 			while ( !(UCSRA & (_BV(RXC))) );	
 			//add the delay because the while tends to exit once in a while to early and it makes us retrieve the wrong byte. for example 0xFA often tended to become 00
 			//a 5ms delay seemed to cause it different times? :/
-			_delay_ms(1);
+			_delay_us(5);
 			// Return the data
 			data_recv = UDR;
 			

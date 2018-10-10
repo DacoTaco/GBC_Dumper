@@ -39,6 +39,7 @@
 # * This software is licensed under version 2 of the Gnu Public Licence.
 # * See optiboot.c for details.
 
+HELPTEXT = "\n"
 #----------------------------------------------------------------------
 #
 # program name should not be changed...
@@ -131,19 +132,15 @@ OPTIMIZE = -Os -fno-split-wide-types -mrelax
 
 DEFS       = 
 
-#
-# platforms support EEPROM and large bootloaders need the eeprom functions that
-# are defined in libc, even though we explicity remove it with -nostdlib because
-# of the space-savings.
-LIBS       =  -lc
-
 CC         = $(GCCROOT)avr-gcc
 
 # Override is only needed by avr-lib build system.
 
+HELPTEXT += "Option AVR_FREQ=<n>          - Clock rate of AVR CPU\n"
+
+
 override CFLAGS        = -g -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) -DF_CPU=$(AVR_FREQ) $(DEFS)
-override LDFLAGS       = $(LDSECTIONS) -Wl,--relax -nostartfiles -nostdlib
-#-Wl,--gc-sections
+override LDFLAGS       = $(LDSECTIONS) -Wl,--relax -nostartfiles
 
 OBJCOPY        = $(GCCROOT)avr-objcopy
 OBJDUMP        = $(call fixpath,$(GCCROOT)avr-objdump)
@@ -156,6 +153,24 @@ SIZE           = $(GCCROOT)avr-size
 # appropriate parameters ("-DLED_START_FLASHES=10") to gcc
 #
 
+ifdef PRODUCTION
+ifneq ($(PRODUCTION),0)
+VERSION_CMD = -DPRODUCTION=1
+endif
+dummy = FORCE
+endif
+
+HELPTEXT += "Option CUSTOM_VERSION=nn     - set a customer version number\n"
+ifdef CUSTOM_VERSION
+ifneq ($(CUSTOM_VERSION), 0)
+VERSION_CMD = -DOPTIBOOT_CUSTOMVER=$(CUSTOM_VERSION)
+else
+VERSION_CMD = -DPRODUCTION=1
+endif
+dummy = FORCE
+endif
+
+HELPTEXT += "Option BAUD_RATE=nnnn        - set the bit rate for communications\n"
 ifdef BAUD_RATE
 BAUD_RATE_CMD = -DBAUD_RATE=$(BAUD_RATE)
 dummy = FORCE
@@ -163,6 +178,13 @@ else
 BAUD_RATE_CMD = -DBAUD_RATE=115200
 endif
 
+HELPTEXT += "Option LED=B3                - set LED pin to particular port/bit\n"
+ifdef LED
+LED_CMD = -DLED=$(LED)
+dummy = FORCE
+endif
+
+HELPTEXT += "Option LED_START_FLASHES=n   - set number of LED flashes when bootloader starts\n"
 ifdef LED_START_FLASHES
 LED_START_FLASHES_CMD = -DLED_START_FLASHES=$(LED_START_FLASHES)
 dummy = FORCE
@@ -170,44 +192,66 @@ else
 LED_START_FLASHES_CMD = -DLED_START_FLASHES=3
 endif
 
-# BIG_BOOT: Include extra features, up to 1K.
-ifdef BIGBOOT
-BIGBOOT_CMD = -DBIGBOOT=1
-dummy = FORCE
-endif
-
-ifdef SOFT_UART
-SOFT_UART_CMD = -DSOFT_UART=1
-dummy = FORCE
-endif
-
+HELPTEXT += "Option LED_DATA_FLASH=1      - flash the LED each time data is received.\n"
 ifdef LED_DATA_FLASH
+ifneq ($(LED_DATA_FLASH), 0)
 LED_DATA_FLASH_CMD = -DLED_DATA_FLASH=1
 dummy = FORCE
 endif
+endif
 
-ifdef LED
-LED_CMD = -DLED=$(LED)
+HELPTEXT += "Option LED_START_ON=1        - Turn the LED on at bootload start\n"
+ifdef LED_START_ON
+ifneq ($(LED_START_ON), 0)
+LED_START_ON_CMD = -DLED_START_ON=1
+endif
 dummy = FORCE
 endif
 
+HELPTEXT += "Option BIGBOOT=1             - enable extra features up to 1kbytes\n"
+# BIGBOOT: Include extra features, up to 1K.
+ifdef BIGBOOT
+ifneq ($(BIGBOOT), 0)
+BIGBOOT_CMD = -DBIGBOOT=1
+dummy = FORCE
+endif
+endif
+
+HELPTEXT += "Option SUPPORT_EEPROM=1      - Include code to read/write EEPROM\n"
+ifdef SUPPORT_EEPROM
+ifneq ($(SUPPORT_EEPROM), 0)
+SUPPORT_EEPROM_CMD = -DSUPPORT_EEPROM
+dummy = FORCE
+endif
+endif
+
+
+HELPTEXT += "Option SOFT_UART=1           - use a software (bit-banged) UART\n"
+ifdef SOFT_UART
+ifneq ($(SOFT_UART), 0)
+SOFT_UART_CMD = -DSOFT_UART=1
+dummy = FORCE
+endif
+endif
+
+HELPTEXT += "Option SINGLESPEED=1         - do not use U2X mode on UART\n"
 ifdef SINGLESPEED
+ifneq ($(SINGLESPEED), 0)
 SS_CMD = -DSINGLESPEED=1
+endif
 endif
 
 COMMON_OPTIONS = $(BAUD_RATE_CMD) $(LED_START_FLASHES_CMD) $(BIGBOOT_CMD)
 COMMON_OPTIONS += $(SOFT_UART_CMD) $(LED_DATA_FLASH_CMD) $(LED_CMD) $(SS_CMD)
+COMMON_OPTIONS += $(SUPPORT_EEPROM_CMD) $(LED_START_ON_CMD)
+COMMON_OPTIONS += $(VERSION_CMD)
 
 #UART is handled separately and only passed for devices with more than one.
+HELPTEXT += "Option UART=n                - use UARTn for communications\n"
 ifdef UART
 UART_CMD = -DUART=$(UART)
 endif
 
-# Not supported yet
-# ifdef SUPPORT_EEPROM
-# SUPPORT_EEPROM_CMD = -DSUPPORT_EEPROM
-# dummy = FORCE
-# endif
 
 # Not supported yet
 # ifdef TIMEOUT_MS
@@ -239,8 +283,22 @@ endif
 #---------------------------------------------------------------------------
 #
 
+HELPTEXT += "\n-------------\n\n"
+
 # Test platforms
 # Virtual boot block test
+HELPTEXT += "target virboot8      - ATmega8 with virtual boot partition\n"
+virboot8: TARGET = atmega8
+virboot8: MCU_TARGET = atmega8
+virboot8: CFLAGS += $(COMMON_OPTIONS) '-DVIRTUAL_BOOT_PARTITION' '-Dsave_vect_num=EE_RDY_vect_num'
+virboot8: AVR_FREQ ?= 16000000L 
+# Start address of 1D80 allows for size up to 640 bytes, app up to 7552
+virboot8: LDSECTIONS  = -Wl,--section-start=.text=0x1d80 -Wl,--section-start=.version=0x1ffe
+virboot8: $(PROGRAM)_virboot8.hex
+virboot8: $(PROGRAM)_virboot8.lst
+
+
+HELPTEXT += "target virboot328p   - ATmega328 with virtual boot partition\n"
 virboot328: TARGET = atmega328
 virboot328: MCU_TARGET = atmega328p
 virboot328: CFLAGS += $(COMMON_OPTIONS) '-DVIRTUAL_BOOT_PARTITION'
@@ -257,18 +315,73 @@ virboot328_isp: HFUSE ?= DF
 # Low power xtal (16MHz) 16KCK/14CK+65ms
 virboot328_isp: LFUSE ?= FF
 # 2.7V brownout
-virboot328_isp: EFUSE ?= 05
+virboot328_isp: EFUSE ?= FD
 virboot328_isp: isp
+
+virboot8_isp: virboot8
+virboot8_isp: TARGET = virboot8
+virboot8_isp: MCU_TARGET = atmega8
+# SPIEN, CKOPT (for full swing xtal), boot section 1k
+#  Note that we need boot section to include our SPM instructions,
+#   even though we do not enable BOOTRST
+virboot8_isp: HFUSE ?= CB
+# 2.7V brownout, 16MHz Xtal, 16KCK/14CK+65ms
+virboot8_isp: LFUSE ?= BF
+virboot8_isp: isp
+
 
 
 # Diecimila, Duemilanove with m168, and NG use identical bootloaders
 # Call it "atmega168" for generality and clarity, keep "diecimila" for
 # backward compatibility of makefile
+
+# ATmega8
 #
+test:
+	@echo $(BAUD_RATE)
+	@echo $(LED)
+	@echo $(AVR_FREQ)
+HELPTEXT += "target atmega8       - ATmega8, ATmega8A, ATmega8L\n"
+atmega8: TARGET = atmega8
+atmega8: MCU_TARGET = atmega8
+atmega8: CFLAGS += $(COMMON_OPTIONS)
+atmega8: AVR_FREQ ?= 16000000L 
+ifndef BIGBOOT
+atmega8: LDSECTIONS  = -Wl,--section-start=.text=0x1e00 -Wl,--section-start=.version=0x1ffe -Wl,--gc-sections -Wl,--undefined=optiboot_version
+else
+atmega8: LDSECTIONS  = -Wl,--section-start=.text=0x1c00 -Wl,--section-start=.version=0x1ffe -Wl,--gc-sections -Wl,--undefined=optiboot_version
+endif
+atmega8: $(PROGRAM)_atmega8.hex
+atmega8: $(PROGRAM)_atmega8.lst
+#atmega8:
+#	@echo $(BAUD_RATE)
+#	@echo $(LED)
+#	@echo $(AVR_FREQ)
+
+atmega8_isp: atmega8
+atmega8_isp: TARGET = atmega8
+atmega8_isp: MCU_TARGET = atmega8
+ifndef BIGBOOT
+# SPIEN, CKOPT (for full swing xtal), Bootsize=512B
+atmega8_isp: HFUSE ?= CC
+else
+# SPIEN, CKOPT (for full swing xtal), Bootsize=1024B
+atmega8_isp: HFUSE ?= CA
+endif
+# 2.7V brownout, 16MHz Xtal, 16KCK/14CK+65ms
+atmega8_isp: LFUSE ?= BF
+atmega8_isp: isp
+
+HELPTEXT += "target atmega168     - ATmega168, ATmega168A\n"
 atmega168: TARGET = atmega168
 atmega168: MCU_TARGET = atmega168
 atmega168: CFLAGS += $(COMMON_OPTIONS)
-atmega168: AVR_FREQ ?= 16000000L 
+atmega168: AVR_FREQ ?= 16000000L
+ifndef BIGBOOT
+atmega168: LDSECTIONS  = -Wl,--section-start=.text=0x3e00 -Wl,--section-start=.version=0x3ffe
+else
+atmeg168: LDSECTIONS  = -Wl,--section-start=.text=0x3c00 -Wl,--section-start=.version=0x3ffe
+endif
 atmega168: $(PROGRAM)_atmega168.hex
 atmega168: $(PROGRAM)_atmega168.lst
 
@@ -278,30 +391,47 @@ atmega168_isp: TARGET = atmega168
 atmega168_isp: HFUSE ?= DD
 # Full swing (16MHz) 16KCK/14CK+65ms
 atmega168_isp: LFUSE ?= F7
+ifndef BIGBOOT
 # 512 byte boot
 atmega168_isp: EFUSE ?= 04
+else
+# 1024byte boot
+atmega168_isp: EFUSE ?= FA
+endif
 atmega168_isp: isp
 
+HELPTEXT += "target atmega328     - ATmega328p\n"
 atmega328: TARGET = atmega328
 atmega328: MCU_TARGET = atmega328p
 atmega328: CFLAGS += $(COMMON_OPTIONS)
 atmega328: AVR_FREQ ?= 16000000L
+ifndef BIGBOOT
 atmega328: LDSECTIONS  = -Wl,--section-start=.text=0x7e00 -Wl,--section-start=.version=0x7ffe
+else
+# bigboot version is 1k long; starts earlier
+atmega328: LDSECTIONS  = -Wl,--section-start=.text=0x7c00 -Wl,--section-start=.version=0x7ffe
+endif
 atmega328: $(PROGRAM)_atmega328.hex
 atmega328: $(PROGRAM)_atmega328.lst
 
 atmega328_isp: atmega328
 atmega328_isp: TARGET = atmega328
 atmega328_isp: MCU_TARGET = atmega328p
+ifndef BIGBOOT
 # 512 byte boot, SPIEN
 atmega328_isp: HFUSE ?= DE
+else
+# 1k byte boot, SPIEN
+atmega328_isp: HFUSE ?= DC
+endif
 # Low power xtal (16MHz) 16KCK/14CK+65ms
 atmega328_isp: LFUSE ?= FF
 # 2.7V brownout
-atmega328_isp: EFUSE ?= 05
+atmega328_isp: EFUSE ?= FD
 atmega328_isp: isp
 
 #Atmega1280
+HELPTEXT += "target atmega1280    - ATmega1280 (100pin, 128k)\n"
 atmega1280: MCU_TARGET = atmega1280
 atmega1280: CFLAGS += $(COMMON_OPTIONS) -DBIGBOOT $(UART_CMD)
 atmega1280: AVR_FREQ ?= 16000000L
@@ -309,25 +439,6 @@ atmega1280: LDSECTIONS  = -Wl,--section-start=.text=0x1fc00  -Wl,--section-start
 atmega1280: $(PROGRAM)_atmega1280.hex
 atmega1280: $(PROGRAM)_atmega1280.lst
 
-
-# ATmega8
-#
-atmega8: TARGET = atmega8
-atmega8: MCU_TARGET = atmega8
-atmega8: CFLAGS += $(COMMON_OPTIONS)
-atmega8: AVR_FREQ ?= 16000000L 
-atmega8: LDSECTIONS  = -Wl,--section-start=.text=0x1e00 -Wl,--section-start=.version=0x1ffe
-atmega8: $(PROGRAM)_atmega8.hex
-atmega8: $(PROGRAM)_atmega8.lst
-
-atmega8_isp: atmega8
-atmega8_isp: TARGET = atmega8
-atmega8_isp: MCU_TARGET = atmega8
-# SPIEN, CKOPT (for full swing xtal), Bootsize=512B
-atmega8_isp: HFUSE ?= CC
-# 2.7V brownout, 16MHz Xtal, 16KCK/14CK+65ms
-atmega8_isp: LFUSE ?= BF
-atmega8_isp: isp
 
 
 #---------------------------------------------------------------------------
@@ -346,7 +457,7 @@ atmega8_isp: isp
 pro20: TARGET = pro_20mhz
 pro20: CHIP = atmega168
 pro20:
-	$(MAKE) atmega168 AVR_FREQ=20000000L LED_START_FLASHES=3
+	"$(MAKE)" atmega168 AVR_FREQ=20000000L LED_START_FLASHES=3
 	mv $(PROGRAM)_$(CHIP).hex $(PROGRAM)_$(TARGET).hex
 	mv $(PROGRAM)_$(CHIP).lst $(PROGRAM)_$(TARGET).lst
 
@@ -368,7 +479,7 @@ pro20_isp: isp
 pro16: TARGET = pro_16MHz
 pro16: CHIP = atmega168
 pro16:
-	$(MAKE) $(CHIP) AVR_FREQ=16000000L LED_START_FLASHES=3
+	"$(MAKE)" $(CHIP) AVR_FREQ=16000000L LED_START_FLASHES=3
 	mv $(PROGRAM)_$(CHIP).hex $(PROGRAM)_$(TARGET).hex
 	mv $(PROGRAM)_$(CHIP).lst $(PROGRAM)_$(TARGET).lst
 
@@ -385,7 +496,7 @@ pro16_isp: isp
 diecimila: TARGET = diecimila
 diecimila: CHIP = atmega168
 diecimila:
-	$(MAKE) $(CHIP) AVR_FREQ=16000000L LED_START_FLASHES=3
+	"$(MAKE)" $(CHIP) AVR_FREQ=16000000L LED_START_FLASHES=3
 	mv $(PROGRAM)_$(CHIP).hex $(PROGRAM)_$(TARGET).hex
 	mv $(PROGRAM)_$(CHIP).lst $(PROGRAM)_$(TARGET).lst
 
@@ -427,7 +538,7 @@ mega1280_isp: isp
 lilypad: TARGET = $@
 lilypad: CHIP = atmega168
 lilypad:
-	$(MAKE) $(CHIP) AVR_FREQ=8000000L LED_START_FLASHES=3
+	"$(MAKE)" $(CHIP) AVR_FREQ=8000000L LED_START_FLASHES=3
 	mv $(PROGRAM)_$(CHIP).hex $(PROGRAM)_$(TARGET).hex
 	mv $(PROGRAM)_$(CHIP).lst $(PROGRAM)_$(TARGET).lst
 
@@ -457,7 +568,7 @@ lilypad_resonator_isp: isp
 pro8: TARGET = pro_8MHz
 pro8: CHIP = atmega168
 pro8:
-	$(MAKE) $(CHIP) AVR_FREQ=8000000L LED_START_FLASHES=3
+	"$(MAKE)" $(CHIP) AVR_FREQ=8000000L LED_START_FLASHES=3
 	mv $(PROGRAM)_$(CHIP).hex $(PROGRAM)_$(TARGET).hex
 	mv $(PROGRAM)_$(CHIP).lst $(PROGRAM)_$(TARGET).lst
 
@@ -474,7 +585,7 @@ pro8_isp: isp
 atmega328_pro8: TARGET = atmega328_pro_8MHz
 atmega328_pro8: CHIP = atmega328
 atmega328_pro8:
-	$(MAKE) $(CHIP) AVR_FREQ=8000000L LED_START_FLASHES=3
+	"$(MAKE)" $(CHIP) AVR_FREQ=8000000L LED_START_FLASHES=3
 	mv $(PROGRAM)_$(CHIP).hex $(PROGRAM)_$(TARGET).hex
 	mv $(PROGRAM)_$(CHIP).lst $(PROGRAM)_$(TARGET).lst
 
@@ -491,10 +602,19 @@ atmega328_pro8_isp: isp
 
 #
 # Include additional platforms
+include Makefile.atmel
 include Makefile.extras
 include Makefile.1284
 include Makefile.custom
+include Makefile.2560
+include Makefile.tiny
+include Makefile.MCUdude
 
+ifndef PRODUCTION
+BAUDCHECK= baudcheck
+else
+BAUDCHECK=
+endif
 
 #---------------------------------------------------------------------------
 #
@@ -507,21 +627,23 @@ baudcheck: FORCE
 	- @$(CC) --version
 	- @$(CC) $(CFLAGS) -E baudcheck.c -o baudcheck.tmp.sh
 	- @$(SH) baudcheck.tmp.sh
-#	@echo $(AVR_FREQ)
 
 isp: $(TARGET)
-	$(MAKE) -f Makefile.isp isp TARGET=$(TARGET)
+	"$(MAKE)" -f Makefile.isp isp TARGET=$(TARGET)
 
 isp-stk500: $(PROGRAM)_$(TARGET).hex
 	$(STK500-1)
 	$(STK500-2)
 
-%.elf: $(OBJ) baudcheck $(dummy)
+%.elf: $(OBJ) $(BAUDCHECK) $(dummy)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS)
 	$(SIZE) $@
 
 clean:
 	rm -rf *.o *.elf *.lst *.map *.sym *.lss *.eep *.srec *.bin *.hex *.tmp.sh
+
+clean_asm:
+	rm -rf *.lst
 
 %.lst: %.elf
 	$(OBJDUMP) -h -S $< > $@
@@ -534,3 +656,6 @@ clean:
 
 %.bin: %.elf
 	$(OBJCOPY) -j .text -j .data -j .version --set-section-flags .version=alloc,load -O binary $< $@
+
+help:
+	@echo -e $(HELPTEXT)

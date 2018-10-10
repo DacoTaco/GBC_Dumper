@@ -47,8 +47,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 uint8_t cmd_size = 0;
-#define CMD_SIZE 0x21
-char cmd[CMD_SIZE];
+#define MAX_CMD_SIZE 0x21
+char cmd[MAX_CMD_SIZE];
 uint8_t process_cmd = 0;
 
 /*
@@ -172,7 +172,7 @@ void ProcessCommand(void)
 	
 end_function:
 	cmd_size = 0;
-	memset(cmd,0,CMD_SIZE);
+	memset(cmd,0,MAX_CMD_SIZE);
 	EnableSerialInterrupt();
 	return;
 }
@@ -192,7 +192,7 @@ void ProcessChar(char byte)
 		return;
 	}
 	else if( 
-		(cmd_size+1) < ((sizeof(cmd) / sizeof(uint8_t))-1)
+		(cmd_size+1) < MAX_CMD_SIZE
 	)
 	{
 		//space left!
@@ -224,7 +224,7 @@ int main(void)
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
-	//uint16_t addr = 0x13FF;//0x104;//0x200;//0x8421;
+	uint16_t addr = 0x13FF;//0x104;//0x200;//0x8421;
     while(1) 
 	{
 		if(process_cmd)
@@ -233,12 +233,12 @@ int main(void)
 		}
 		if(CheckControlPin(BTN) == LOW)
 		{
-			/*cprintf("Btn pressed!\n\r");
+			cprintf("Btn pressed!\n\r");
 			uint8_t data = 0;
 			data = ReadByte(addr);
 			cprintf("data : ");
 			cprintf_char(data);	
-			cprintf("\n\r");*/
+			cprintf("\n\r");
 
 			/*SetControlPin(RD,HIGH);	
 			if(CheckControlPin(RST) == 1)

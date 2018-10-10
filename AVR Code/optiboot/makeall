@@ -19,6 +19,12 @@ make atmega88
 make atmega168p
 
 #
+# Atmel development board targets
+make xplained168pb
+make xplained328p
+make xplained328pb
+
+#
 # The "big three" standard bootloaders.
 # These need to be built AFTER the platforms, or they'll get renamed
 make atmega8

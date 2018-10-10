@@ -33,7 +33,7 @@ int8_t API_WaitForOK(void)
 	int8_t ret = 0;
 	
 	cprintf_char(API_OK);
-	_delay_us(300);
+	//_delay_us(300); //if we are gonna deadlock in readbyte untill we get data, why sleep?
 	uint8_t response = Serial_ReadByte();
 	
 	switch(response)
@@ -174,7 +174,8 @@ int8_t API_WriteRam(void)
 	
 	//reset game cart. this causes all banks & states to reset
 	SetControlPin(RST,LOW);
-	_delay_us(50);
+	//replaced with nop's
+	//_delay_us(20);
 	SetControlPin(RST,HIGH);
 	
 	if(GameInfo.MBCType != MBC2 && GameInfo.RamSize == 0)
@@ -259,12 +260,18 @@ int8_t API_WriteRam(void)
 		//receive first byte
 		while ( !(UCSRA & (_BV(RXC))) );	
 		//add the delay because the while tends to exit once in a while to early and it makes us retrieve the wrong byte. for example 0xFA often tended to become 00. used to be 5ms
-		_delay_us(30);
+		//_delay_us(20);
+		asm ("nop");
+		asm ("nop");
+		asm ("nop");
 		data_recv[0] = UDR;
 		
 		//second byte
 		while ( !(UCSRA & (_BV(RXC))) );	
-		_delay_us(30);
+		//_delay_us(20);
+		asm ("nop");
+		asm ("nop");
+		asm ("nop");
 		data_recv[1] = UDR;
 		
 		//check wether we got an OK signal (meaning we can start to write or data written is OK
@@ -359,7 +366,9 @@ int8_t API_GetRom(void)
 		for(;addr < 0x8000;addr++)
 		{
 			cprintf_char(ReadByte(addr));
-			_delay_us(1);
+			//_delay_us(2);
+			asm ("nop");
+			asm ("nop");
 		}
 	}
 	
@@ -376,7 +385,7 @@ int8_t API_GetRam(void)
 	SetControlPin(RD,HIGH);
 	SetControlPin(SRAM,HIGH);
 	
-	_delay_us(1);
+	//_delay_us(1);
 	SetControlPin(RST,HIGH);
 	
 	if(!API_GotCartInfo())
@@ -405,7 +414,7 @@ int8_t API_GetRam(void)
 		return ret;
 	
 	OpenRam();
-	_delay_us(5);
+	//_delay_us(5);
 
 	for(uint8_t bank = 0;bank < banks;bank++)
 	{
@@ -416,7 +425,9 @@ int8_t API_GetRam(void)
 		for(uint16_t i = addr;i< end_addr ;i++)
 		{
 			cprintf_char(ReadRAMByte(i));
-			_delay_us(20);			
+			//_delay_us(5);
+			asm ("nop");
+			asm ("nop");	
 		}
 	}
 	
