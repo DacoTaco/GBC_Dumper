@@ -101,32 +101,21 @@ void ChangeDataPinsMode(uint8_t mode)
 }
 void SetupPins(void)
 {
-	//disable jtag in software, this gives us all the C pins we need.
-	/*MCUCSR = (1<<JTD);
-    MCUCSR = (1<<JTD);*/
-	
-	//disable SPI
-	/*SPCR &= ~(1 << 6);
-	SPCR = 0;*/
 	
 #ifdef GPIO_EXTENDER_MODE
-	
-	//setup i2c, as its the source of everything xD
+	//setup the mcp23008, as its the source of everything xD
 	mcp23008_init(ADDR_CHIP_1);
 	mcp23008_init(ADDR_CHIP_2);
-	mcp23008_init(DATA_CHIP_1);
-	//i2c_Init();
+	mcp23008_init(DATA_CHIP_1);	
 	
 #elif defined(SHIFTING_MODE)
-	
 	//set the pins as output, init-ing the pins for the shift register
 	ADDR_CTRL_DDR |= ( (1 << ADDR_CTRL_DATA) | (1 << ADDR_CTRL_CLK) | (1 << ADDR_CTRL_LATCH) );
-
-#else //elif defined(NORMAL_MODE)
 	
+#else //elif defined(NORMAL_MODE)
 	//enable address pins A0 - A7 as output
 	ADDR_DDR1 = 0xFF;
-	ADDR_DDR2 = 0xFF;
+	ADDR_DDR2 = 0xFF;	
 	
 #endif	
 

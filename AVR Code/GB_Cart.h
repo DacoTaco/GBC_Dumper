@@ -115,10 +115,10 @@ Connections we want,need and assigned to :
 	//the MCP23008 addresses consist of 0b0100xxxy. xxx = the chip set address & y = the read/write bit. hence the shift to the left
 	//but no worries, the mcp23008 library keeps that in check for us in case we fuck up
 	#define BASE_ADDR_CHIPS 0b01000000
-	
-	#define DATA_CHIP_1 (BASE_ADDR_CHIPS | ( 0b000 << 1))
-	#define ADDR_CHIP_1 (BASE_ADDR_CHIPS | ( 0b001 << 1))
-	#define ADDR_CHIP_2 (BASE_ADDR_CHIPS | ( 0b010 << 1))
+		
+	#define ADDR_CHIP_1 (BASE_ADDR_CHIPS | ( 0b000 << 1))
+	#define ADDR_CHIP_2 (BASE_ADDR_CHIPS | ( 0b001 << 1))
+	#define DATA_CHIP_1 (BASE_ADDR_CHIPS | ( 0b010 << 1))
 	
 	
 	#define RD PD5
