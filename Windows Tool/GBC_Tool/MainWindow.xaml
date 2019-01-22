@@ -6,6 +6,7 @@
         <Menu DockPanel.Dock="Top" Height="25">
             <MenuItem Header="_File" Height="25">
                 <MenuItem Header="_Detect Serial Ports" Height="25" Click="DetectSerial_Click"></MenuItem>
+                <MenuItem Header="Toggle _FTDI Mode" Height="25" IsCheckable="True" IsChecked="{Binding FTDIMode}"></MenuItem>
             </MenuItem>
         </Menu>
         <Grid DockPanel.Dock="Top" Margin="0,10,0,15">
@@ -18,7 +19,7 @@
                 <ColumnDefinition Width="*"></ColumnDefinition>
                 <ColumnDefinition Width="*"></ColumnDefinition>
             </Grid.ColumnDefinitions>
-            <ComboBox Name="cbComPorts" VerticalAlignment="Top" HorizontalAlignment="Stretch" IsEnabled="{Binding EnableControls}" ScrollViewer.VerticalScrollBarVisibility="Visible" 
+            <ComboBox Name="cbComPorts" VerticalAlignment="Top" HorizontalAlignment="Stretch" IsEnabled="{Binding EnableControls}"
                       HorizontalContentAlignment="Center" MaxDropDownHeight="100" Grid.Row="0" Grid.Column="0" MaxHeight="25" Margin="5,5,5,5"/>
             <ComboBox Name="cbBaudRate" HorizontalAlignment="Stretch" VerticalAlignment="Top" IsEnabled="{Binding EnableControls}" ScrollViewer.VerticalScrollBarVisibility="Visible" 
                       HorizontalContentAlignment="Center" MaxDropDownHeight="100" Grid.Row="0" Grid.Column="1" MaxHeight="25" Margin="5,5,5,5"/>

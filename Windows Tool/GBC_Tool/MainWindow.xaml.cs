@@ -19,6 +19,8 @@ using System.Diagnostics;
 using Gameboy;
 using SerialCommunication;
 using Microsoft.Win32;
+using System.Timers;
+
 
 namespace GBC_Tool
 {
@@ -49,6 +51,21 @@ namespace GBC_Tool
             get
             {
                 return !Connected;
+            }
+        }
+
+        //serial or FTDI mode?
+        private bool ftdiMode = true;
+        public bool FTDIMode
+        {
+            get
+            {
+                return ftdiMode;
+            }
+            set
+            {
+                ftdiMode = value;
+                RefreshSerial();
             }
         }
 
@@ -104,27 +121,37 @@ namespace GBC_Tool
 
         //redetect all serial ports
         private void RefreshSerial()
-        {
-            
-            if (serial.IsOpen)
-            {
-                serial.Close();
-            }
+        {   
             Connected = false;
 
-            serial.ComPorts = SerialPort.GetPortNames();
-            if (serial.ComPorts.Length > 0)
+            serial.ReloadDevices(FTDIMode);
+
+            if (serial.Devices.Count > 0)
             {
-                Array.Sort(serial.ComPorts);
+                var list = serial.Devices.ToArray();
+                Array.Sort(list,(x,y) => x.Name.CompareTo(y.Name));
                 Array.Sort(serial.BaudRates);
 
-                cbComPorts.ItemsSource = serial.ComPorts;
-                cbComPorts.SelectedIndex = 0;
+                cbComPorts.ItemsSource = list;
+                if (cbComPorts.Items.Count > 0)
+                    cbComPorts.SelectedIndex = 0;
+                else
+                    cbComPorts.SelectedIndex = -1;
+
                 cbBaudRate.ItemsSource = serial.BaudRates;
-                cbBaudRate.SelectedItem = 38400;
+                if (cbBaudRate.Items.Count > 0)
+                    cbBaudRate.SelectedItem = 250000;
+                else
+                    cbBaudRate.SelectedIndex = -1;
             }
             else
             {
+                cbComPorts.ItemsSource = null;
+                cbComPorts.SelectedIndex = -1;
+
+                cbBaudRate.ItemsSource = null;
+                cbBaudRate.SelectedIndex = -1;
+
                 Connected = true;
             }
         }
@@ -144,27 +171,14 @@ namespace GBC_Tool
         {
             try
             {
-                //connect to serial port! 
-                //set all variables and lets go!
-                serial.PortName = cbComPorts.SelectedItem.ToString();
-                serial.BaudRate = Convert.ToInt32(cbBaudRate.SelectedItem);
-                serial.Handshake = System.IO.Ports.Handshake.None;
-                serial.Parity = Parity.None;
-                serial.DataBits = 8;
-                serial.StopBits = StopBits.One;
-                //connection.DtrEnable = false;
-                //connection.RtsEnable = false;
-                serial.ReadTimeout = 200;
-                serial.WriteTimeout = 50;
-                serial.ReceivedBytesThreshold = 1;
-
-                serial.Open();
+                //connect to FTDI chip! 
+                serial.Open((SerialDevice)cbComPorts.SelectedItem,Convert.ToInt32(cbBaudRate.SelectedItem));
 
                 int ret = APIHandler.AttemptAPIHandshake();
                 if (ret >= 0)
                 {
                     //handshake was succesful
-                    serial.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(HandleReceive);
+                    serial.OnDataToRead += new DataReadHandler(HandleReceive);
                     Connected = true;
                     if (ret == 0)
                     {
@@ -188,7 +202,7 @@ namespace GBC_Tool
         {
             ResetVariables();
             serial.Close();
-            serial.DataReceived -= new System.IO.Ports.SerialDataReceivedEventHandler(HandleReceive);
+            serial.OnDataToRead -= new DataReadHandler(HandleReceive);
             Connected = false;
         }
 
@@ -205,13 +219,13 @@ namespace GBC_Tool
         }
 
         //event handler for the receiving of data!
-        private void HandleReceive(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
+        private void HandleReceive(object sender, SerialEventArgs e)
         {
             // Collecting the characters received to our 'buffer' (string).
             int bufSize = serial.BytesToRead;
 
             byte[] buf = new byte[bufSize];
-            serial.Read(buf, 0, bufSize);
+            buf = serial.Read(bufSize);
             int ret = 0;
 
             //Process the reading of the rom/ram
@@ -317,6 +331,7 @@ namespace GBC_Tool
             return;
         }
 
+
         //function called by the buttons
         private void GetRom()
         {
@@ -325,9 +340,11 @@ namespace GBC_Tool
                 NotBusy = false;
                 APIHandler.SetAPIMode(GB_API_Protocol.API_MODE_READ_ROM);             
                 AddTextToField(String.Format("Downloading{0}{1}{2}{3}0x{4:X8}/0x{5:X8}...", ".", ".", ".", Environment.NewLine, APIHandler.Info.current_addr, APIHandler.Info.FileSize));
+                serial.OnDataToRead += HandleReceive;
             }
 
         }
+
         //function called by the buttons
         private void GetRam()
         {
@@ -412,6 +429,5 @@ namespace GBC_Tool
         {
             RefreshSerial();
         }
-
     }
 }

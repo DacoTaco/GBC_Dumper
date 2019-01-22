@@ -181,7 +181,7 @@ namespace Gameboy
                 //we have data!
                 int lenght = serial.BytesToRead;
                 byte[] data = new byte[lenght];
-                serial.Read(data,0,lenght);
+                data = serial.Read(lenght);
                 buf = buf.Concat(data).ToArray();
             }
 
