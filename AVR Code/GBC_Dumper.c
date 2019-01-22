@@ -224,7 +224,7 @@ int main(void)
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
-	uint16_t addr = 0x13FF;//0x104;//0x200;//0x8421;
+	uint16_t addr = 0x13FF;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
     while(1) 
 	{
 		if(process_cmd)

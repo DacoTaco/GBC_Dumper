@@ -8,7 +8,7 @@
 # MCU name
 MCU = atmega8
 # Processor frequency. -WITHOUT- UL
-F_CPU = 8000000
+F_CPU = 16000000
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex
 # Target file name (without extension).
@@ -68,7 +68,7 @@ DEBUG = dwarf-2
 # DISABLE_DUMP_FUNCTIONS is to disable the DumpROM,DumpRAM and WriteRAM functions to save space on the AVR
 # SAVE_SPACE is to set it so all code having defines for saving space will disable code to do so
 #SHIFTING_MODE
-CUSTOMDEFINES = -DBAUD=38400 -DSAVE_SPACE 
+CUSTOMDEFINES = -DBAUD=250000 -DSAVE_SPACE 
 #CUSTOMDEFINES = -D_VA_SUPPORT -D_ALLOW_NONE_API_CMD -DSCL_CLOCK=400
 
 ifeq ($(MCU),atmega8)
