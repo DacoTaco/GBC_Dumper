@@ -55,17 +55,17 @@ namespace GBC_Tool
         }
 
         //serial or FTDI mode?
-        private bool ftdiMode = true;
         public bool FTDIMode
         {
             get
             {
-                return ftdiMode;
+                return serial.FtdiMode;
             }
             set
             {
-                ftdiMode = value;
+                serial.FtdiMode = value;
                 RefreshSerial();
+                OnPropertyChanged("FTDIMode");
             }
         }
 
@@ -120,11 +120,12 @@ namespace GBC_Tool
         }
 
         //redetect all serial ports
-        private void RefreshSerial()
+        public void RefreshSerial()
         {   
             Connected = false;
+            grdControls.IsEnabled = true;
 
-            serial.ReloadDevices(FTDIMode);
+            serial.ReloadDevices();
 
             if (serial.Devices.Count > 0)
             {
@@ -152,7 +153,7 @@ namespace GBC_Tool
                 cbBaudRate.ItemsSource = null;
                 cbBaudRate.SelectedIndex = -1;
 
-                Connected = true;
+                grdControls.IsEnabled = false;
             }
         }
 

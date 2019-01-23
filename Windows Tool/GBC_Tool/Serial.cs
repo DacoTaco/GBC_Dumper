@@ -13,7 +13,7 @@ namespace SerialCommunication
     {
         private static readonly Serial instance = new Serial();
         public static Serial Instance { get { return instance; } }
-        private bool FtdiMode = false;
+        public bool FtdiMode = false;
         private Serial() { }
         private ISerialDevice _ftdiDevice = new FTDIDevice();
         private ISerialDevice _serialDevice = new SerialPortDevice();
@@ -79,26 +79,20 @@ namespace SerialCommunication
         }
 
 
-        private int ReloadDevices()
-        {
-            _devices = _device.ReloadDevices();
-            return _devices.Count;
-        }
-        public int ReloadDevices(bool FTDIMode)
+        public int ReloadDevices()
         {
             if (IsOpen)
             {
                 Close();
             }
 
-            FtdiMode = FTDIMode;
-
             if (FtdiMode)
                 _device = _ftdiDevice;
             else
                 _device = _serialDevice;
 
-            return ReloadDevices();
+            _devices = _device.ReloadDevices();
+            return _devices.Count;
         }
 
         public void Write(string data)
