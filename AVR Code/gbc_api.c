@@ -63,35 +63,24 @@ void API_ResetGameInfo(void)
 }
 int8_t API_GetGameInfo(void)
 {
-	int8_t ret = 0;
-	SetControlPin(RST,HIGH);
-	ret = GetGameInfo();
-	SetControlPin(RST,LOW);
-	return ret;
-}
-int8_t API_GotCartInfo(void)
-{
-	if(GameInfo.Name[0] == 0x00)
-	{
-		int8_t ret = API_GetGameInfo();
-		if(ret <= 0)
-		{
-			return ret;
-		}
+	if(GameInfo.Name[0] != 0x00)
 		return 1;
-	}
-	return 1;
+	
+	int8_t ret = 0;
+	SetPin(CTRL_PORT,RST);
+	ret = GetGameInfo();
+	ClearPin(CTRL_PORT,RST);
+	return ret;
 }
 int8_t API_CartInserted(void)
 {
-	/*return API_GotCartInfo();*/
 	if(GameInfo.Name[0] == 0x00)
 		return 0;
 	return 1;
 }
 int8_t API_Get_Memory(ROM_TYPE type)
 {
-	int8_t ret = API_GotCartInfo();
+	int8_t ret = API_GetGameInfo();
 	if(!ret)
 	{
 		API_Send_Abort(API_ABORT_CMD);
@@ -161,22 +150,22 @@ int8_t API_Get_Memory(ROM_TYPE type)
 }
 int8_t API_WriteRam(void)
 {		
-	int8_t ret = API_GotCartInfo();
+	int8_t ret = API_GetGameInfo();
 	if(!ret)
 	{
 		API_Send_Abort(API_ABORT_CMD);
 		return ret;
 	}
 	
-	SetControlPin(WD,HIGH);
-	SetControlPin(RD,HIGH);
-	SetControlPin(SRAM,HIGH);
+	SetPin(CTRL_PORT,WD);
+	SetPin(CTRL_PORT,RD);
+	SetPin(CTRL_PORT,SRAM);
 	
 	//reset game cart. this causes all banks & states to reset
-	SetControlPin(RST,LOW);
+	ClearPin(CTRL_PORT,RST);
 	//replaced with nop's
 	//_delay_us(20);
-	SetControlPin(RST,HIGH);
+	SetPin(CTRL_PORT,RST);
 	
 	if(GameInfo.MBCType != MBC2 && GameInfo.RamSize == 0)
 	{
@@ -329,7 +318,7 @@ int8_t API_WriteRam(void)
 	CloseRam();
 end_function:
 	//re-enable interrupts!
-	SetControlPin(RST,LOW);
+	ClearPin(CTRL_PORT,RST);
 	API_ResetGameInfo();
 	EnableSerialInterrupt();
 	return ret;
@@ -337,15 +326,15 @@ end_function:
 int8_t API_GetRom(void)
 {
 	//reset cart
-	SetControlPin(RST,LOW);
+	ClearPin(CTRL_PORT,RST);
 	
 	//DumpROM();
-	SetControlPin(WD,HIGH);
-	SetControlPin(RD,HIGH);
-	SetControlPin(SRAM,HIGH);	
-	SetControlPin(RST,HIGH);
+	SetPin(CTRL_PORT,WD);
+	SetPin(CTRL_PORT,RD);
+	SetPin(CTRL_PORT,SRAM);	
+	SetPin(CTRL_PORT,RST);
 	
-	int8_t ret = API_GotCartInfo();
+	int8_t ret = API_GetGameInfo();
 	if(!ret)
 	{
 		API_Send_Abort(API_ABORT_CMD);
@@ -354,41 +343,37 @@ int8_t API_GetRom(void)
 	
 	uint16_t banks = GetRomBanks(GameInfo.RomSize);
 	
+	uint16_t addr = 0;
 	for(uint16_t bank = 1;bank < banks;bank++)
 	{
-		uint16_t addr = 0x4000;
 		SwitchROMBank(bank);
-		if(bank <= 1)
-		{
-			addr = 0x00;
-		}
-
 		for(;addr < 0x8000;addr++)
 		{
 			cprintf_char(ReadByte(addr));
 			//_delay_us(2);
-			asm ("nop");
-			asm ("nop");
+			//asm ("nop");
+			//asm ("nop");
 		}
+		addr = 0x4000;
 	}
 	
-	SetControlPin(RST,LOW);
+	ClearPin(CTRL_PORT,RST);
 	API_ResetGameInfo();
 	return 1;
 }
 int8_t API_GetRam(void)
 {
 	//reset game cart. this causes all banks & states to reset
-	SetControlPin(RST,LOW);
+	ClearPin(CTRL_PORT,RST);
 	
-	SetControlPin(WD,HIGH);
-	SetControlPin(RD,HIGH);
-	SetControlPin(SRAM,HIGH);
+	SetPin(CTRL_PORT,WD);
+	SetPin(CTRL_PORT,RD);
+	SetPin(CTRL_PORT,SRAM);
 	
 	//_delay_us(1);
-	SetControlPin(RST,HIGH);
+	SetPin(CTRL_PORT,RST);
 	
-	if(!API_GotCartInfo())
+	if(!API_GetGameInfo())
 	{
 		API_Send_Abort(API_ABORT_CMD);
 		return ERR_NO_INFO;
@@ -432,7 +417,7 @@ int8_t API_GetRam(void)
 	}
 	
 	CloseRam();	
-	SetControlPin(RST,LOW);
+	ClearPin(CTRL_PORT,RST);
 	API_ResetGameInfo();
 	return 1;
 }
