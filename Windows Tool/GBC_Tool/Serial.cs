@@ -29,7 +29,7 @@ namespace SerialCommunication
                 return _devices;
             }
         }
-        public int[] BaudRates = { 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 38400, 57600, 115200, 250000, 460800 };
+        public int[] BaudRates = { 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 38400, 57600, 115200, 250000, 460800, 500000, 1000000};
 
         public bool IsOpen
         {

@@ -28,20 +28,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mcp23008.h"
 #endif
 
-#define SetPin(x,y) _setPin(&x,(1<<y))
-#define ClearPin(x,y) _clearPin(&x,(1<<y))
-
 //the Barebone functions
 //--------------------------------
-void _setPin(volatile uint8_t *port,uint8_t mask)
+inline void _setPin(volatile uint8_t *port,uint8_t mask)
 {
 	*port |= mask;
 }
-void _clearPin(volatile uint8_t *port,uint8_t mask)
+inline void _clearPin(volatile uint8_t *port,uint8_t mask)
 {
 	*port &= ~mask;
 }
-void SetControlPin(uint8_t Pin,uint8_t state)
+inline void SetControlPin(uint8_t Pin,uint8_t state)
 {
 	if(state > 0)
 	{
@@ -51,10 +48,7 @@ void SetControlPin(uint8_t Pin,uint8_t state)
 	{
 		ClearPin(CTRL_PORT,Pin); // Pin goes low
 	}
-	//_delay_us(5);
-	asm ("nop");
-	asm ("nop");
-	asm ("nop");
+	//asm ("nop");
 	
 }
 int8_t CheckControlPin(uint8_t Pin)
@@ -63,41 +57,35 @@ int8_t CheckControlPin(uint8_t Pin)
 		return LOW;
 	return HIGH;
 }
-void ChangeDataPinsMode(uint8_t mode)
+inline void SetDataPinsAsInput(void)
 {
-	if(mode == 0)
-	{
-		//set as input;
+	//set as input;
 #ifdef GPIO_EXTENDER_MODE	
-		mcp23008_WriteReg(DATA_CHIP_1,IODIR,0xFF);
-		
-		//enable pull up
-		mcp23008_WriteReg(DATA_CHIP_1,GPPU,0xFF);
+	mcp23008_WriteReg(DATA_CHIP_1,IODIR,0xFF);
+	
+	//enable pull up
+	mcp23008_WriteReg(DATA_CHIP_1,GPPU,0xFF);
 #else
-		DATA_DDR &= ~(0xFF); //0b00000000;
-		//enable pull up resistors
-		DATA_PORT = 0xFF;
+	DATA_DDR &= ~(0xFF); //0b00000000;
+	//enable pull up resistors
+	DATA_PORT = 0xFF;
 #endif
-	}
-	else
-	{
-		//set as output
+	return;
+}
+inline void SetDataPinsAsOutput(void)
+{
+	//set as output
 #ifdef GPIO_EXTENDER_MODE
-		//disable pull ups
-		mcp23008_WriteReg(DATA_CHIP_1,GPPU,0x00);
-		
-		//set output
-		mcp23008_WriteReg(DATA_CHIP_1,IODIR,0x00);	
+	//disable pull ups
+	mcp23008_WriteReg(DATA_CHIP_1,GPPU,0x00);
+	
+	//set output
+	mcp23008_WriteReg(DATA_CHIP_1,IODIR,0x00);	
 #else
-		DATA_DDR |= (0xFF);//0b11111111;
-		//set output as 0x00
-		DATA_PORT = 0x00;
+	DATA_DDR |= (0xFF);//0b11111111;
+	//set output as 0x00
+	DATA_PORT = 0x00;
 #endif
-	}
-
-	asm("nop");
-	asm("nop");
-	asm("nop");
 }
 void SetupPins(void)
 {
@@ -106,7 +94,10 @@ void SetupPins(void)
 	//setup the mcp23008, as its the source of everything xD
 	mcp23008_init(ADDR_CHIP_1);
 	mcp23008_init(ADDR_CHIP_2);
-	mcp23008_init(DATA_CHIP_1);	
+	mcp23008_init(DATA_CHIP_1);
+
+	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
+	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0x00);	
 	
 #elif defined(SHIFTING_MODE)
 	//set the pins as output, init-ing the pins for the shift register
@@ -127,36 +118,31 @@ void SetupPins(void)
 #endif*/
 
 	//setup data pins as input
-	ChangeDataPinsMode(INPUT); 
+	SetDataPinsAsInput(); 
 	
 	//setup D pins as well for the other, as output
 	CTRL_DDR |= ( (0 << BTN) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) );//0b01111100;
 	//FUCK TRISTATE BULLSHIT xD set the mode of the pins correctly!
 	CTRL_PORT |= ((1 << BTN) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) ); //0b01111100;
 	
-	SetControlPin(WD,HIGH);
-	SetControlPin(RD,HIGH);
-	SetControlPin(SRAM,HIGH);
-	SetControlPin(RST,LOW);
-
+	SetPin(CTRL_PORT,WD);
+	SetPin(CTRL_PORT,RD);
+	SetPin(CTRL_PORT,SRAM);
+	ClearPin(CTRL_PORT,RST);
 }
-void SetAddress(uint16_t address)
-{
-	//check if rst is set high. if not, set it high
-	if(CheckControlPin(RST) == 0)
-	{
-		SetControlPin(RST,HIGH);
-	}
-			
-#ifdef GPIO_EXTENDER_MODE
-	uint8_t addr_upper = address >> 8;
-	uint8_t addr_lower = (uint8_t)(address & 0xFF);
-	
-	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
+inline void SetAddress(uint16_t address)
+{	
+#ifdef GPIO_EXTENDER_MODE	
+	//in gba mode only the 2nd chip will be switching between input and output
+	//so losing cycles on first chip being set too is meh
+	//mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
 	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0x00);
 	
-	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,addr_lower);
-	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,addr_upper);
+	//write lower address
+	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(address & 0xFF));
+	
+	//write upper address
+	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,address >> 8);
 
 #elif defined(SHIFTING_MODE)
 
@@ -196,41 +182,37 @@ void SetAddress(uint16_t address)
 	_delay_us(5);
 #endif
 }
-uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
+inline uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 {
 	uint8_t data = 0;
 
-	SetControlPin(WD,HIGH);
-	SetControlPin(RD,HIGH);
+	SetPin(CTRL_PORT,WD);
+	SetPin(CTRL_PORT,RD);
 		
 	//pass Address to cartridge via the address bus
 	SetAddress(address);
 	
 	//set Sram control pin low. we do this -AFTER- address is set because MBC2 latches to the address as soon as SRAM is set low. 
 	//making the SetAddress do nothing, it'll latch to the address it was set before the SetAddress
-	if(ReadRom <= 0)
+	if(ReadRom == 0)
 	{
-		SetControlPin(SRAM,LOW);
+		ClearPin(CTRL_PORT,SRAM);
 	}
 	
 	//set cartridge in read mode
-	SetControlPin(RD,LOW);	
+	ClearPin(CTRL_PORT,RD);	
 	//_delay_us(2);
 	
 	GET_DATA(data);
 
-	SetControlPin(RD,HIGH);
+	SetPin(CTRL_PORT,RD);
 	
-	if(ReadRom <= 0)
+	if(ReadRom == 0)
 	{
-		SetControlPin(SRAM,HIGH);
+		SetPin(CTRL_PORT,SRAM);
 	}
 	
 	return data;
-}
-uint8_t ReadByte(uint16_t address)
-{
-	return _ReadByte(1,address);
 }
 uint8_t ReadRAMByte(uint16_t address)
 {
@@ -251,48 +233,44 @@ uint8_t ReadRAMByte(uint16_t address)
 	}
 	
 }
-uint8_t _WriteByte(int8_t WriteRom, uint16_t addr,uint8_t byte)
+inline void _WriteByte(int8_t writeRom, uint16_t addr,uint8_t byte)
 {
-	SetControlPin(WD,HIGH);
-	SetControlPin(RD,HIGH);
+	SetPin(CTRL_PORT,WD);
+	SetPin(CTRL_PORT,RD);
 	
-	ChangeDataPinsMode(OUTPUT);
+	SetDataPinsAsOutput(); 
 	//DATA_PORT = byte;
 	SET_DATA(byte);
 	SetAddress(addr);
 	
 	//set Sram control pin low. we do this -AFTER- address is set because MBC2 latches to the address as soon as SRAM is set low. 
 	//making the SetAddress do nothing, it'll latch to the address it was set before the SetAddress
-	if(WriteRom <= 0)
+	if(writeRom <= 0)
 	{
-		SetControlPin(SRAM,LOW);
+		ClearPin(CTRL_PORT,SRAM);
 	}
 	
-	SetControlPin(WD,LOW);
-	//SetControlPin has a delay
-	SetControlPin(WD,HIGH);
-	if(WriteRom <= 0)
+	ClearPin(CTRL_PORT,WD);
+	
+	SetPin(CTRL_PORT,WD);
+	if(writeRom <= 0)
 	{
-		SetControlPin(SRAM,HIGH);
+		SetPin(CTRL_PORT,SRAM);
 	}
 	
-	//DATA_PORT = 0x00;
 	SET_DATA(0x00);
-	ChangeDataPinsMode(INPUT);
+	SetDataPinsAsInput();
 	
-	return 1;
+	return;
 }
-uint8_t WriteByte(uint16_t addr,uint8_t byte)
-{	
-	return _WriteByte(1,addr,byte);
-}
-uint8_t WriteRAMByte(uint16_t addr,uint8_t byte)
+int8_t WriteRAMByte(uint16_t addr,uint8_t byte)
 {
 
 	if(GameInfo.MBCType == MBC_NONE || GameInfo.MBCType == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 		
-	return _WriteByte(0,addr,byte);
+	_WriteByte(0,addr,byte);
+	return 1;
 }
 int8_t OpenRam(void)
 {
@@ -301,9 +279,9 @@ int8_t OpenRam(void)
 	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 	
-	SetControlPin(WD,HIGH);
-	SetControlPin(RD,HIGH);
-	SetControlPin(SRAM,HIGH);	
+	SetPin(CTRL_PORT,WD);
+	SetPin(CTRL_PORT,RD);
+	SetPin(CTRL_PORT,SRAM);	
 	
 	if(Bank_Type == MBC2)
 	{
@@ -317,26 +295,22 @@ int8_t OpenRam(void)
 		WriteByte(0x6000,0x01);
 	
 	//Init the MBC Ram!
-	uint16_t init_addr = 0x0000; 
-	WriteByte(init_addr,0x0A);
-	//replaced with nop's in setinputmode
-	//_delay_us(5);
+	//uint16_t init_addr = 0x0000; 
+	WriteByte(0x0000,0x0A);
 	
 	return 1;
 }
-int8_t CloseRam(void)
+void CloseRam(void)
 {	
-	uint16_t init_addr = 0x0000;	
-	
 	uint8_t Bank_Type = GameInfo.MBCType;
 	//disable RAM again - VERY IMPORTANT -
 	if(Bank_Type == MBC1)
 		WriteByte(0x6000,0x00);
 		
-	WriteByte(init_addr,0x00);
-	//_delay_us(10);
+	//uint16_t init_addr = 0x0000;
+	WriteByte(0x0000,0x00);
 
-	return 1;
+	return;
 }
 void SwitchROMBank(int8_t bank)
 {	
@@ -353,7 +327,7 @@ void SwitchROMBank(int8_t bank)
 	{
 		addr = 0x2000;
 	}
-	if(Bank_Type == MBC5)
+	else if(Bank_Type == MBC5)
 	{
 		addr2 = 0x3000;
 	}
@@ -363,7 +337,7 @@ void SwitchROMBank(int8_t bank)
 		case MBC1:
 			//in MBC1 we need to 
 			// - set 0x6000 in rom mode 
-			WriteByte(0x6000,0);
+			//WriteByte(0x6000,0);
 			WriteByte(addr,bank & 0x1F);
 			WriteByte(addr2,bank >> 5);
 			break;
@@ -379,9 +353,7 @@ void SwitchROMBank(int8_t bank)
 			WriteByte(addr,bank);
 			break;
 	}
-	
-	//_delay_us(1);
-	
+
 	return;
 }
 void SwitchRAMBank(int8_t bank)
@@ -398,18 +370,16 @@ options :
 	0 : Get Full Header
 	1 : Get Name,Rom/Ram Size, Cart Type
 */
-int8_t GetHeader(int8_t option)
+int8_t GetGameInfo(void)
 {
-#ifdef SAVE_SPACE
-	//this saves alot of space, but at the cost of possible speed since we are forcing it to read everything
-	option = 0;
-#endif
 	CartInfo temp;
 	uint8_t header[0x51] = {0};
 	uint8_t FF_cnt = 0;
-	//memset(header,0,0x51);	
-	if(option == 0)
-	{
+	//memset(header,0,0x51);
+	
+	//code that reads everything...
+	
+		//this saves alot of space, but at the cost of possible speed since we are forcing it to read everything
 		for(uint8_t i = 0 ; i < ((sizeof(header) / sizeof(uint8_t))-1);i++)
 		{
 			header[i] = ReadByte(0x100+i);
@@ -422,63 +392,61 @@ int8_t GetHeader(int8_t option)
 				//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
 				return ERR_FAULT_CART;
 			}
-		}	
-	}
-	else
+		}
+	
+	
+	//read logo
+	/*for(uint8_t i = 0 ; i < 0x30;i++)
 	{
-		//read logo
-		for(uint8_t i = 0 ; i < 0x30;i++)
+		header[_CALC_ADDR(_ADDR_LOGO+i)] = ReadByte(0x104+i);
+		if(i >= 0 && i<=4 && header[_CALC_ADDR(_ADDR_LOGO+i)] == 0xFF)
 		{
-			header[_CALC_ADDR(_ADDR_LOGO+i)] = ReadByte(0x104+i);
-			if(i >= 0 && i<=4 && header[_CALC_ADDR(_ADDR_LOGO+i)] == 0xFF)
-			{
-				FF_cnt++;
-			}
-			if(FF_cnt >= 3)
-			{
-				//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
-				SetControlPin(RST,LOW);
-				return ERR_FAULT_CART;
-			}
+			FF_cnt++;
 		}
-		//read old licenseecode
-		header[_CALC_ADDR(_ADDR_OLD_LICODE)] = ReadByte(_ADDR_OLD_LICODE);
-		//read name
-		for(uint8_t i = 0;i <= 16;i++)
+		if(FF_cnt >= 3)
 		{
-			header[_CALC_ADDR(_ADDR_NAME+i)] = ReadByte(_ADDR_NAME+i);
+			//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
+			ClearPin(CTRL_PORT,RST);
+			return ERR_FAULT_CART;
 		}
-		//read Cart Type
-		header[_CALC_ADDR(_ADDR_CART_TYPE)] = ReadByte(_ADDR_CART_TYPE);
-		//read rom&ram size
-		header[_CALC_ADDR(_ADDR_ROM_SIZE)] = ReadByte(_ADDR_ROM_SIZE);
-		header[_CALC_ADDR(_ADDR_RAM_SIZE)] = ReadByte(_ADDR_RAM_SIZE);
 	}
+	//read old licenseecode
+	header[_CALC_ADDR(_ADDR_OLD_LICODE)] = ReadByte(_ADDR_OLD_LICODE);
+	//read name
+	for(uint8_t i = 0;i <= 16;i++)
+	{
+		header[_CALC_ADDR(_ADDR_NAME+i)] = ReadByte(_ADDR_NAME+i);
+	}
+	//read Cart Type
+	header[_CALC_ADDR(_ADDR_CART_TYPE)] = ReadByte(_ADDR_CART_TYPE);
+	//read rom&ram size
+	header[_CALC_ADDR(_ADDR_ROM_SIZE)] = ReadByte(_ADDR_ROM_SIZE);
+	header[_CALC_ADDR(_ADDR_RAM_SIZE)] = ReadByte(_ADDR_RAM_SIZE);*/
+	
+	
 	
 	//read and compare the logo. this should give it a quick check if its ok or not
+	uint8_t Logo[0x30] = {
+		0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,
+		0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,
+		0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E
+	};
+	uint8_t ReadLogo[0x30];
+	
+	for(int8_t i = 0;i<0x30;i++)
 	{
-		uint8_t Logo[0x30] = {
-			0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,
-			0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,
-			0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E
-		};
-		uint8_t ReadLogo[0x30];
-		
-		for(int8_t i = 0;i<0x30;i++)
+		ReadLogo[i] = header[_CALC_ADDR(_ADDR_LOGO+i)];
+	}
+	
+	//compare!	
+	for(int8_t i =0;i< 0x30;i++)
+	{
+		if(ReadLogo[i] == Logo[i])
+			continue;
+		else
 		{
-			ReadLogo[i] = header[_CALC_ADDR(_ADDR_LOGO+i)];
-		}
-		
-		//compare!	
-		for(int8_t i =0;i< 0x30;i++)
-		{
-			if(ReadLogo[i] == Logo[i])
-				continue;
-			else
-			{
-				SetControlPin(RST,LOW);
-				return ERR_LOGO_CHECK;
-			}
+			ClearPin(CTRL_PORT,RST);
+			return ERR_LOGO_CHECK;
 		}
 	}
 	
@@ -489,8 +457,7 @@ int8_t GetHeader(int8_t option)
 	if(temp.OldLicenseeCode == 0x33)
 	{
 		//read the manufacturer code
-		if(option == 0)
-		{
+		/*
 			for(uint8_t i = 0;i < 4;i++)
 			{
 				temp.ManufacturerCode[i] = header[_CALC_ADDR(_ADDR_MANUFACT+i)];
@@ -500,7 +467,7 @@ int8_t GetHeader(int8_t option)
 			{
 				temp.NewLicenseeCode[i] = header[_CALC_ADDR(_ADDR_NEW_LICODE+i)];
 			}	
-		}			
+		*/		
 		temp.GBCFlag = header[_CALC_ADDR(_ADDR_GBC_FLAG)];
 		NameSize = 11;
 	}
@@ -517,20 +484,19 @@ int8_t GetHeader(int8_t option)
 		temp.Name[i] = header[_CALC_ADDR(_ADDR_NAME+i)];
 	}
 	
-	if(option == 0)
+	/*
+	temp.SGBSupported = header[_CALC_ADDR(_ADDR_SGB_SUPPORT)];
+	temp.Region = header[_CALC_ADDR(_ADDR_REGION)];
+	temp.RomVersion = header[_CALC_ADDR(_ADDR_ROM_VERSION)];
+	
+	//todo, verify header
+	temp.HeaderChecksum = header[_CALC_ADDR(_ADDR_HEADER_CHECKSUM)];
+	
+	for(uint8_t i = 0;i < 2;i++)
 	{
-		temp.SGBSupported = header[_CALC_ADDR(_ADDR_SGB_SUPPORT)];
-		temp.Region = header[_CALC_ADDR(_ADDR_REGION)];
-		temp.RomVersion = header[_CALC_ADDR(_ADDR_ROM_VERSION)];
-		
-		//todo, verify header
-		temp.HeaderChecksum = header[_CALC_ADDR(_ADDR_HEADER_CHECKSUM)];
-		
-		for(uint8_t i = 0;i < 2;i++)
-		{
-			temp.GlobalChecksum[i] = header[_CALC_ADDR(_ADDR_GLBL_CHECKSUM+i)];
-		}
+		temp.GlobalChecksum[i] = header[_CALC_ADDR(_ADDR_GLBL_CHECKSUM+i)];
 	}
+	*/
 	
 	temp.CartType = header[_CALC_ADDR(_ADDR_CART_TYPE)];
 	temp.RomSize = header[_CALC_ADDR(_ADDR_ROM_SIZE)];
@@ -538,13 +504,8 @@ int8_t GetHeader(int8_t option)
 	temp.MBCType = GetMBCType(temp.CartType);
 	
 	GameInfo = temp;
-	SetControlPin(RST,LOW);
-	return 1;
-	
-}
-int8_t GetGameInfo(void)
-{
-	return GetHeader(1);
+	ClearPin(CTRL_PORT,RST);
+	return 1;	
 }
 uint16_t GetRomBanks(uint8_t RomSize)
 {
@@ -669,181 +630,3 @@ uint8_t GetMBCType(uint8_t CartType)
 	
 	return ret;
 }
-
-//User End Functions
-//--------------------------
-#ifndef DISABLE_CORE_DUMP_FUNCTIONS
-int8_t DumpROM()
-{
-	SetControlPin(WD,HIGH);
-	SetControlPin(RD,HIGH);
-	SetControlPin(SRAM,HIGH);	
-	
-	//reset game cart. this causes all banks & states to reset
-	SetControlPin(RST,LOW);
-	_delay_us(50);
-	SetControlPin(RST,HIGH);
-	
-	if(GameInfo.Name[0] == 0x00)
-	{
-		//header isn't loaded yet!
-		int8_t ret = GetHeader(1);
-		if(ret <= 0)
-		{
-			return ret;
-		}
-	}
-	
-	uint16_t banks = GetRomBanks(GameInfo.RomSize);
-	
-	for(uint16_t bank = 1;bank < banks;bank++)
-	{
-		uint16_t addr = 0x4000;
-		if(bank <= 1)
-		{
-			addr = 0x00;
-		}
-		else if(bank > 1)
-		{
-			SwitchROMBank(bank);//GetMBCType(GameInfo.CartType));
-		}
-		for(;addr < 0x8000;addr++)
-		{
-			cprintf_char(ReadByte(addr));
-		}
-	}
-	SetControlPin(RST,LOW);
-	return 1;
-}
-int8_t DumpRAM()
-{	
-	SetControlPin(WD,HIGH);
-	SetControlPin(RD,HIGH);
-	SetControlPin(SRAM,HIGH);
-	
-	//reset game cart. this causes all banks & states to reset
-	SetControlPin(RST,LOW);
-	_delay_us(50);
-	SetControlPin(RST,HIGH);
-	
-	if(GameInfo.Name[0] == 0x00)
-	{
-		//header isn't loaded yet!
-		int8_t ret = GetHeader(1);
-		if(ret <= 0)
-		{
-			return ret;
-		}
-	}
-	
-	uint8_t Bank_Type = GameInfo.MBCType;
-	
-	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
-		return ERR_NO_MBC;
-		
-	if(Bank_Type != MBC2 && GameInfo.RamSize <= 0)
-		return ERR_NO_SAVE;
-
-	
-	//read RAM Address'
-	uint16_t addr = 0xA000;
-	uint16_t end_addr = 0xC000; //actually ends at 0xBFFF
-	uint8_t banks = 0;
-	
-	int8_t ret = GetRamDetails(&end_addr,&banks,GameInfo.RamSize);
-	
-	if(ret < 0)
-		return ret;
-		
-	OpenRam();
-
-	for(uint8_t bank = 0;bank < banks;bank++)
-	{
-		//if we aren't dealing with MBC2, set bank to 0!
-		if(Bank_Type != MBC2)
-			SwitchRAMBank(bank);
-			
-		for(uint16_t i = addr;i< end_addr ;i++)
-		{
-			cprintf_char(ReadRAMByte(i));
-			_delay_us(20);
-		}
-	}
-	
-	CloseRam();
-	SetControlPin(RST,LOW);
-	
-	return 1;
-}
-int8_t WriteRAM()
-{
-	SetControlPin(WD,HIGH);
-	SetControlPin(RD,HIGH);
-	SetControlPin(SRAM,HIGH);
-	
-	//reset game cart. this causes all banks & states to reset
-	SetControlPin(RST,LOW);
-	_delay_us(50);
-	SetControlPin(RST,HIGH);
-	int8_t ret = 1;
-	
-	//disable interrupts, like serial interrupt for example :P 
-	//we will handle the data, kthxbye
-	DisableSerialInterrupt();
-	
-	if(GameInfo.Name[0] == 0x00)
-	{
-		//header isn't loaded yet!
-		ret = GetHeader(1);
-		if(ret <= 0)
-		{	
-			goto end_function;
-		}
-	}
-
-	uint16_t addr = 0xA000;
-	uint16_t end_addr = 0xC000;
-	uint8_t banks = 0;
-	uint8_t Bank_Type = GameInfo.MBCType;//GetMBCType(GameInfo.CartType);
-	
-	ret = GetRamDetails(&end_addr,&banks,GameInfo.RamSize);
-	if(ret < 0)
-		goto end_function;
-	
-	OpenRam();
-		
-	for(uint8_t bank = 0;bank < banks;bank++)
-	{
-		//end_addr = 0xA200;
-		//uint8_t bank = 0;
-		//if we aren't dealing with MBC2, set bank to 0!
-		if(Bank_Type != MBC2)
-			SwitchRAMBank(bank);		
-		
-		uint8_t data_recv;
-		
-		for(uint16_t i = addr;i< end_addr;i++)
-		{					
-			// Wait for incoming data
-			while ( !(UCSRA & (_BV(RXC))) );	
-			//add the delay because the while tends to exit once in a while to early and it makes us retrieve the wrong byte. for example 0xFA often tended to become 00
-			//a 5ms delay seemed to cause it different times? :/
-			_delay_us(5);
-			// Return the data
-			data_recv = UDR;
-			
-			WriteRAMByte(i,data_recv);	
-			uint8_t data = ReadRAMByte(i);
-			cprintf_char(data);
-			
-		}
-	}
-	
-	CloseRam();
-end_function:
-	SetControlPin(RST,LOW);
-	//re-enable interrupts!
-	EnableSerialInterrupt();
-	return ret;
-}
-#endif

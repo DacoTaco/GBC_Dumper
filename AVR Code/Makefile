@@ -68,8 +68,8 @@ DEBUG = dwarf-2
 # DISABLE_DUMP_FUNCTIONS is to disable the DumpROM,DumpRAM and WriteRAM functions to save space on the AVR
 # SAVE_SPACE is to set it so all code having defines for saving space will disable code to do so
 #SHIFTING_MODE
-CUSTOMDEFINES = -DBAUD=250000 -DSAVE_SPACE 
-#CUSTOMDEFINES = -D_VA_SUPPORT -D_ALLOW_NONE_API_CMD -DSCL_CLOCK=400
+CUSTOMDEFINES = -DBAUD=500000 -DSAVE_SPACE 
+#CUSTOMDEFINES = -D_VA_SUPPORT -DSCL_CLOCK=400
 
 ifeq ($(MCU),atmega8)
 	CUSTOMDEFINES += -DGPIO_EXTENDER_MODE -D_SPI_MODE

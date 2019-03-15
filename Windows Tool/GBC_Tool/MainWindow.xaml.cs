@@ -310,8 +310,11 @@ namespace GBC_Tool
                     //are we done?
                     if (ret == GB_API_Protocol.API_TASK_FINISHED)
                     {
+                        DateTime ending = DateTime.Now;
+                        DateTime start = APIHandler.StartTime.Value;
+                        TimeSpan diff = ending - start;
                         //we are done reading!
-                        AddTextToField((Environment.NewLine + "Done!" + Environment.NewLine));
+                        AddTextToField((Environment.NewLine + "Done!" + Environment.NewLine + "Time : " + diff.ToString() + Environment.NewLine));
                         ResetVariables();
                     }
                 }

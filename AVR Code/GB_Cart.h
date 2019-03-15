@@ -69,13 +69,6 @@ Connections we want,need and assigned to :
 
 */
 
-//general defines
-#ifdef SAVE_SPACE
-#define DISABLE_CORE_DUMP_FUNCTIONS
-#endif
-//disable the DumpROM,DumpRAM and WriteRAM functions to save space on the AVR
-//#define DISABLE_CORE_DUMP_FUNCTIONS
-
 //addresses defines
 #define _CALC_ADDR(x) (x-0x100)
 #define _ADDR_LOGO 0x104
@@ -105,20 +98,20 @@ Connections we want,need and assigned to :
 //define all pins for a specific chip!
 #ifdef GPIO_EXTENDER_MODE	
 	
-	#define GET_DATA(x) { uint8_t d; mcp23008_ReadReg(DATA_CHIP_1, GPIO,&d); x = d; }
+	#define GET_DATA(x) { mcp23008_ReadReg(DATA_CHIP_1, GPIO,&x);}
 	#define SET_DATA(x) { mcp23008_WriteReg(DATA_CHIP_1, GPIO,x);}
 	
 	#define CTRL_DDR DDRD
 	#define CTRL_PORT PORTD
 	#define CTRL_PIN PIND
 	
-	//the MCP23008 addresses consist of 0b0100xxxy. xxx = the chip set address & y = the read/write bit. hence the shift to the left
+	//the MCP23008 addresses consist of 0b0100xxxy. xxx = the chip set address & y = the read/write bit.
 	//but no worries, the mcp23008 library keeps that in check for us in case we fuck up
 	#define BASE_ADDR_CHIPS 0b01000000
 		
-	#define ADDR_CHIP_1 (BASE_ADDR_CHIPS | ( 0b000 << 1))
-	#define ADDR_CHIP_2 (BASE_ADDR_CHIPS | ( 0b001 << 1))
-	#define DATA_CHIP_1 (BASE_ADDR_CHIPS | ( 0b010 << 1))
+	#define ADDR_CHIP_1 (0b01000000)
+	#define ADDR_CHIP_2 (0b01000010)
+	#define DATA_CHIP_1 (0b01000100)
 	
 	
 	#define RD PD5
@@ -126,6 +119,7 @@ Connections we want,need and assigned to :
 	#define SRAM PD7
 	#define RST PD3
 	#define BTN PD4
+	#define PING_PIN PD5
 	
 #elif defined(SHIFTING_MODE)
 
@@ -223,22 +217,27 @@ CartInfo GameInfo;
 
 //main functions. these are the most used by other code
 void SetupPins(void);
-#ifndef DISABLE_CORE_DUMP_FUNCTIONS
-int8_t DumpROM(void);
-int8_t DumpRAM(void);
-int8_t WriteRAM(void);
-#endif
 
 //other , usable functions by other code. these are used by the GB/C Cart code !
 void SetControlPin(uint8_t Pin,uint8_t state);
 void SetAddress(uint16_t address);
+
+#define SetPin(x,y) x |= (1<<y)
+#define ClearPin(x,y) x &= ~(1<<y)
+#define ReadByte(x) _ReadByte(1,x)
+#define WriteByte(x,y) _WriteByte(1,x,y)
+void _setPin(volatile uint8_t *port,uint8_t mask);
+void _clearPin(volatile uint8_t *port,uint8_t mask);
+uint8_t _ReadByte(int8_t ReadRom, uint16_t address);
+void _WriteByte(int8_t writeRom, uint16_t addr,uint8_t byte);
+
+
 int8_t CheckControlPin(uint8_t Pin);
-uint8_t ReadByte(uint16_t address);
 uint8_t ReadRAMByte(uint16_t address);
-uint8_t WriteRAMByte(uint16_t addr,uint8_t byte);
-uint8_t WriteByte(uint16_t addr,uint8_t byte);
+int8_t WriteRAMByte(uint16_t addr,uint8_t byte);
+
 int8_t OpenRam(void);
-int8_t CloseRam(void);
+void CloseRam(void);
 
 void SwitchRAMBank(int8_t bank);
 void SwitchROMBank(int8_t bank);

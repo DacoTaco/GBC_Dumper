@@ -13,13 +13,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifdef SAVE_SPACE
-#undef _ALLOW_NONE_API_CMD
-#endif
-
-//allow the NONE API commands
-//#define _ALLOW_NONE_API_CMD
-
 //API Commands!
 #define API_READ_ROM "API_READ_ROM"
 #define API_READ_ROM_SIZE 12
@@ -80,53 +73,6 @@ void ProcessCommand(void)
 		{			
 			ret = API_WriteRam();	
 		}
-#ifdef _ALLOW_NONE_API_CMD
-		//all of the NONE API functions
-		else if(
-			(strncmp(cmd,"READROM",7) == 0) ||
-			(strncmp(cmd,"READRAM",7) == 0) ||
-			(strncmp(cmd,"WRITERAM",8) == 0)
-		)
-		{
-			//the old, none API commands
-			cprintf("checking cart...\r\n");
-			cprintf("game inserted : %s\r\n",GameInfo.Name);
-			cprintf("MBC Type : 0x%x\r\n",GetMBCType(GameInfo.CartType));
-			cprintf("game banks : %u\r\n",GetRomBanks(GameInfo.RomSize));
-	
-			uint16_t banks = GameInfo.RamSize;
-			if(banks > 0)
-			{
-				banks = 1024*2;
-				for(uint8_t i = 1;i < GameInfo.RamSize;i++)
-				{
-					banks *= 4;
-				}
-			}
-			cprintf("ram size : %u\r\n",banks);
-			
-			if(strncmp(cmd,"READROM",7) == 0)
-			{
-				cprintf("Dumping ROM...\r\n");
-				DumpROM();
-				cprintf("\r\ndone\r\n");
-			}
-			else if(strncmp(cmd,"READRAM",7) == 0)
-			{
-				cprintf("Dumping RAM...\r\n");
-				if(GameInfo.RamSize > 0 || GameInfo.MBCType == MBC2 && GameInfo.RamSize == 0)
-				{
-					DumpRAM();
-				}
-				cprintf("\r\ndone\r\n");
-			}
-			else if(strncmp(cmd,"WRITERAM",8) == 0)
-			{
-				WriteRAM();
-				cprintf("\r\ndone\r\n");
-			}
-		}
-#endif
 		else
 		{
 			API_Send_Abort(API_ABORT_ERROR);
@@ -235,7 +181,9 @@ int main(void)
 		{
 			cprintf("Btn pressed!\n\r");
 			uint8_t data = 0;
+			SetControlPin(PING_PIN,HIGH);
 			data = ReadByte(addr);
+			SetControlPin(PING_PIN,LOW);
 			cprintf("data : ");
 			cprintf_char(data);	
 			cprintf("\n\r");

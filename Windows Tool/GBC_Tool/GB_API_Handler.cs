@@ -76,7 +76,9 @@ namespace Gameboy
         private byte[] PrevPacket = {0x00,0x00};
         private byte APIMode = 0x00;
         private string RamFilepath = String.Empty;
-        private bool IsWriting = false;      
+        private bool IsWriting = false;
+
+        public DateTime? StartTime = null;
 
 
         public GB_API_Handler()
@@ -101,6 +103,7 @@ namespace Gameboy
             Info.IsGBC = null;
             IsWriting = false;
             RamFilepath = string.Empty;
+            StartTime = null;
             return;
         }
 
@@ -234,7 +237,7 @@ namespace Gameboy
                 {
                     //we need to retrieve the name. this is a packet between 3 - 20 bytes. 0x86 [name size] 0x87 [name]
                     int strSize = buf[i + 1];
-                    if (i + strSize > bufSize)
+                    if (i + strSize > bufSize || strSize == 0)
                     {
                         ResetVariables();
                         return GB_API_Error.ERROR_INVALID_PARAM;
@@ -548,6 +551,8 @@ namespace Gameboy
             }
             if (Info.FileSize > 0 && String.IsNullOrWhiteSpace(Info.CartName) == false)
             {
+                if (StartTime == null)
+                    StartTime = DateTime.Now;
                 if (Filefs == null)
                 {
                     OpenFile(isRom);
