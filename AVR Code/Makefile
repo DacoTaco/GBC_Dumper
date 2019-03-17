@@ -64,8 +64,6 @@ DEBUG = dwarf-2
 # Example : CUSTOMDEFINES = -D_VA_SUPPORT -DDEBUG
 #
 # _VA_SUPPORT is for Variadic functions in cprintf (accepting arguments)
-# _ALLOW_NONE_API_CMD is for the main source, to allow the none API commands
-# DISABLE_DUMP_FUNCTIONS is to disable the DumpROM,DumpRAM and WriteRAM functions to save space on the AVR
 # SAVE_SPACE is to set it so all code having defines for saving space will disable code to do so
 #SHIFTING_MODE
 CUSTOMDEFINES = -DBAUD=500000 -DSAVE_SPACE 

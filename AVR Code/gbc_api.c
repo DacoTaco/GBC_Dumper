@@ -74,9 +74,7 @@ int8_t API_GetGameInfo(void)
 }
 int8_t API_CartInserted(void)
 {
-	if(GameInfo.Name[0] == 0x00)
-		return 0;
-	return 1;
+	return (GameInfo.Name[0] == 0x00)?0:1;
 }
 int8_t API_Get_Memory(ROM_TYPE type)
 {
@@ -211,17 +209,11 @@ int8_t API_WriteRam(void)
 	//we got the OK!	
 	OpenRam();
 	
-	//send the Start, we are ready for loop!
-	cprintf_char(API_TASK_START);
-	/*cprintf_char((addr >> 8) & 0xFF);
-	cprintf_char(addr & 0xFF);
-	cprintf_char((end_addr >> 8) & 0xFF);
-	cprintf_char(end_addr & 0xFF);	*/
 	
-	/*this will look as following : 
-	//the handshake is done and the PC is waiting for the START!
+	
+	/*
 	//this function will look as following : 
-
+	//PC will be waiting for a TASK_START
 	//Send TASK_START and enter for loop.
 	//wait for data to be send. we are expecting an API_OK followed by the byte we need to write
 	//Write the data, and send an API_VERIFY with the READ BYTE at the location
@@ -230,6 +222,9 @@ int8_t API_WriteRam(void)
 	//if we get an NOK + byte -> use that byte to write to the same address again, and send a VERIFY again
 	//if we get different data then expected, ABBANDON SHIP!!
 	*/
+	
+	//send the Start, we are ready for loop!
+	cprintf_char(API_TASK_START);
 	
 	uint8_t data_recv[2];
 	uint8_t bank = 0;
@@ -290,7 +285,7 @@ int8_t API_WriteRam(void)
 			cprintf_char(API_VERIFY);
 			cprintf_char(data);
 		}
-		if(data_recv[0] == API_NOK)
+		else if(data_recv[0] == API_NOK)
 		{
 			//data was decided NOT OK, we go back and retry!
 			WriteRAMByte(i,data_recv[1]);			
@@ -328,17 +323,15 @@ int8_t API_GetRom(void)
 	//reset cart
 	ClearPin(CTRL_PORT,RST);
 	
-	//DumpROM();
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,SRAM);	
 	SetPin(CTRL_PORT,RST);
 	
-	int8_t ret = API_GetGameInfo();
-	if(!ret)
+	if(!API_GetGameInfo())
 	{
 		API_Send_Abort(API_ABORT_CMD);
-		return ret;
+		return ERR_NO_INFO;
 	}
 	
 	uint16_t banks = GetRomBanks(GameInfo.RomSize);
@@ -369,8 +362,6 @@ int8_t API_GetRam(void)
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,SRAM);
-	
-	//_delay_us(1);
 	SetPin(CTRL_PORT,RST);
 	
 	if(!API_GetGameInfo())

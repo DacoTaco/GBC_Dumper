@@ -57,18 +57,11 @@ void ProcessCommand(void)
 	int8_t ret = API_GetGameInfo();
 	if(ret > 0)
 	{
-		//this is the API version of reading the ROM or RAM
 		if(strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0 || strncmp(cmd,"API_READ_RAM",API_READ_RAM_SIZE) == 0 )
 		{
-			uint8_t ReadRom = (strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0)?1:0;					
-			ROM_TYPE type = TYPE_ROM;
-			if(!ReadRom)
-			{
-				type = TYPE_RAM;
-			}
+			ROM_TYPE type = (strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0)?TYPE_ROM:TYPE_RAM;
 			ret = API_Get_Memory(type);
 		}
-		//this is the API version of Writing the RAM
 		else if(strncmp(cmd,"API_WRITE_RAM",API_WRITE_RAM_SIZE) == 0)
 		{			
 			ret = API_WriteRam();	
@@ -133,7 +126,6 @@ void ProcessChar(char byte)
 	{
 		if(cmd_size > 0)
 			//set variable instead of processing command. something in the lines of disabling interrupt while in one that just doesn't work out nicely
-			//ProcessCommand();
 			process_cmd = 1;
 		return;
 	}
@@ -145,8 +137,6 @@ void ProcessChar(char byte)
 		cmd[cmd_size] = byte;
 		cmd_size++;
 	}
-	
-	//cprintf_char(byte);
 	return;
 }
 int main(void)
