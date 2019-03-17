@@ -141,7 +141,7 @@ namespace GBC_Tool
 
                 cbBaudRate.ItemsSource = serial.BaudRates;
                 if (cbBaudRate.Items.Count > 0)
-                    cbBaudRate.SelectedItem = 250000;
+                    cbBaudRate.SelectedItem = 500000;
                 else
                     cbBaudRate.SelectedIndex = -1;
             }
