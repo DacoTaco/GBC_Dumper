@@ -110,32 +110,23 @@ void SetupPins(void)
 	
 #endif	
 
-	//disable the external interrupt flags. just to be sure we get those pins correctly. had some issues before, dont know why
-	/*GICR &= ~(1 << INT0);
-	GICR &= ~(1 << INT1);
-#ifdef __ATMEGA32__
-	GICR &= ~(1 << INT2);
-#endif*/
-
 	//setup data pins as input
 	SetDataPinsAsInput(); 
 	
 	//setup D pins as well for the other, as output
-	CTRL_DDR |= ( (0 << BTN) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) );//0b01111100;
+	CTRL_DDR |= ( (0 << BTN) | (1 << RD) | (1 << WD) | (1 << CS1) | (1 << CS2) );//0b01111100;
 	//FUCK TRISTATE BULLSHIT xD set the mode of the pins correctly!
-	CTRL_PORT |= ((1 << BTN) | (1 << RD) | (1 << WD) | (1 << SRAM) | (1 << RST) ); //0b01111100;
+	CTRL_PORT |= ((1 << BTN) | (1 << RD) | (1 << WD) | (1 << CS1) | (1 << CS2) ); //0b01111100;
 	
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
-	SetPin(CTRL_PORT,SRAM);
-	ClearPin(CTRL_PORT,RST);
+	SetPin(CTRL_PORT,CS1);
+	ClearPin(CTRL_PORT,CS2);
 }
 inline void SetAddress(uint16_t address)
 {	
 #ifdef GPIO_EXTENDER_MODE	
-	//in gba mode only the 2nd chip will be switching between input and output
-	//so losing cycles on first chip being set too is meh
-	//mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
+	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
 	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0x00);
 	
 	//write lower address
@@ -192,11 +183,11 @@ inline uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 	//pass Address to cartridge via the address bus
 	SetAddress(address);
 	
-	//set Sram control pin low. we do this -AFTER- address is set because MBC2 latches to the address as soon as SRAM is set low. 
+	//set Sram control pin low. we do this -AFTER- address is set because MBC2 latches to the address as soon as CS1 is set low. 
 	//making the SetAddress do nothing, it'll latch to the address it was set before the SetAddress
 	if(ReadRom == 0)
 	{
-		ClearPin(CTRL_PORT,SRAM);
+		ClearPin(CTRL_PORT,CS1);
 	}
 	
 	//set cartridge in read mode
@@ -209,7 +200,7 @@ inline uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 	
 	if(ReadRom == 0)
 	{
-		SetPin(CTRL_PORT,SRAM);
+		SetPin(CTRL_PORT,CS1);
 	}
 	
 	return data;
@@ -243,11 +234,11 @@ inline void _WriteByte(int8_t writeRom, uint16_t addr,uint8_t byte)
 	SET_DATA(byte);
 	SetAddress(addr);
 	
-	//set Sram control pin low. we do this -AFTER- address is set because MBC2 latches to the address as soon as SRAM is set low. 
+	//set Sram control pin low. we do this -AFTER- address is set because MBC2 latches to the address as soon as CS1 is set low. 
 	//making the SetAddress do nothing, it'll latch to the address it was set before the SetAddress
 	if(writeRom <= 0)
 	{
-		ClearPin(CTRL_PORT,SRAM);
+		ClearPin(CTRL_PORT,CS1);
 	}
 	
 	ClearPin(CTRL_PORT,WD);
@@ -255,7 +246,7 @@ inline void _WriteByte(int8_t writeRom, uint16_t addr,uint8_t byte)
 	SetPin(CTRL_PORT,WD);
 	if(writeRom <= 0)
 	{
-		SetPin(CTRL_PORT,SRAM);
+		SetPin(CTRL_PORT,CS1);
 	}
 	
 	SET_DATA(0x00);
@@ -281,7 +272,7 @@ int8_t OpenRam(void)
 	
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
-	SetPin(CTRL_PORT,SRAM);	
+	SetPin(CTRL_PORT,CS1);	
 	
 	if(Bank_Type == MBC2)
 	{
@@ -406,7 +397,7 @@ int8_t GetGameInfo(void)
 		if(FF_cnt >= 3)
 		{
 			//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
-			ClearPin(CTRL_PORT,RST);
+			ClearPin(CTRL_PORT,CS2);
 			return ERR_FAULT_CART;
 		}
 	}
@@ -445,7 +436,7 @@ int8_t GetGameInfo(void)
 			continue;
 		else
 		{
-			ClearPin(CTRL_PORT,RST);
+			ClearPin(CTRL_PORT,CS2);
 			return ERR_LOGO_CHECK;
 		}
 	}
@@ -504,7 +495,7 @@ int8_t GetGameInfo(void)
 	temp.MBCType = GetMBCType(temp.CartType);
 	
 	GameInfo = temp;
-	ClearPin(CTRL_PORT,RST);
+	ClearPin(CTRL_PORT,CS2);
 	return 1;	
 }
 uint16_t GetRomBanks(uint8_t RomSize)

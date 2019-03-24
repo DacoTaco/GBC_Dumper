@@ -1,5 +1,5 @@
 /*
-gbc_api - AVR Code/API to access the GBC library to communicate with a GB/C cartridge. accessing ROM & RAM
+gb_api - AVR Code/API to access the GBA/GBC library to communicate with a GBA/GB(C) cartridge. accessing ROM & RAM
 Copyright (C) 2016-2017  DacoTaco
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

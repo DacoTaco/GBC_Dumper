@@ -116,10 +116,9 @@ Connections we want,need and assigned to :
 	
 	#define RD PD5
 	#define WD PD6
-	#define SRAM PD7
-	#define RST PD3
+	#define CS1 PD7
+	#define CS2 PD3
 	#define BTN PD4
-	#define PING_PIN PD5
 	
 #elif defined(SHIFTING_MODE)
 
@@ -146,9 +145,9 @@ Connections we want,need and assigned to :
 	//0b00100000;
 	#define WD PD3
 	//0b01000000;
-	#define SRAM PD4
+	#define CS1 PD4
 	//0b10000000;
-	#define RST PD5
+	#define CS2 PD5
 	//0b00000100;
 	#define BTN PD6
 	//0b00100000
@@ -175,9 +174,9 @@ Connections we want,need and assigned to :
 	//0b00000100;
 	#define WD PD3
 	//0b00001000;
-	#define SRAM PD4
+	#define CS1 PD4
 	//0b00010000;
-	#define RST PD5
+	#define CS2 PD5
 	//0b00100000;
 	#define BTN PD6
 	//0b01000000
@@ -222,8 +221,8 @@ void SetupPins(void);
 void SetControlPin(uint8_t Pin,uint8_t state);
 void SetAddress(uint16_t address);
 
-#define SetPin(x,y) x |= (1<<y)
-#define ClearPin(x,y) x &= ~(1<<y)
+#define SetPin(x,y) (x |= (1<<y))
+#define ClearPin(x,y) (x &= ~(1<<y))
 #define ReadByte(x) _ReadByte(1,x)
 #define WriteByte(x,y) _WriteByte(1,x,y)
 void _setPin(volatile uint8_t *port,uint8_t mask);
@@ -233,6 +232,8 @@ void _WriteByte(int8_t writeRom, uint16_t addr,uint8_t byte);
 
 
 int8_t CheckControlPin(uint8_t Pin);
+void SetDataPinsAsOutput(void);
+void SetDataPinsAsInput(void);
 uint8_t ReadRAMByte(uint16_t address);
 int8_t WriteRAMByte(uint16_t addr,uint8_t byte);
 

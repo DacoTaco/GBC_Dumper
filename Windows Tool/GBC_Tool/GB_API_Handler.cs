@@ -418,6 +418,7 @@ namespace Gameboy
                     }
                     SendData(data);
                 }
+                StartTime = DateTime.Now;
             }
             else if (IsWriting == true)
             {

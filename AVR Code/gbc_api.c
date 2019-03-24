@@ -1,5 +1,5 @@
 /*
-gbc_api - AVR Code/API to access the GBC library to communicate with a GB/C cartridge. accessing ROM & RAM
+gb_api - AVR Code/API to access the GBA/GBC library to communicate with a GBA/GB(C) cartridge. accessing ROM & RAM
 Copyright (C) 2016-2017  DacoTaco
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -67,9 +67,9 @@ int8_t API_GetGameInfo(void)
 		return 1;
 	
 	int8_t ret = 0;
-	SetPin(CTRL_PORT,RST);
+	SetPin(CTRL_PORT,CS2);
 	ret = GetGameInfo();
-	ClearPin(CTRL_PORT,RST);
+	ClearPin(CTRL_PORT,CS2);
 	return ret;
 }
 int8_t API_CartInserted(void)
@@ -157,13 +157,13 @@ int8_t API_WriteRam(void)
 	
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
-	SetPin(CTRL_PORT,SRAM);
+	SetPin(CTRL_PORT,CS1);
 	
 	//reset game cart. this causes all banks & states to reset
-	ClearPin(CTRL_PORT,RST);
+	ClearPin(CTRL_PORT,CS2);
 	//replaced with nop's
 	//_delay_us(20);
-	SetPin(CTRL_PORT,RST);
+	SetPin(CTRL_PORT,CS2);
 	
 	if(GameInfo.MBCType != MBC2 && GameInfo.RamSize == 0)
 	{
@@ -243,18 +243,12 @@ int8_t API_WriteRam(void)
 	{		
 		//receive first byte
 		while ( !(UCSRA & (_BV(RXC))) );	
-		//add the delay because the while tends to exit once in a while to early and it makes us retrieve the wrong byte. for example 0xFA often tended to become 00. used to be 5ms
-		//_delay_us(20);
-		asm ("nop");
-		asm ("nop");
+		//add the delay because the while tends to exit once in a while to early and it makes us retrieve the wrong byte. for example 0xFA often tended to become 00.
 		asm ("nop");
 		data_recv[0] = UDR;
 		
 		//second byte
 		while ( !(UCSRA & (_BV(RXC))) );	
-		//_delay_us(20);
-		asm ("nop");
-		asm ("nop");
 		asm ("nop");
 		data_recv[1] = UDR;
 		
@@ -313,7 +307,7 @@ int8_t API_WriteRam(void)
 	CloseRam();
 end_function:
 	//re-enable interrupts!
-	ClearPin(CTRL_PORT,RST);
+	ClearPin(CTRL_PORT,CS2);
 	API_ResetGameInfo();
 	EnableSerialInterrupt();
 	return ret;
@@ -321,12 +315,12 @@ end_function:
 int8_t API_GetRom(void)
 {
 	//reset cart
-	ClearPin(CTRL_PORT,RST);
+	ClearPin(CTRL_PORT,CS2);
 	
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
-	SetPin(CTRL_PORT,SRAM);	
-	SetPin(CTRL_PORT,RST);
+	SetPin(CTRL_PORT,CS1);	
+	SetPin(CTRL_PORT,CS2);
 	
 	if(!API_GetGameInfo())
 	{
@@ -350,19 +344,19 @@ int8_t API_GetRom(void)
 		addr = 0x4000;
 	}
 	
-	ClearPin(CTRL_PORT,RST);
+	ClearPin(CTRL_PORT,CS2);
 	API_ResetGameInfo();
 	return 1;
 }
 int8_t API_GetRam(void)
 {
 	//reset game cart. this causes all banks & states to reset
-	ClearPin(CTRL_PORT,RST);
+	ClearPin(CTRL_PORT,CS2);
 	
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
-	SetPin(CTRL_PORT,SRAM);
-	SetPin(CTRL_PORT,RST);
+	SetPin(CTRL_PORT,CS1);
+	SetPin(CTRL_PORT,CS2);
 	
 	if(!API_GetGameInfo())
 	{
@@ -408,7 +402,7 @@ int8_t API_GetRam(void)
 	}
 	
 	CloseRam();	
-	ClearPin(CTRL_PORT,RST);
+	ClearPin(CTRL_PORT,CS2);
 	API_ResetGameInfo();
 	return 1;
 }
