@@ -69,6 +69,9 @@ Connections we want,need and assigned to :
 
 */
 
+#ifndef _GB_CART_H_
+#define _GB_CART_H_
+
 //addresses defines
 #define _CALC_ADDR(x) (x-0x100)
 #define _ADDR_LOGO 0x104
@@ -189,7 +192,7 @@ Connections we want,need and assigned to :
 #define INPUT 0
 #define OUTPUT 1
 
-typedef struct _cartInfo
+typedef struct _GBC_Header
 {
 	char Name[17]; // 0x134 - 0x143
 	uint8_t ManufacturerCode[4]; //0x13F - 0x142
@@ -198,24 +201,23 @@ typedef struct _cartInfo
 	uint8_t SGBSupported; //0x146
 	uint8_t CartType; //0x147 this is what tells us what MBC and save etc it has
 	uint8_t MBCType; //byte we use to store the MBC Type
-	uint16_t RomSize; //0x148 , if(Romsize > 0 && Romsize < 8 ) - > for(romsize) -> 32 * 2 else 32 
-	uint16_t RamSize; // 0x149 0 = 0, 1 = 2 , 2 = 8, 3 = 32 (table of 4)
+	uint8_t RomSizeFlag; //0x148 , if(Romsize > 0 && Romsize < 8 ) - > for(romsize) -> 32 * 2 else 32 
+	uint8_t RamSize; // 0x149 0 = 0, 1 = 2 , 2 = 8, 3 = 32 (table of 4)
 	uint8_t Region; // 0x14A
 	uint8_t OldLicenseeCode; // 0x14B, if new is used -> 0x33
 	uint8_t RomVersion; // 0x14C
 	uint8_t HeaderChecksum; // 0x14D
 	uint8_t GlobalChecksum[2]; // 0x14E - 0x14F
-} CartInfo ;
+} GBC_Header ;
 
-CartInfo GameInfo;
-
+uint8_t LoadedBankType;
 
 //--------------
 //functions
 //--------------
 
 //main functions. these are the most used by other code
-void SetupPins(void);
+void Setup_GB_Pins(void);
 
 //other , usable functions by other code. these are used by the GB/C Cart code !
 void SetControlPin(uint8_t Pin,uint8_t state);
@@ -246,7 +248,7 @@ void SwitchROMBank(int8_t bank);
 uint16_t GetRomBanks(uint8_t RomSize);
 int8_t GetRamDetails(uint16_t *end_addr, uint8_t *banks,uint8_t RamSize);
 uint8_t GetMBCType(uint8_t CartType);
-int8_t GetGameInfo(void);
+int8_t GetGBInfo(char* name, uint8_t* romFlag , uint8_t* ramFlag);
 
 
-
+#endif

@@ -1,5 +1,5 @@
 /*
-GB_error - An AVR library to communicate with a GB/C cartridge. the error messages
+GB_error - An AVR library to communicate with a GB/C/A cartridge. the error messages
 Copyright (C) 2016-2017  DacoTaco
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

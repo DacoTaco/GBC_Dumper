@@ -23,8 +23,40 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "gbc_api.h"
 #include "serial.h"
 #include "GB_Cart.h"
-#include "gbc_error.h"
+#include "GBA_Cart.h"
+#include "gb_error.h"
 
+
+
+typedef struct _api_info
+{
+	char Name[18];
+	uint8_t RomSizeFlag;
+	uint8_t RamSize;
+	uint32_t fileSize;
+	uint8_t flag;
+} api_info;
+api_info gameInfo; 
+
+uint8_t _gba_cart = 1;
+
+void API_Init(void)
+{
+	API_SetupPins();
+	API_ResetGameInfo();
+}
+void API_SetupPins(void)
+{
+	if(_gba_cart)
+	{
+		Setup_GBA_Pins();
+	}
+	else
+	{
+		Setup_GB_Pins();
+	}
+	return;
+}
 int8_t API_WaitForOK(void)
 {
 	//disable interrupts, like serial interrupt for example :P 
@@ -33,7 +65,6 @@ int8_t API_WaitForOK(void)
 	int8_t ret = 0;
 	
 	cprintf_char(API_OK);
-	//_delay_us(300); //if we are gonna deadlock in readbyte untill we get data, why sleep?
 	uint8_t response = Serial_ReadByte();
 	
 	switch(response)
@@ -56,25 +87,35 @@ int8_t API_WaitForOK(void)
 void API_ResetGameInfo(void)
 {
 	//reset GameInfo
-	//memset(&GameInfo,0,sizeof(CartInfo));
 	//code only checks byte 0 of the name. invalidate that and its ok :P
 	//this produces smaller code too xD
-	GameInfo.Name[0] = 0x00;
+	gameInfo.Name[0] = 0xFF;
 }
 int8_t API_GetGameInfo(void)
 {
-	if(GameInfo.Name[0] != 0x00)
+	if(gameInfo.Name[0] != 0xFF)
 		return 1;
 	
-	int8_t ret = 0;
-	SetPin(CTRL_PORT,CS2);
-	ret = GetGameInfo();
-	ClearPin(CTRL_PORT,CS2);
-	return ret;
+	if(_gba_cart)
+	{
+		if(GetGBAInfo(gameInfo.Name) < 0)
+			API_ResetGameInfo();
+	}
+	else
+	{
+		SetPin(CTRL_PORT,CS2);
+		if(GetGBInfo(gameInfo.Name,&gameInfo.RomSizeFlag,&gameInfo.RamSize)< 0)
+			API_ResetGameInfo();
+		ClearPin(CTRL_PORT,CS2);
+	}
+	
+	if(gameInfo.Name[0] != 0xFF)
+		return 1;
+	return -1;
 }
 int8_t API_CartInserted(void)
 {
-	return (GameInfo.Name[0] == 0x00)?0:1;
+	return (gameInfo.Name[0] == 0xFF)?0:1;
 }
 int8_t API_Get_Memory(ROM_TYPE type)
 {
@@ -84,58 +125,61 @@ int8_t API_Get_Memory(ROM_TYPE type)
 		API_Send_Abort(API_ABORT_CMD);
 		return ret;
 	}
-	
-	uint16_t fileSize = 0;
 			
 	if(type == TYPE_ROM)
 	{
-		//because rom sizes are to big, we will just pass the banks amount
-		fileSize = GetRomBanks(GameInfo.RomSize);
-	}
-	else
-	{
-		//every MBC type has ramsize as the amount of banks
-		//...except MBC2 which needs ramsize to be set to 0, because its RAM is included in MBC2
-		if(GameInfo.MBCType != MBC2 && GameInfo.RamSize == 0)
+		if(_gba_cart)
 		{
-			//no ram, BAIL IT
-			API_Send_Abort(API_ABORT_CMD);
-			return ERR_NO_SAVE;
-		}
-		uint16_t end_addr = 0;
-		uint8_t _banks;
-		
-		if(GetRamDetails(&end_addr, &_banks,GameInfo.RamSize) < 0)
-		{
-			//ram error, BAIL IT
-			API_Send_Abort(API_ABORT_CMD);
-			return ERR_NO_SAVE;
-		}
-		
-		if(end_addr < 0xC000)
-		{
-			fileSize = end_addr - 0xA000;
+			
 		}
 		else
 		{
-			fileSize = 0x2000 * _banks;
+			//because rom sizes are to big, we will just pass the banks amount
+			gameInfo.fileSize = GetRomBanks(gameInfo.RomSizeFlag);
+		}		
+	}
+	else
+	{
+		if(_gba_cart)
+		{
+			
 		}
+		else
+		{
+			uint16_t end_addr = 0;
+			uint8_t _banks;
+			
+			if(GetRamDetails(&end_addr, &_banks,gameInfo.RamSize) < 0)
+			{
+				//ram error, BAIL IT
+				API_Send_Abort(API_ABORT_CMD);
+				return ERR_NO_SAVE;
+			}
+			
+			if(end_addr < 0xC000)
+			{
+				gameInfo.fileSize = end_addr - 0xA000;
+			}
+			else
+			{
+				gameInfo.fileSize = 0x2000 * _banks;
+			}
+		}		
 	}
 	
-	API_Send_Name(GameInfo.Name);
-	API_Send_Size(fileSize);
-	API_Send_GBC_Support(GameInfo.GBCFlag);
-	ret = 1;
+	API_Send_Name();
+	API_Send_Size();
+	API_Send_Cart_Type();
 	
 	if(API_WaitForOK() > 0)
 	{
 		if(type == TYPE_RAM)
 		{
-			ret = API_GetRam();
+			return API_GetRam();
 		}
 		else
 		{
-			ret = API_GetRom();
+			return API_GetRom();
 		}
 	}
 	else
@@ -143,43 +187,26 @@ int8_t API_Get_Memory(ROM_TYPE type)
 		API_Send_Abort(API_ABORT_PACKET);
 		return ERR_NOK_RETURNED;
 	}
-	
-	return ret;
+	return 1;
 }
-int8_t API_WriteRam(void)
-{		
-	int8_t ret = API_GetGameInfo();
-	if(!ret)
+int8_t API_WriteGBRam(void)
+{	
+	if(_gba_cart)
 	{
-		API_Send_Abort(API_ABORT_CMD);
-		return ret;
+		return -1;
 	}
-	
-	SetPin(CTRL_PORT,WD);
-	SetPin(CTRL_PORT,RD);
-	SetPin(CTRL_PORT,CS1);
 	
 	//reset game cart. this causes all banks & states to reset
 	ClearPin(CTRL_PORT,CS2);
-	//replaced with nop's
-	//_delay_us(20);
 	SetPin(CTRL_PORT,CS2);
 	
-	if(GameInfo.MBCType != MBC2 && GameInfo.RamSize == 0)
-	{
-		//no ram, BAIL IT
-		API_Send_Abort(API_ABORT_CMD);
-		ret = ERR_NO_SAVE;
-		goto end_function;
-	}
-
-	uint16_t fileSize = 0;
+	gameInfo.fileSize = 0;
+	int8_t ret = 0;
 	uint16_t addr = 0xA000;
 	uint16_t end_addr = 0xC000;
 	uint8_t banks = 0;
-	uint8_t Bank_Type = GameInfo.MBCType;
 	
-	if(GetRamDetails(&end_addr,&banks,GameInfo.RamSize) < 0)
+	if(GetRamDetails(&end_addr,&banks,gameInfo.RamSize) < 0)
 	{	
 		API_Send_Abort(API_ABORT_CMD);
 		ret = ERR_NO_SAVE;
@@ -190,14 +217,14 @@ int8_t API_WriteRam(void)
 	//for WRITERAM we need to send Ram size, wait for the OK(0x80) or NOK(anything NOT 0x80) signal, and then start receiving.
 	if(end_addr < 0xC000)
 	{
-		fileSize = end_addr - 0xA000;
+		gameInfo.fileSize = end_addr - 0xA000;
 	}
 	else
 	{
-		fileSize = 0x2000 * banks;
+		gameInfo.fileSize = 0x2000 * banks;
 	}
 	
-	API_Send_Size(fileSize);
+	API_Send_Size();
 	if(API_WaitForOK() <= 0)
 	{
 		API_Send_Abort(API_ABORT_CMD);
@@ -231,7 +258,7 @@ int8_t API_WriteRam(void)
 	ret = 1;
 	
 	//switch bank!
-	if(Bank_Type != MBC2)
+	if(LoadedBankType != MBC2)
 		SwitchRAMBank(bank);
 	
 	//disable interrupts, like serial interrupt for example :P 
@@ -262,7 +289,7 @@ int8_t API_WriteRam(void)
 			{
 				bank++;
 				i = addr;
-				if(Bank_Type != MBC2)
+				if(LoadedBankType != MBC2)
 					SwitchRAMBank(bank);	
 			}
 			
@@ -312,39 +339,65 @@ end_function:
 	EnableSerialInterrupt();
 	return ret;
 }
-int8_t API_GetRom(void)
-{
-	//reset cart
-	ClearPin(CTRL_PORT,CS2);
+int8_t API_WriteRam(void)
+{		
+	int8_t ret = API_GetGameInfo();
+	if(!ret)
+	{
+		API_Send_Abort(API_ABORT_CMD);
+		return ret;
+	}
 	
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
-	SetPin(CTRL_PORT,CS1);	
-	SetPin(CTRL_PORT,CS2);
+	SetPin(CTRL_PORT,CS1);
 	
-	if(!API_GetGameInfo())
+	if(_gba_cart)
 	{
-		API_Send_Abort(API_ABORT_CMD);
-		return ERR_NO_INFO;
+		return 0;
 	}
-	
-	uint16_t banks = GetRomBanks(GameInfo.RomSize);
-	
-	uint16_t addr = 0;
-	for(uint16_t bank = 1;bank < banks;bank++)
+	else
 	{
-		SwitchROMBank(bank);
-		for(;addr < 0x8000;addr++)
+		return API_WriteGBRam();
+	}
+}
+int8_t API_GetRom(void)
+{
+	SetPin(CTRL_PORT,WD);
+	SetPin(CTRL_PORT,RD);
+	SetPin(CTRL_PORT,CS1);
+	
+	if(_gba_cart)
+	{
+		
+	}
+	else
+	{
+		//reset cart
+		ClearPin(CTRL_PORT,CS2);
+		SetPin(CTRL_PORT,CS2);
+		
+		if(!API_GetGameInfo())
 		{
-			cprintf_char(ReadByte(addr));
-			//_delay_us(2);
-			//asm ("nop");
-			//asm ("nop");
+			API_Send_Abort(API_ABORT_CMD);
+			return ERR_NO_INFO;
 		}
-		addr = 0x4000;
-	}
+		
+		uint16_t banks = GetRomBanks(gameInfo.RomSizeFlag);
+		
+		uint16_t addr = 0;
+		for(uint16_t bank = 1;bank < banks;bank++)
+		{
+			SwitchROMBank(bank);
+			for(;addr < 0x8000;addr++)
+			{
+				cprintf_char(ReadByte(addr));
+			}
+			addr = 0x4000;
+		}	
+		ClearPin(CTRL_PORT,CS2);
+	}	
 	
-	ClearPin(CTRL_PORT,CS2);
 	API_ResetGameInfo();
 	return 1;
 }
@@ -364,24 +417,18 @@ int8_t API_GetRam(void)
 		return ERR_NO_INFO;
 	}
 	
-	uint8_t Bank_Type = GameInfo.MBCType;
-	
-	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
+	if(LoadedBankType == MBC_NONE || LoadedBankType == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
-		
-	if(GameInfo.MBCType != MBC2 && GameInfo.RamSize <= 0)
-		return ERR_NO_SAVE;
-
 	
 	//read RAM Address'
 	uint16_t addr = 0xA000;
 	uint16_t end_addr = 0xC000; //actually ends at 0xBFFF
 	uint8_t banks = 0;
 	
-	int8_t ret = GetRamDetails(&end_addr,&banks,GameInfo.RamSize);
+	int8_t ret = GetRamDetails(&end_addr,&banks,gameInfo.RamSize);
 	
 	if(ret < 0)
-		return ret;
+		return ERR_NO_SAVE;
 	
 	OpenRam();
 	//_delay_us(5);
@@ -389,14 +436,14 @@ int8_t API_GetRam(void)
 	for(uint8_t bank = 0;bank < banks;bank++)
 	{
 		//if we aren't dealing with MBC2, set bank to 0!
-		if(Bank_Type != MBC2)
+		if(LoadedBankType != MBC2)
 			SwitchRAMBank(bank);	
 		
 		for(uint16_t i = addr;i< end_addr ;i++)
 		{
 			cprintf_char(ReadRAMByte(i));
 			//_delay_us(5);
-			asm ("nop");
+			//asm ("nop");
 			asm ("nop");	
 		}
 	}
@@ -413,42 +460,48 @@ void API_Send_Abort(uint8_t type)
 	API_ResetGameInfo();
 }
 
-void API_Send_Name(char* Name)
+void API_Send_Name(void)
 {
 	cprintf_char(API_GAMENAME_START);
-	cprintf_char(strnlen(Name,17));
+	cprintf_char(strnlen(gameInfo.Name,17));
 	cprintf_char(API_GAMENAME_END);
-	cprintf(Name);
+	cprintf(gameInfo.Name);
 	return;
 }
 
-void API_Send_Size(uint16_t size)
+void API_Send_Size(void)
 {
 	cprintf_char(API_FILESIZE_START);
-	cprintf_char(size >> 8);
-	cprintf_char(size & 0xFF);
+	cprintf_char((gameInfo.fileSize >> 16) & 0xFF);
+	cprintf_char((gameInfo.fileSize >> 8) & 0xFF);
+	cprintf_char(gameInfo.fileSize & 0xFF);
 	cprintf_char(API_FILESIZE_END);
 	return;
 }
-void API_Send_GBC_Support(uint8_t GBCFlag)
+
+void API_Send_Cart_Type(void)
 {
-	uint8_t toSend;
-	switch(GBCFlag)
-	{
-		case 0x80:
-			toSend = API_GBC_HYBRID;
-			break;
-		case 0xC0:
-			toSend = API_GBC_ONLY;
-			break;
-		case 0x00:
-			/*toSend = API_GBC_GB;
-			break;*/
-		default:
-			toSend = API_GBC_GB;
-			break;
+	uint8_t toSend = 0xFF;
+	
+	if(_gba_cart)
+		toSend = API_GBA_ONLY;
+	else
+	{	
+		switch(gameInfo.flag)
+		{
+			case 0x80:
+				toSend = API_GBC_HYBRID;
+				break;
+			case 0xC0:
+				toSend = API_GBC_ONLY;
+				break;
+			case 0x00:
+				toSend = API_GBC_GB;
+				break;
+		}
 	}
-	cprintf_char(API_GBC_SUPPORT_START);
+	
+	cprintf_char(API_GB_CART_TYPE_START);
 	cprintf_char(toSend);
-	cprintf_char(API_GBC_SUPPORT_END);
+	cprintf_char(API_GB_CART_TYPE_END);
 }

@@ -34,7 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <avr/eeprom.h>
 #include "serial.h"
 #include "mcp23008.h"
-#include "gbc_error.h"
+#include "gb_error.h"
 #include "gbc_api.h"
 #include "GB_Cart.h"
 #include "GBA_Cart.h"
@@ -55,7 +55,9 @@ void ProcessCommand(void)
 {
 	process_cmd = 0;
 	DisableSerialInterrupt();
+	API_SetupPins();
 	int8_t ret = API_GetGameInfo();
+	
 	if(ret > 0)
 	{
 		if(strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0 || strncmp(cmd,"API_READ_RAM",API_READ_RAM_SIZE) == 0 )
@@ -79,7 +81,7 @@ void ProcessCommand(void)
 	//process errors
 	if(ret < 0)
 	{
-		//if there is no Gameinfo/Cart detected that means we are here from cart detection. therefor send an abort.
+		//if there is no Gameinfo/Cart detected that means we are here from cart detection or before. therefor send an abort.
 		//else, just process. it has send its own abort!
 		if(!API_CartInserted())
 			API_Send_Abort(API_ABORT_ERROR);
@@ -145,8 +147,8 @@ int main(void)
 	//fire up the usart
 	initConsole();
 	
-	//setup the pins!
-	SetupPins();
+	//setup API
+	API_Init();
 
 	//set it so that incoming msg's are ignored.
 	setSerialRecvCallback(ProcessChar);
@@ -162,7 +164,6 @@ int main(void)
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
 	uint32_t addr = 0x000000;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
-	uint8_t _set = 0;
     while(1) 
 	{
 		if(process_cmd)
@@ -172,17 +173,15 @@ int main(void)
 		if(CheckControlPin(BTN) == LOW)
 		{
 			cprintf("Btn pressed!\r\n");
-			uint16_t data = 0;
-			//data = ReadByte(addr)
 			SetControlPin(CS2,HIGH);
-			
+			uint16_t data = 0;		
 			
 			//expected : 0x2e00
 			//data = GetGBAData();
-			for(addr = 0x000000;addr < 0x1000000;)
+			/*for(addr = 0x000000;addr < 0x1000000;)
 			{
 				
-				//cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);
+				//cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);*/
 				data = ReadGBABytes(addr);
 				uint8_t d1 = data >> 8;
 				uint8_t d2 = data & 0xFF;
@@ -191,29 +190,36 @@ int main(void)
 				//cprintf("0x%02X & 0x%02X\r\n",d1,d2);
 				cprintf_char(d1);	
 				cprintf_char(d2);
+				cprintf("\n\r");
 				
-				if(addr == 0)
+				/*if(addr == 0)
 					addr = 0x10000;
 				else
 					addr = addr << 1;
-			}
+			}*/
+			//uint8_t d1 = 0;
+			uint8_t p1;
+			uint8_t p2;
+			int8_t ret = 0;
+			GBA_Header test;
+			memset(test.Name,0,12);
+			ret = GetGBAInfo(test.Name);
+			cprintf("data : ");
+			cprintf_char(ret);
+			cprintf("\r\nlenght : ");
+			cprintf_char(strnlen(test.Name,12));
+			cprintf("\r\nname : ");
+			cprintf(test.Name);
+			
 			//cprintf_char(d1);	
 			//cprintf_char(d2);	
 			
-			cprintf("done\r\n");
+			cprintf("\r\ndone\r\n");
 
-			/*if(CheckControlPin(CS2) == 1)
+			if(CheckControlPin(CS2) == 1)
 			{
 				SetControlPin(CS2,LOW);
-			}*/		
-			
-			/*cmd[0] = 'T';
-			cmd[1] = 'E';
-			cmd[2] = 'S';
-			cmd[3] = 'T';
-			cmd_size = 4;
-			cprintf("processing command...\r\n");
-			ProcessCommand();
+			}
 			//addr++;*/
 			_delay_ms(200);
 		}

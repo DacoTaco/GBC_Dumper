@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <string.h>
 #include <ctype.h>
 #include <stdint.h>
-#include "gbc_error.h"
+#include "gb_error.h"
 #include "GB_Cart.h"
 #include "serial.h"
 
@@ -87,9 +87,8 @@ inline void SetDataPinsAsOutput(void)
 	DATA_PORT = 0x00;
 #endif
 }
-void SetupPins(void)
+void Setup_GB_Pins(void)
 {
-	
 #ifdef GPIO_EXTENDER_MODE
 	//setup the mcp23008, as its the source of everything xD
 	mcp23008_init(ADDR_CHIP_1);
@@ -126,8 +125,9 @@ void SetupPins(void)
 inline void SetAddress(uint16_t address)
 {	
 #ifdef GPIO_EXTENDER_MODE	
-	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
-	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0x00);
+	//setup should've set the pins correctly for GB transfer soooo...
+	/*mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
+	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0x00);*/
 	
 	//write lower address
 	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(address & 0xFF));
@@ -162,7 +162,6 @@ inline void SetAddress(uint16_t address)
 	}	
 	//all bits transfered. time to let the shifting register latch the data and set the pins accordingly
 	SetPin(ADDR_CTRL_PORT,ADDR_CTRL_LATCH);
-	_delay_us(5);
 	
 #else //#elif defined(NORMAL_MODE)
 	uint8_t adr1 = address >> 8;
@@ -170,7 +169,6 @@ inline void SetAddress(uint16_t address)
 	
 	ADDR_PORT1 = adr1;
 	ADDR_PORT2 = adr2;
-	_delay_us(5);
 #endif
 }
 inline uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
@@ -207,13 +205,12 @@ inline uint8_t _ReadByte(int8_t ReadRom, uint16_t address)
 }
 uint8_t ReadRAMByte(uint16_t address)
 {
-	uint8_t Bank_Type = GameInfo.MBCType;
-	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
+	if(LoadedBankType == MBC_NONE || LoadedBankType == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 	
 	uint8_t ret = _ReadByte(0,address);
 	
-	if(Bank_Type == MBC2)
+	if(LoadedBankType == MBC2)
 	{
 		//MBC2 only has the lower 4 bits as data, so we return it as 0xFx
 		return (0xF0 | ret );
@@ -230,24 +227,19 @@ inline void _WriteByte(int8_t writeRom, uint16_t addr,uint8_t byte)
 	SetPin(CTRL_PORT,RD);
 	
 	SetDataPinsAsOutput(); 
-	//DATA_PORT = byte;
 	SET_DATA(byte);
 	SetAddress(addr);
 	
 	//set Sram control pin low. we do this -AFTER- address is set because MBC2 latches to the address as soon as CS1 is set low. 
 	//making the SetAddress do nothing, it'll latch to the address it was set before the SetAddress
 	if(writeRom <= 0)
-	{
 		ClearPin(CTRL_PORT,CS1);
-	}
 	
 	ClearPin(CTRL_PORT,WD);
 	
 	SetPin(CTRL_PORT,WD);
 	if(writeRom <= 0)
-	{
 		SetPin(CTRL_PORT,CS1);
-	}
 	
 	SET_DATA(0x00);
 	SetDataPinsAsInput();
@@ -257,7 +249,7 @@ inline void _WriteByte(int8_t writeRom, uint16_t addr,uint8_t byte)
 int8_t WriteRAMByte(uint16_t addr,uint8_t byte)
 {
 
-	if(GameInfo.MBCType == MBC_NONE || GameInfo.MBCType == MBC_UNSUPPORTED)
+	if(LoadedBankType == MBC_NONE || LoadedBankType == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 		
 	_WriteByte(0,addr,byte);
@@ -265,16 +257,14 @@ int8_t WriteRAMByte(uint16_t addr,uint8_t byte)
 }
 int8_t OpenRam(void)
 {
-	uint8_t Bank_Type = GameInfo.MBCType;
-	
-	if(Bank_Type == MBC_NONE || Bank_Type == MBC_UNSUPPORTED)
+	if(LoadedBankType == MBC_NONE || LoadedBankType == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;
 	
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,CS1);	
 	
-	if(Bank_Type == MBC2)
+	if(LoadedBankType == MBC2)
 	{
 		//the ghost read fix from https://www.insidegadgets.com/2011/03/28/gbcartread-arduino-based-gameboy-cart-reader-%E2%80%93-part-2-read-the-ram/
 		//he said it otherwise had issues with MBC2 :/
@@ -282,7 +272,7 @@ int8_t OpenRam(void)
 	}
 		
 	//set banking mode to RAM
-	if(Bank_Type == MBC1)
+	if(LoadedBankType == MBC1)
 		WriteByte(0x6000,0x01);
 	
 	//Init the MBC Ram!
@@ -293,7 +283,7 @@ int8_t OpenRam(void)
 }
 void CloseRam(void)
 {	
-	uint8_t Bank_Type = GameInfo.MBCType;
+	uint8_t Bank_Type = LoadedBankType;
 	//disable RAM again - VERY IMPORTANT -
 	if(Bank_Type == MBC1)
 		WriteByte(0x6000,0x00);
@@ -305,7 +295,7 @@ void CloseRam(void)
 }
 void SwitchROMBank(int8_t bank)
 {	
-	uint8_t Bank_Type = GameInfo.MBCType;
+	uint8_t Bank_Type = LoadedBankType;
 	
 	if(Bank_Type == MBC_NONE)
 		return;
@@ -315,13 +305,9 @@ void SwitchROMBank(int8_t bank)
 	uint16_t addr2 = 0x4000;
 	 
 	if(Bank_Type == MBC1)
-	{
 		addr = 0x2000;
-	}
 	else if(Bank_Type == MBC5)
-	{
 		addr2 = 0x3000;
-	}
 	
 	switch(Bank_Type)
 	{
@@ -361,30 +347,31 @@ options :
 	0 : Get Full Header
 	1 : Get Name,Rom/Ram Size, Cart Type
 */
-int8_t GetGameInfo(void)
+int8_t GetGBInfo(char* GameName, uint8_t* romFlag , uint8_t* ramFlag)
 {
-	CartInfo temp;
+	if(GameName == NULL ||romFlag == NULL || ramFlag == NULL)
+		return -1;
+	
+	GBC_Header temp;
 	uint8_t header[0x51] = {0};
 	uint8_t FF_cnt = 0;
-	//memset(header,0,0x51);
 	
 	//code that reads everything...
 	
-		//this saves alot of space, but at the cost of possible speed since we are forcing it to read everything
-		for(uint8_t i = 0 ; i < ((sizeof(header) / sizeof(uint8_t))-1);i++)
+	//this saves alot of space, but at the cost of possible speed since we are forcing it to read everything
+	for(uint8_t i = 0 ; i < ((sizeof(header) / sizeof(uint8_t))-1);i++)
+	{
+		header[i] = ReadByte(0x100+i);
+		if(i >= 0 && i<=4 && header[i] == 0xFF)
 		{
-			header[i] = ReadByte(0x100+i);
-			if(i >= 0 && i<=4 && header[i] == 0xFF)
-			{
-				FF_cnt++;
-			}
-			if(FF_cnt >= 3)
-			{
-				//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
-				return ERR_FAULT_CART;
-			}
+			FF_cnt++;
 		}
-	
+		if(FF_cnt >= 3)
+		{
+			//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
+			return ERR_FAULT_CART;
+		}
+	}
 	
 	//read logo
 	/*for(uint8_t i = 0 ; i < 0x30;i++)
@@ -397,7 +384,6 @@ int8_t GetGameInfo(void)
 		if(FF_cnt >= 3)
 		{
 			//data is just returning 0xFF (which is thx to the internal pullups). so no cart!
-			ClearPin(CTRL_PORT,CS2);
 			return ERR_FAULT_CART;
 		}
 	}
@@ -422,25 +408,18 @@ int8_t GetGameInfo(void)
 		0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,
 		0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E
 	};
-	uint8_t ReadLogo[0x30];
-	
-	for(int8_t i = 0;i<0x30;i++)
-	{
-		ReadLogo[i] = header[_CALC_ADDR(_ADDR_LOGO+i)];
-	}
-	
+
 	//compare!	
 	for(int8_t i =0;i< 0x30;i++)
 	{
-		if(ReadLogo[i] == Logo[i])
+		if(header[_CALC_ADDR(_ADDR_LOGO+i)] == Logo[i])
 			continue;
 		else
 		{
-			ClearPin(CTRL_PORT,CS2);
 			return ERR_LOGO_CHECK;
 		}
 	}
-	
+
 	uint8_t NameSize = 16;
 	
 	temp.OldLicenseeCode = header[_CALC_ADDR(_ADDR_OLD_LICODE)];
@@ -469,10 +448,12 @@ int8_t GetGameInfo(void)
 		temp.GBCFlag = 0x00;
 	}
 
-	memset(temp.Name,0,17);
+	//memset(temp.Name,0,17);
+	memset(GameName,0,17);
 	for(uint8_t i = 0;i < NameSize;i++)
 	{
-		temp.Name[i] = header[_CALC_ADDR(_ADDR_NAME+i)];
+		//temp.Name[i] = header[_CALC_ADDR(_ADDR_NAME+i)];
+		GameName[i] = header[_CALC_ADDR(_ADDR_NAME+i)];
 	}
 	
 	/*
@@ -490,19 +471,20 @@ int8_t GetGameInfo(void)
 	*/
 	
 	temp.CartType = header[_CALC_ADDR(_ADDR_CART_TYPE)];
-	temp.RomSize = header[_CALC_ADDR(_ADDR_ROM_SIZE)];
-	temp.RamSize = header[_CALC_ADDR(_ADDR_RAM_SIZE)];	
-	temp.MBCType = GetMBCType(temp.CartType);
+	//temp.RomSizeFlag = header[_CALC_ADDR(_ADDR_ROM_SIZE)];
+	*romFlag = header[_CALC_ADDR(_ADDR_ROM_SIZE)];
+	//temp.RamSize = header[_CALC_ADDR(_ADDR_RAM_SIZE)];	
+	*ramFlag = header[_CALC_ADDR(_ADDR_RAM_SIZE)];
+	//temp.MBCType = GetMBCType(temp.CartType);
+	LoadedBankType = GetMBCType(temp.CartType);
 	
-	GameInfo = temp;
-	ClearPin(CTRL_PORT,CS2);
 	return 1;	
 }
-uint16_t GetRomBanks(uint8_t RomSize)
+uint16_t GetRomBanks(uint8_t RomSizeFlag)
 {
-	if(RomSize > 7)
+	if(RomSizeFlag > 7)
 	{
-		switch(RomSize)
+		switch(RomSizeFlag)
 		{
 			case 52:
 				return 72;
@@ -516,7 +498,7 @@ uint16_t GetRomBanks(uint8_t RomSize)
 	}
 	else
 	{
-		return 2 << GameInfo.RomSize;
+		return 2 << RomSizeFlag;
 	}
 }
 int8_t GetRamDetails(uint16_t *end_addr, uint8_t *banks,uint8_t RamSize)
@@ -524,9 +506,15 @@ int8_t GetRamDetails(uint16_t *end_addr, uint8_t *banks,uint8_t RamSize)
 	if(end_addr == NULL || banks == NULL)
 		return ERR_MBC_SAVE_UNSUPPORTED;
 	
-	uint8_t Bank_Type = GameInfo.MBCType;
+	//every MBC type has ramsize as the amount of banks
+	//...except MBC2 which needs ramsize to be set to 0, because its RAM is included in MBC2
+	if(LoadedBankType != MBC2 && RamSize <= 0)
+	{
+		//no ram, BAIL IT
+		return ERR_NO_INFO;
+	}
 	
-	if(Bank_Type == MBC2)
+	if(LoadedBankType == MBC2)
 	{		
 		//Set the Ram Size & end addr. MBC2 is euh...special :P
 		*banks = 1;

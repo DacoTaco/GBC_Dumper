@@ -62,10 +62,35 @@ Connections we want,need and assigned to :
 
 */
 
+typedef struct _GBA_Header
+{
+	uint8_t EntryPoint[4]; // 0x0000 - 0x0003
+	uint8_t Logo[0x9C]; // 0x0004 - 0x009F
+	char Name[0xC]; // 0x00A0 - 0x00AB
+	uint8_t GameCode[4]; // 0x00AC - 0x00AF
+	uint8_t MakerCode[2]; // 0x00B0 - 0x00B1	
+	uint8_t FixedValue; // 0x00B2 , a fixed value. should -always- be 0x96
+	uint8_t MainUnitCode; // 0x00B3
+	uint8_t DeviceType; // 0x00B4
+	uint8_t Reserved[7]; // 0x00B5 - 0x00BD
+	uint8_t GameVersion; // 0x00BC
+	uint8_t HeaderChecksum; // 0x00BD
+	uint8_t Reserved2[2]; // 0x00BE
+	//multiboot data
+	//uint8_t RAMEntryPoint[4]; //0x00C0 - 0x00C3
+	//uint8_t BootMode; //0x00C4
+	//uint8_t SlaveIDNumber; // 0x00C5
+	//uint8_t NotUsed[26]; // 0x00C6 - 0x00DF
+	//uint8_t JoyBusEntryPoint[4]; // 0x00E0 - 0x00E4
+} GBA_Header ;
+
 #define ReadGBABytes(x) _ReadGBABytes(1,x)
 
 uint16_t _ReadGBABytes(uint8_t ReadRom,uint32_t address);
 void SetGBAAddress(uint32_t address);
 void SetGBADataAsOutput(void);
 void SetGBADataAsInput(void);
+
+void Setup_GBA_Pins(void);
+int8_t GetGBAInfo(char* name);
 

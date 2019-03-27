@@ -15,11 +15,9 @@ namespace Gameboy
     public static class GB_API_Protocol
     {
         //header functions
-        public const byte API_GBC_SUPPORT_START = 0x76;
-        public const byte API_GBC_ONLY = 0x77;
-        public const byte API_GBC_HYBRID = 0x78;
-        public const byte API_GBC_GB = 0x79;
-        public const byte API_GBC_SUPPORT_END = 0x7A;
+        public const byte API_GB_CART_TYPE_START = 0x76;
+        public const byte API_GB_CART_TYPE_END = 0x77;     
+
         public const byte API_GAMENAME_START = 0x86;
         public const byte API_GAMENAME_END = 0x87;
         public const byte API_FILESIZE_START = 0x96;
@@ -56,6 +54,13 @@ namespace Gameboy
         public const int ERROR_ABORT = -3;
         public const int ERROR_INVALID_DATA = -4;
 	}
+    public static class GB_CART_TYPE
+    {
+        public const byte API_GBC_ONLY = 0x78;
+        public const byte API_GBC_HYBRID = 0x79;
+        public const byte API_GB_ONLY = 0x7A;
+        public const byte API_GBA_ONLY = 0x7B;
+    }
     /// <summary>
     /// structure used to hold all current game info
     /// </summary>
@@ -64,7 +69,7 @@ namespace Gameboy
         public string CartName;
         public Int32 FileSize;
         public Int32 current_addr;
-        public bool? IsGBC;
+        public Int32 CartType;
     }
     public class GB_API_Handler
     {
@@ -100,7 +105,7 @@ namespace Gameboy
             Info.CartName = string.Empty;
             Info.FileSize = 0;
             Info.current_addr = 0;
-            Info.IsGBC = null;
+            Info.CartType = 0;
             IsWriting = false;
             RamFilepath = string.Empty;
             StartTime = null;
@@ -138,10 +143,19 @@ namespace Gameboy
             string filename = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) + @"\" + Info.CartName;
             if (OpenRom)
             {
-                if (Info.IsGBC == true)
-                    filename += ".gbc";
-                else
-                    filename += ".gb";
+                switch (Info.CartType)
+                {
+                    case GB_CART_TYPE.API_GBA_ONLY:
+                        filename += ".gba";
+                        break;
+                    case GB_CART_TYPE.API_GB_ONLY:
+                        filename += ".gb";
+                        break;
+                    case GB_CART_TYPE.API_GBC_HYBRID: 
+                    case GB_CART_TYPE.API_GBC_ONLY:
+                        filename += ".gbc";
+                        break;
+                }
             }
             else
                 filename += ".sav";
@@ -192,27 +206,28 @@ namespace Gameboy
             int offset = 0;
             for (int i = 0; i < bufSize; i++)
             {
-                if (Info.IsGBC == null && i + 2 <= bufSize && buf[i] == GB_API_Protocol.API_GBC_SUPPORT_START && buf[i + 2] == GB_API_Protocol.API_GBC_SUPPORT_END)
+                if (Info.CartType == 0 && i + 2 <= bufSize && buf[i] == GB_API_Protocol.API_GB_CART_TYPE_START && buf[i + 2] == GB_API_Protocol.API_GB_CART_TYPE_END)
                 {
                     //retrieve data if the game is a GB,GBC hybrid or GBC only game
                     switch (buf[i + 1])
                     {
+                        case GB_CART_TYPE.API_GBC_ONLY:
+                        case GB_CART_TYPE.API_GB_ONLY:
+                        case GB_CART_TYPE.API_GBA_ONLY:
+                        case GB_CART_TYPE.API_GBC_HYBRID:
+                            Info.CartType = buf[i + 1];
+                            break;
+
                         default:
-                        case GB_API_Protocol.API_GBC_GB:
-                            Info.IsGBC = false;
-                            break;
-                        case GB_API_Protocol.API_GBC_HYBRID:
-                        case GB_API_Protocol.API_GBC_ONLY:
-                            Info.IsGBC = true;
-                            break;
+                            throw new Exception("unknown cart type received");
                     }
                     i += 2;
                     offset = i;
                 }
-                if (Info.FileSize <= 0 && i + 3 <= bufSize && buf[i] == GB_API_Protocol.API_FILESIZE_START && buf[i + 3] == GB_API_Protocol.API_FILESIZE_END)
+                if (Info.FileSize <= 0 && i + 4 <= bufSize && buf[i] == GB_API_Protocol.API_FILESIZE_START && buf[i + 4] == GB_API_Protocol.API_FILESIZE_END)
                 {
                     //retrieve rom size which is in a 6 byte packet. 0x66 0xRombank1 0xRombank2 0x67
-                    Info.FileSize = (buf[i + 1] << 8) + (buf[i + 2] & 0xFF);
+                    Info.FileSize = (buf[i + 1] << 16) + (buf[i + 2] << 8) + (buf[i + 3] & 0xFF);
 
                     if (IsRom)
                     {
@@ -229,7 +244,7 @@ namespace Gameboy
                     else
                     {
                         //skip to the bytes we need
-                        i += 3;
+                        i += 4;
                         offset = i;
                     }
                 }
