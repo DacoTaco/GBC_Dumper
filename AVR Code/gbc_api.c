@@ -38,7 +38,7 @@ typedef struct _api_info
 } api_info;
 api_info gameInfo; 
 
-uint8_t _gba_cart = 0;
+uint8_t _gba_cart = 1;
 
 void API_Init(void)
 {
@@ -166,9 +166,10 @@ int8_t API_Get_Memory(ROM_TYPE type)
 		}		
 	}
 	
+	API_Send_Cart_Type();
 	API_Send_Name();
 	API_Send_Size();
-	API_Send_Cart_Type();
+	
 	
 	if(API_WaitForOK() > 0)
 	{
@@ -369,6 +370,13 @@ int8_t API_GetRom(void)
 	if(_gba_cart)
 	{
 		SetPin(CTRL_PORT,CS2);
+		
+		for(uint32_t i = 0; i < gameInfo.fileSize ; i+=2)
+		{
+			uint16_t data = ReadGBABytes(i/2);
+			cprintf_char((uint8_t)data & 0xFF);
+			cprintf_char((data >> 8) & 0xFF);
+		}
 		
 		ClearPin(CTRL_PORT,CS2);
 	}

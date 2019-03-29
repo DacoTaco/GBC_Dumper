@@ -237,7 +237,7 @@ namespace Gameboy
                     }*/
 
                     //MBC2 is 0x200(minimum) and 0x8000 max(32KB)
-                    if (Info.FileSize < 0x0200 || Info.FileSize > 0x400000) //we have an invalid valid rom or ram
+                    if (Info.CartType != GB_CART_TYPE.API_GBA_ONLY && ( Info.FileSize < 0x0200 || Info.FileSize > 0x400000)) //we have an invalid valid rom or ram
                     {
                         ResetVariables();
                         return GB_API_Error.ERROR_INVALID_PARAM;
