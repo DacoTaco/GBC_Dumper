@@ -245,7 +245,7 @@ namespace Gameboy
                     else
                     {
                         //skip to the bytes we need
-                        i += 4;
+                        i += 5;
                         offset = i;
                     }
                 }
