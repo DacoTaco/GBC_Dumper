@@ -38,7 +38,7 @@ typedef struct _api_info
 } api_info;
 api_info gameInfo; 
 
-uint8_t _gba_cart = 1;
+uint8_t _gba_cart = 0;
 
 void API_Init(void)
 {
@@ -130,12 +130,11 @@ int8_t API_Get_Memory(ROM_TYPE type)
 	{
 		if(_gba_cart)
 		{
-			
+			gameInfo.fileSize = GetGBARomSize();
 		}
 		else
 		{
-			//because rom sizes are to big, we will just pass the banks amount
-			gameInfo.fileSize = GetRomBanks(gameInfo.RomSizeFlag);
+			gameInfo.fileSize = GetRomBanks(gameInfo.RomSizeFlag) * 0x4000UL;
 		}		
 	}
 	else
@@ -369,7 +368,9 @@ int8_t API_GetRom(void)
 	
 	if(_gba_cart)
 	{
+		SetPin(CTRL_PORT,CS2);
 		
+		ClearPin(CTRL_PORT,CS2);
 	}
 	else
 	{
@@ -472,6 +473,7 @@ void API_Send_Name(void)
 void API_Send_Size(void)
 {
 	cprintf_char(API_FILESIZE_START);
+	cprintf_char((gameInfo.fileSize >> 24) & 0xFF);
 	cprintf_char((gameInfo.fileSize >> 16) & 0xFF);
 	cprintf_char((gameInfo.fileSize >> 8) & 0xFF);
 	cprintf_char(gameInfo.fileSize & 0xFF);

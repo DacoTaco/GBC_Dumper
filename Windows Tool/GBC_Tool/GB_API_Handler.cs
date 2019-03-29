@@ -224,16 +224,17 @@ namespace Gameboy
                     i += 2;
                     offset = i;
                 }
-                if (Info.FileSize <= 0 && i + 4 <= bufSize && buf[i] == GB_API_Protocol.API_FILESIZE_START && buf[i + 4] == GB_API_Protocol.API_FILESIZE_END)
+                if (Info.FileSize <= 0 && i + 5 <= bufSize && buf[i] == GB_API_Protocol.API_FILESIZE_START && buf[i + 5] == GB_API_Protocol.API_FILESIZE_END)
                 {
                     //retrieve rom size which is in a 6 byte packet. 0x66 0xRombank1 0xRombank2 0x67
-                    Info.FileSize = (buf[i + 1] << 16) + (buf[i + 2] << 8) + (buf[i + 3] & 0xFF);
+                    Info.FileSize = (buf[i + 1] << 24) + (buf[i + 2] << 16) + (buf[i + 3] << 8) + (buf[i + 4] & 0xFF);
 
-                    if (IsRom)
+                    //when reading rom we are retrieving the romsize.
+                    /*if (IsRom)
                     {
-                        //when reading rom we are getting the bank amount instead. so lets calculate ourselfs
-                        Info.FileSize = Info.FileSize * 0x4000;
-                    }
+                        
+                        Info.FileSize = Info.FileSize;
+                    }*/
 
                     //MBC2 is 0x200(minimum) and 0x8000 max(32KB)
                     if (Info.FileSize < 0x0200 || Info.FileSize > 0x400000) //we have an invalid valid rom or ram

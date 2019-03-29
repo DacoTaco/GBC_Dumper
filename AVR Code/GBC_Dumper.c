@@ -174,7 +174,9 @@ int main(void)
 		{
 			cprintf("Btn pressed!\r\n");
 			SetControlPin(CS2,HIGH);
-			uint16_t data = 0;		
+			uint16_t data = 0;	
+			uint32_t size = GetGBARomSize();
+			cprintf("rom size : lower : 0x%04X upper : 0x%04X\r\n",size,(size >> 16) & 0xFFFFUL);
 			
 			//expected : 0x2e00
 			//data = GetGBAData();
@@ -182,7 +184,7 @@ int main(void)
 			{
 				
 				//cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);*/
-				data = ReadGBABytes(addr);
+				/*data = ReadGBABytes(addr);
 				uint8_t d1 = data >> 8;
 				uint8_t d2 = data & 0xFF;
 				
@@ -190,7 +192,7 @@ int main(void)
 				//cprintf("0x%02X & 0x%02X\r\n",d1,d2);
 				cprintf_char(d1);	
 				cprintf_char(d2);
-				cprintf("\n\r");
+				cprintf("\n\r");*/
 				
 				/*if(addr == 0)
 					addr = 0x10000;
@@ -198,7 +200,7 @@ int main(void)
 					addr = addr << 1;
 			}*/
 			//uint8_t d1 = 0;
-			uint8_t p1;
+			/*uint8_t p1;
 			uint8_t p2;
 			int8_t ret = 0;
 			GBA_Header test;
@@ -209,7 +211,7 @@ int main(void)
 			cprintf("\r\nlenght : ");
 			cprintf_char(strnlen(test.Name,12));
 			cprintf("\r\nname : ");
-			cprintf(test.Name);
+			cprintf(test.Name);*/
 			
 			//cprintf_char(d1);	
 			//cprintf_char(d2);	

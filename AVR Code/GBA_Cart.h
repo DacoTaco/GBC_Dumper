@@ -93,4 +93,5 @@ void SetGBADataAsInput(void);
 
 void Setup_GBA_Pins(void);
 int8_t GetGBAInfo(char* name);
+uint32_t GetGBARomSize(void);
 

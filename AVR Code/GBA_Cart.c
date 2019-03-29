@@ -136,6 +136,35 @@ inline uint16_t _ReadGBABytes(uint8_t ReadRom,uint32_t address)
 	
 	return (uint16_t)d1 << 8 | d2;
 }
+uint32_t GetGBARomSize(void)
+{
+	uint32_t i = 0;
+	uint16_t start[0x0F];
+	uint8_t endFound = 0;
+	
+	//retrieve first few bytes of header to use to compare later
+	for(uint8_t x = 0;x < 0x0F;x++)
+	{
+		start[x] = ReadGBABytes(x);
+	}
+	
+	//basically we read all addresses untill we notice the rom starts mirroring. thats our size
+	for(i = 0x00100000UL; i <= 0x01000000UL; i<<=1)
+	{	
+		for(uint8_t x = 0;x < 0x0F;x++)
+		{
+			if(ReadGBABytes(i+x) != start[x])
+			{
+				endFound = 0;
+				break;
+			}
+			endFound = 1;
+		}		
+		if(endFound)
+			break;	
+	}
+	return i;
+}
 
 int8_t GetGBAInfo(char* name)
 {
