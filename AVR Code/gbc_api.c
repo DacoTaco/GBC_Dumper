@@ -38,15 +38,20 @@ typedef struct _api_info
 } api_info;
 api_info gameInfo; 
 
-uint8_t _gba_cart = 1;
+uint8_t _gba_cart = 2;
 
 void API_Init(void)
 {
-	API_SetupPins();
+	API_SetupPins(1);
 	API_ResetGameInfo();
 }
-void API_SetupPins(void)
+void API_SetupPins(int8_t _gba_mode)
 {
+	if(_gba_mode == _gba_cart)
+		return;
+	
+	_gba_cart = _gba_mode;
+	
 	if(_gba_cart)
 	{
 		Setup_GBA_Pins();
@@ -103,10 +108,10 @@ int8_t API_GetGameInfo(void)
 	}
 	else
 	{
+		ClearPin(CTRL_PORT,CS2);
 		SetPin(CTRL_PORT,CS2);
 		if(GetGBInfo(gameInfo.Name,&gameInfo.RomSizeFlag,&gameInfo.RamSize)< 0)
 			API_ResetGameInfo();
-		ClearPin(CTRL_PORT,CS2);
 	}
 	
 	if(gameInfo.Name[0] != 0xFF)
@@ -366,19 +371,27 @@ int8_t API_GetRom(void)
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,CS1);
+	SetPin(CTRL_PORT,CS2);
 	
+	uint32_t _readSize = gameInfo.fileSize / 2;
 	if(_gba_cart)
-	{
-		SetPin(CTRL_PORT,CS2);
+	{			
+		//for dumping we use the GBA's increment reading mode. this saves a alot of cycles and is therefor a lot faster
+		//see the function for more info.
+		uint16_t data = ReadGBAIncrementedBytes(1,0);
+		cprintf_char((uint8_t)data & 0xFF);
+		asm("nop");
+		cprintf_char((data >> 8) & 0xFF);
 		
-		for(uint32_t i = 0; i < gameInfo.fileSize ; i+=2)
+		for(uint32_t i = 1; i < _readSize;i++)
 		{
-			uint16_t data = ReadGBABytes(i/2);
+			//GBA rom's seem to loop every 0x10000 (0x20000 in file). therefor we explicitly set the address every 0x10000 
+			uint16_t data = ReadGBAIncrementedBytes((i%0x10000) == 0?1:0,i);
 			cprintf_char((uint8_t)data & 0xFF);
+			asm("nop");
 			cprintf_char((data >> 8) & 0xFF);
 		}
-		
-		ClearPin(CTRL_PORT,CS2);
+		SetPin(CTRL_PORT,CS1);
 	}
 	else
 	{
@@ -403,8 +416,7 @@ int8_t API_GetRom(void)
 				cprintf_char(ReadByte(addr));
 			}
 			addr = 0x4000;
-		}	
-		ClearPin(CTRL_PORT,CS2);
+		}			
 	}	
 	
 	API_ResetGameInfo();

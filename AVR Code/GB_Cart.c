@@ -120,7 +120,7 @@ void Setup_GB_Pins(void)
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,CS1);
-	ClearPin(CTRL_PORT,CS2);
+	SetPin(CTRL_PORT,CS2);
 }
 inline void SetAddress(uint16_t address)
 {	

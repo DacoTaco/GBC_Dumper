@@ -54,7 +54,7 @@ typedef uint8_t ROM_TYPE;
 
 //main API functions
 void API_Init(void);
-void API_SetupPins(void);
+void API_SetupPins(int8_t _gb_mode);
 int8_t API_CartInserted(void);
 int8_t API_GetGameInfo(void);
 void API_ResetGameInfo(void);
