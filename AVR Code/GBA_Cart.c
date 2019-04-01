@@ -28,22 +28,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mcp23008.h"
 #endif
 
-/*
-(10:14:36 PM) DacoTaco: nitro2k01: from what i understand so far of GBA is that CS makes you access rom and CS2 access ram? (and does it latch the address when those are pulled high or when RD/WD are pulled low, like on GB/C ? )
-(10:16:36 PM) nitro2k01: I believe CS2 works like a "traditional" 16 bit CS.When CS and RD are both low for example, a read is triggered.
-(10:17:12 PM) nitro2k01: CS I believe latches the address on a falling edge, then you hold it low and do repeated reads or writes.
-(10:17:58 PM) nitro2k01: On every negative pulse of RD or WR, a read or write is triggered. On every positive pulse of either of those, the latched value is incremented.
-(10:18:47 PM) nitro2k01: So sequential reads don't stall the bus by requiring latching the value again on each increment.
-(10:19:58 PM) nitro2k01: Note whoever that CS2 is on a different pin than CS would be on the older GB connector.
-(10:22:42 PM) DacoTaco: CS2 = rom pin ? the image i have here says CS2 is pin 30, aka reset/CS for GB
-(10:22:52 PM) DacoTaco: also, nice to know it has auto increment. makes dumping easier :P
-(10:23:43 PM) nitro2k01: Just reset for GB.
-(10:24:16 PM) nitro2k01: However, it's often unconnected so don't think you can keep the cart in reset and prevent reads and detect a GBA cart that way.
-(10:29:46 PM) DacoTaco: im properly using the reset pin so far anyway. can't have it unconnected. but i guess ill have to incorporate a 'switch' in it somehow. be it a software/transistor switch or a physical switch. maybe ill think of behaviour setup/detection along the way
-(10:30:57 PM) nitro2k01: No, I was saying many *cartridges* have it unconnected, so you can't rely on a GB cart being held in reset, do distinguish a GB cart from a GBA cart.
-(10:32:16 PM) DacoTaco: what, reset unconnected? i thought that pin was actually used by every game
-*/
-
 inline void SetGBADataAsOutput(void)
 {
 	//disable pull ups
@@ -97,6 +81,41 @@ inline void SetGBAAddress(uint32_t address)
 	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(address >> 8) & 0xFF);
 	mcp23008_WriteReg(DATA_CHIP_1,GPIO,(uint8_t)(address >> 16) & 0xFF);
 #endif
+}
+//The GBA supports something as a increment read.
+//basically as long as CS1 is kept low, the next RD strobe will just reveal the next 2 bytes.
+//so if you set the address, and read again, you'll get addr+1, next time addr+2 etc etc
+//this saves us quiet a few cycles on setting everything.
+inline uint16_t _ReadGBAIncrementedBytes(int8_t SetAddress,uint32_t address)
+{
+	uint8_t d1 = 0;
+	uint8_t d2 = 0;
+		
+	SetPin(CTRL_PORT,RD);
+	SetPin(CTRL_PORT,WD);
+	
+	if(SetAddress)
+	{
+		//do the whole shabang
+		SetPin(CTRL_PORT,CS1);
+		SetPin(CTRL_PORT,CS2);
+		SetGBAAddress(address);
+		asm("nop");
+		ClearPin(CTRL_PORT,CS1);
+	}
+	
+	ClearPin(CTRL_PORT,RD);
+	
+	SetGBADataAsInput();
+	
+#ifdef GPIO_EXTENDER_MODE			
+	//read data
+	mcp23008_ReadReg(ADDR_CHIP_1, GPIO,&d1);
+	mcp23008_ReadReg(ADDR_CHIP_2, GPIO,&d2);	
+#endif
+	
+	SetPin(CTRL_PORT,RD);
+	return (uint16_t)d1 << 8 | d2;
 }
 inline uint16_t _ReadGBABytes(uint8_t ReadRom,uint32_t address)
 {
@@ -171,7 +190,7 @@ int8_t GetGBAInfo(char* name)
 	GBA_Header info;
 	uint16_t* ptr = (uint16_t*)&info;
 	uint8_t FF_Cnt = 0;
-	//normal size of 0x9C
+	//normal size is 0x9C. we only check 0x08 to speed things up and save space
 	uint8_t Logo[0x08] = {
 								0x24, 0xFF, 0xAE, 0x51, 0x69, 0x9A, 0xA2, 0x21/*, 0x3D, 0x84, 0x82, 0x0A, 
 		0x84, 0xE4, 0x09, 0xAD, 0x11, 0x24, 0x8B, 0x98, 0xC0, 0x81, 0x7F, 0x21, 0xA3, 0x52, 0xBE, 0x19,

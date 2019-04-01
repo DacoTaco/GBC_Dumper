@@ -85,8 +85,10 @@ typedef struct _GBA_Header
 } GBA_Header ;
 
 #define ReadGBABytes(x) _ReadGBABytes(1,x)
+#define ReadGBAIncrementedBytes(x,y) _ReadGBAIncrementedBytes(x,y)
 
 uint16_t _ReadGBABytes(uint8_t ReadRom,uint32_t address);
+uint16_t _ReadGBAIncrementedBytes(int8_t SetAddress,uint32_t address);
 void SetGBAAddress(uint32_t address);
 void SetGBADataAsOutput(void);
 void SetGBADataAsInput(void);
