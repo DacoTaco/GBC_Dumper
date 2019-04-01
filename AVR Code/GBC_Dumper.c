@@ -55,7 +55,7 @@ void ProcessCommand(void)
 {
 	process_cmd = 0;
 	DisableSerialInterrupt();
-	API_SetupPins();
+	API_SetupPins((PINC&PC1)==0);
 	int8_t ret = API_GetGameInfo();
 	
 	if(ret > 0)
@@ -149,6 +149,11 @@ int main(void)
 	
 	//setup API
 	API_Init();
+	
+	//Set PD2 as Input
+	DDRC &= ~(1 << PC1);
+	//disable pull up
+	PORTC &= ~(1 << PC1);
 
 	//set it so that incoming msg's are ignored.
 	setSerialRecvCallback(ProcessChar);
@@ -175,46 +180,15 @@ int main(void)
 			cprintf("Btn pressed!\r\n");
 			SetControlPin(CS2,HIGH);
 			uint16_t data = 0;	
-			/*uint32_t size = GetGBARomSize();
-			cprintf("rom size : lower : 0x%04X upper : 0x%04X\r\n",size,(size >> 16) & 0xFFFFUL);*/
+			//expected : 0x2e00	
+			//cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);*/
+			data = ReadGBABytes(addr);
+			uint8_t d1 = data >> 8;
+			uint8_t d2 = data & 0xFF;
 			
-			//expected : 0x2e00
-			//data = GetGBAData();
-			/*for(addr = 0x000000;addr < 0x1000000;)
-			{
-				
-				//cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);*/
-				data = ReadGBABytes(addr);
-				uint8_t d1 = data >> 8;
-				uint8_t d2 = data & 0xFF;
-				
-				cprintf("data : ");
-				//cprintf("0x%02X & 0x%02X\r\n",d1,d2);
-				cprintf_char(d1);	
-				cprintf_char(d2);
-				cprintf("\n\r");
-				
-				/*if(addr == 0)
-					addr = 0x10000;
-				else
-					addr = addr << 1;
-			}*/
-			//uint8_t d1 = 0;
-			/*uint8_t p1;
-			uint8_t p2;
-			int8_t ret = 0;
-			GBA_Header test;
-			memset(test.Name,0,12);
-			ret = GetGBAInfo(test.Name);
 			cprintf("data : ");
-			cprintf_char(ret);
-			cprintf("\r\nlenght : ");
-			cprintf_char(strnlen(test.Name,12));
-			cprintf("\r\nname : ");
-			cprintf(test.Name);*/
-			
-			//cprintf_char(d1);	
-			//cprintf_char(d2);	
+			cprintf_char(d1);	
+			cprintf_char(d2);
 			
 			cprintf("\r\ndone\r\n");
 
