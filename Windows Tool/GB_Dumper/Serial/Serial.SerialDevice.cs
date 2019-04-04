@@ -1,5 +1,5 @@
 ﻿
-namespace SerialCommunication
+namespace GB_Dumper.Serial
 {
     public class SerialDevice
     {

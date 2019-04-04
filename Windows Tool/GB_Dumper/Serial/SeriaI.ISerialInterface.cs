@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace SerialCommunication
+namespace GB_Dumper.Serial
 {
     public class SerialEventArgs : EventArgs
     {
@@ -14,15 +11,16 @@ namespace SerialCommunication
     }
     public delegate void DataReadHandler(object source, SerialEventArgs e);
 
-    public interface ISerialDevice
+    public interface ISerialInterface
     {
-        event DataReadHandler OnDataToRead;   
+        event DataReadHandler OnDataToRead;
 
         bool IsOpen();
         int BytesToRead();
         IList<SerialDevice> ReloadDevices();
+        
 
-        void Open(string device, int BaudRate);
+        void Open(SerialDevice device, int BaudRate);
         void Close();
         void Write(string data);
         void Write(byte[] data, int offset, int count);

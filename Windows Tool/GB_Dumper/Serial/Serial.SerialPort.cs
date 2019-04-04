@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO.Ports;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace SerialCommunication
+namespace GB_Dumper.Serial
 {
-    public class SerialPortDevice : ISerialDevice
+    public class WindowsSerialInterface : ISerialInterface
     {
         public event DataReadHandler OnDataToRead;
         private SerialPort _device = null;
@@ -42,12 +38,12 @@ namespace SerialCommunication
             return devList;
         }
 
-        public void Open(string device, int BaudRate)
+        public void Open(SerialDevice device, int BaudRate)
         {
             if (IsOpen())
                 return;
 
-            _device = new SerialPort(device,BaudRate,Parity.None,8,StopBits.One);
+            _device = new SerialPort(device.Device,BaudRate,Parity.None,8,StopBits.One);
             _device.Handshake = Handshake.None;
             _device.ReadTimeout = 200;
             _device.WriteTimeout = 50;

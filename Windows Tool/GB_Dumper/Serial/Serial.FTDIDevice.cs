@@ -6,9 +6,9 @@ using System.Management;
 using System.Text;
 using System.Timers;
 
-namespace SerialCommunication
+namespace GB_Dumper.Serial
 {
-    public class FTDIDevice : ISerialDevice
+    public class FTDIInterface : ISerialInterface
     {
         private FTDI_Device _FtdiDevice = null;
         private FTDI_DeviceInfo _FtdiInfo;
@@ -16,7 +16,7 @@ namespace SerialCommunication
         //because nor FTDI's driver nor the wrapper has an event...
         private static System.Timers.Timer aTimer = new System.Timers.Timer(0.5);
         public event DataReadHandler OnDataToRead;
-        private void timerTest(Object source, ElapsedEventArgs e)
+        private void DataToReadTimer(Object source, ElapsedEventArgs e)
         {
             if (BytesToRead() > 0 && OnDataToRead != null)
             {
@@ -56,7 +56,6 @@ namespace SerialCommunication
                 return null;
 
             byte[] data = _FtdiDevice.ReadBytes(count);
-            //_device.WaitForData();
             return data;
         }
         public int ReadByte()
@@ -69,10 +68,10 @@ namespace SerialCommunication
             return Convert.ToInt32(data[0]);
         }
 
-        public void Open(string device, int BaudRate)
+        public void Open(SerialDevice device, int BaudRate)
         {
             uint baud = (uint)BaudRate;
-            _FtdiInfo = (FTDI_DeviceInfo)FTDI_DeviceInfo.EnumerateDevices().First(x => x.DeviceSerialNumber == device);
+            _FtdiInfo = (FTDI_DeviceInfo)FTDI_DeviceInfo.EnumerateDevices().First(x => x.DeviceSerialNumber == device.Device);
             if (_FtdiInfo == null)
                 return;
             _FtdiDevice = new FTDI_Device(_FtdiInfo);
@@ -83,7 +82,7 @@ namespace SerialCommunication
             _FtdiDevice.SetBufferSizes(64, 64);
 
             //set the timer for the event
-            aTimer.Elapsed += timerTest;
+            aTimer.Elapsed += DataToReadTimer;
             aTimer.AutoReset = true;
             aTimer.Enabled = true;
 
@@ -94,7 +93,7 @@ namespace SerialCommunication
                 return;
             _FtdiDevice.Close();
             aTimer.Enabled = false;
-            aTimer.Elapsed -= timerTest;
+            aTimer.Elapsed -= DataToReadTimer;
         }
 
         public IList<SerialDevice> ReloadDevices()

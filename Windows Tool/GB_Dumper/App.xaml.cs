@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace GBC_Tool
+namespace GB_Dumper
 {
     /// <summary>
     /// Interaction logic for App.xaml
