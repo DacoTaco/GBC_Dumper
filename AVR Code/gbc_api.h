@@ -37,10 +37,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define API_OK 0x10
 #define API_NOK 0x11
 #define API_VERIFY 0x12
-#define API_RESEND_CMD 0x13
+#define API_RESET 0x13
+
+#define API_HANDSHAKE_DENY 0x15
 #define API_HANDSHAKE_REQUEST 0x017
 #define API_HANDSHAKE_ACCEPT 0x06
-#define API_HANDSHAKE_DENY 0x15
 
 #define API_TASK_START 0x20
 #define API_TASK_FINISHED 0x21
@@ -48,8 +49,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define API_MODE_READ_ROM 0xD0;
 #define API_MODE_READ_RAM 0xD1;
 #define API_MODE_WRITE_RAM 0xD2;
-
-
 
 #define API_ABORT 0xF0
 #define API_ABORT_ERROR 0xF1

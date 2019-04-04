@@ -1,0 +1,744 @@
+Archive member included because of file (symbol)
+
+h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_exit.o)
+                              h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o (exit)
+h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_copy_data.o)
+                              obj/GBC_Dumper.o (__do_copy_data)
+h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_clear_bss.o)
+                              obj/GBC_Dumper.o (__do_clear_bss)
+h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strncmp.o)
+                              obj/GBC_Dumper.o (strncmp)
+h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strnlen.o)
+                              obj/gbc_api.o (strnlen)
+
+Allocating common symbols
+Common symbol       size              file
+
+gameInfo            0x19              obj/gbc_api.o
+LoadedBankType      0x1               obj/GBC_Dumper.o
+cb_recv             0x2               obj/serial.o
+cmd                 0x21              obj/GBC_Dumper.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+text             0x00000000         0x00002000         xr
+data             0x00800060         0x0000ffa0         rw !x
+eeprom           0x00810000         0x00010000         rw !x
+fuse             0x00820000         0x00000400         rw !x
+lock             0x00830000         0x00000400         rw !x
+signature        0x00840000         0x00000400         rw !x
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+LOAD obj/GBC_Dumper.o
+LOAD obj/GBA_Cart.o
+LOAD obj/GB_Cart.o
+LOAD obj/gbc_api.o
+LOAD obj/serial.o
+LOAD obj/spi.o
+LOAD obj/mcp23008.o
+LOAD h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libm.a
+LOAD h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a
+LOAD h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a
+LOAD h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a
+
+.hash
+ *(.hash)
+
+.dynsym
+ *(.dynsym)
+
+.dynstr
+ *(.dynstr)
+
+.gnu.version
+ *(.gnu.version)
+
+.gnu.version_d
+ *(.gnu.version_d)
+
+.gnu.version_r
+ *(.gnu.version_r)
+
+.rel.init
+ *(.rel.init)
+
+.rela.init
+ *(.rela.init)
+
+.rel.text
+ *(.rel.text)
+ *(.rel.text.*)
+ *(.rel.gnu.linkonce.t*)
+
+.rela.text
+ *(.rela.text)
+ *(.rela.text.*)
+ *(.rela.gnu.linkonce.t*)
+
+.rel.fini
+ *(.rel.fini)
+
+.rela.fini
+ *(.rela.fini)
+
+.rel.rodata
+ *(.rel.rodata)
+ *(.rel.rodata.*)
+ *(.rel.gnu.linkonce.r*)
+
+.rela.rodata
+ *(.rela.rodata)
+ *(.rela.rodata.*)
+ *(.rela.gnu.linkonce.r*)
+
+.rel.data
+ *(.rel.data)
+ *(.rel.data.*)
+ *(.rel.gnu.linkonce.d*)
+
+.rela.data
+ *(.rela.data)
+ *(.rela.data.*)
+ *(.rela.gnu.linkonce.d*)
+
+.rel.ctors
+ *(.rel.ctors)
+
+.rela.ctors
+ *(.rela.ctors)
+
+.rel.dtors
+ *(.rel.dtors)
+
+.rela.dtors
+ *(.rela.dtors)
+
+.rel.got
+ *(.rel.got)
+
+.rela.got
+ *(.rela.got)
+
+.rel.bss
+ *(.rel.bss)
+
+.rela.bss
+ *(.rela.bss)
+
+.rel.plt
+ *(.rel.plt)
+
+.rela.plt
+ *(.rela.plt)
+
+.text           0x00000000     0x1316
+ *(.vectors)
+ .vectors       0x00000000       0x26 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+                0x00000000                __vectors
+                0x00000000                __vector_default
+ *(.vectors)
+ *(.progmem.gcc*)
+ *(.progmem*)
+                0x00000026                . = ALIGN (0x2)
+                0x00000026                __trampolines_start = .
+ *(.trampolines)
+ .trampolines   0x00000026        0x0 linker stubs
+ *(.trampolines*)
+                0x00000026                __trampolines_end = .
+ *(.jumptables)
+ *(.jumptables*)
+ *(.lowtext)
+ *(.lowtext*)
+                0x00000026                __ctors_start = .
+ *(.ctors)
+                0x00000026                __ctors_end = .
+                0x00000026                __dtors_start = .
+ *(.dtors)
+                0x00000026                __dtors_end = .
+ SORT(*)(.ctors)
+ SORT(*)(.dtors)
+ *(.init0)
+ .init0         0x00000026        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+                0x00000026                __init
+ *(.init0)
+ *(.init1)
+ *(.init1)
+ *(.init2)
+ .init2         0x00000026        0xc h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+ *(.init2)
+ *(.init3)
+ *(.init3)
+ *(.init4)
+ .init4         0x00000032       0x16 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_copy_data.o)
+                0x00000032                __do_copy_data
+ .init4         0x00000048       0x10 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_clear_bss.o)
+                0x00000048                __do_clear_bss
+ *(.init4)
+ *(.init5)
+ *(.init5)
+ *(.init6)
+ *(.init6)
+ *(.init7)
+ *(.init7)
+ *(.init8)
+ *(.init8)
+ *(.init9)
+ .init9         0x00000058        0x4 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+ *(.init9)
+ *(.text)
+ .text          0x0000005c        0x2 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+                0x0000005c                __vector_1
+                0x0000005c                __vector_12
+                0x0000005c                __bad_interrupt
+                0x0000005c                __vector_6
+                0x0000005c                __vector_3
+                0x0000005c                __vector_13
+                0x0000005c                __vector_17
+                0x0000005c                __vector_7
+                0x0000005c                __vector_5
+                0x0000005c                __vector_4
+                0x0000005c                __vector_9
+                0x0000005c                __vector_2
+                0x0000005c                __vector_15
+                0x0000005c                __vector_8
+                0x0000005c                __vector_14
+                0x0000005c                __vector_10
+                0x0000005c                __vector_16
+                0x0000005c                __vector_18
+ .text          0x0000005e      0x19c obj/GBC_Dumper.o
+                0x0000005e                ProcessChar
+                0x0000018c                main
+                0x0000009c                ProcessCommand
+ .text          0x000001fa      0x38e obj/GBA_Cart.o
+                0x00000562                Setup_GBA_Pins
+                0x00000408                GetGBARomSize
+                0x000001fa                SetGBADataAsInput
+                0x0000027e                _ReadGBABytes
+                0x0000023e                SetGBAAddress
+                0x00000508                _ReadGBAIncrementedBytes
+                0x0000021c                SetGBADataAsOutput
+                0x000002e4                GetGBAInfo
+ .text          0x00000588      0x4e0 obj/GB_Cart.o
+                0x00000844                _ReadByte
+                0x000005e6                GetRomBanks
+                0x00000a0e                ReadRAMByte
+                0x0000059e                SetControlPin
+                0x00000592                _clearPin
+                0x0000070e                SetDataPinsAsOutput
+                0x000006f6                SetAddress
+                0x00000782                SwitchROMBank
+                0x000005d2                CheckControlPin
+                0x000009cc                OpenRam
+                0x00000696                GetMBCType
+                0x00000826                WriteRAMByte
+                0x00000720                SetDataPinsAsInput
+                0x00000732                _WriteByte
+                0x00000588                _setPin
+                0x00000808                CloseRam
+                0x00000622                GetRamDetails
+                0x00000a34                Setup_GB_Pins
+                0x00000884                GetGBInfo
+                0x00000776                SwitchRAMBank
+ .text          0x00000a68      0x58a obj/gbc_api.o
+                0x00000b74                API_GetRam
+                0x00000fc0                API_SetupPins
+                0x00000d46                API_WriteGBRam
+                0x00000c26                API_GetRom
+                0x00000a80                API_Send_Cart_Type
+                0x00000abe                API_Send_Size
+                0x00000a68                API_ResetGameInfo
+                0x00000fe6                API_Init
+                0x00000a70                API_CartInserted
+                0x00000af4                API_Send_Abort
+                0x00000eb0                API_WriteRam
+                0x00000ede                API_Get_Memory
+                0x00000d22                API_WaitForOK
+                0x00000b2e                API_GetGameInfo
+                0x00000b0a                API_Send_Name
+ .text          0x00000ff2       0xe0 obj/serial.o
+                0x0000102e                usart_GetChar
+                0x00000ffc                usart_SendChar
+                0x0000100e                usart_SendString
+                0x00000ff2                setSerialRecvCallback
+                0x0000102e                Serial_ReadByte
+                0x0000107e                __vector_11
+                0x0000103e                DisableSerialInterrupt
+                0x00001048                EnableSerialInterrupt
+                0x00000ffc                cprintf_char
+                0x00001052                initConsole
+                0x0000100e                cprintf_string
+ .text          0x000010d2      0x14e obj/spi.o
+                0x000011de                spi_tranceiver_8
+                0x000011d8                spi_init
+                0x000011f2                spi_tranceiver
+                0x000010d2                spi_init_as
+ .text          0x00001220       0xc0 obj/mcp23008.o
+                0x00001248                mcp23008_ReadReg
+                0x00001282                mcp23008_init
+                0x00001220                mcp23008_WriteReg
+ .text          0x000012e0        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_exit.o)
+ .text          0x000012e0        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_copy_data.o)
+ .text          0x000012e0        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_clear_bss.o)
+ .text          0x000012e0        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strncmp.o)
+ .text          0x000012e0        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strnlen.o)
+                0x000012e0                . = ALIGN (0x2)
+ *(.text.*)
+ .text.libgcc   0x000012e0        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_exit.o)
+ .text.libgcc   0x000012e0        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_copy_data.o)
+ .text.libgcc   0x000012e0        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_clear_bss.o)
+ .text.avr-libc
+                0x000012e0       0x1c h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strncmp.o)
+                0x000012e0                strncmp
+ .text.avr-libc
+                0x000012fc       0x16 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strnlen.o)
+                0x000012fc                strnlen
+                0x00001312                . = ALIGN (0x2)
+ *(.fini9)
+ .fini9         0x00001312        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_exit.o)
+                0x00001312                exit
+                0x00001312                _exit
+ *(.fini9)
+ *(.fini8)
+ *(.fini8)
+ *(.fini7)
+ *(.fini7)
+ *(.fini6)
+ *(.fini6)
+ *(.fini5)
+ *(.fini5)
+ *(.fini4)
+ *(.fini4)
+ *(.fini3)
+ *(.fini3)
+ *(.fini2)
+ *(.fini2)
+ *(.fini1)
+ *(.fini1)
+ *(.fini0)
+ .fini0         0x00001312        0x4 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_exit.o)
+ *(.fini0)
+                0x00001316                _etext = .
+
+.data           0x00800060       0xf2 load address 0x00001316
+                0x00800060                PROVIDE (__data_start, .)
+ *(.data)
+ .data          0x00800060        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+ .data          0x00800060       0xaf obj/GBC_Dumper.o
+ .data          0x0080010f        0x8 obj/GBA_Cart.o
+ .data          0x00800117       0x30 obj/GB_Cart.o
+ .data          0x00800147        0x1 obj/gbc_api.o
+                0x00800147                _gba_cart
+ .data          0x00800148        0x0 obj/serial.o
+ .data          0x00800148        0x9 obj/spi.o
+                0x0080014a                _spi_port
+                0x00800150                SCK_PIN
+                0x0080014c                CS_PIN
+                0x0080014f                MISO_PIN
+                0x0080014e                MOSI_PIN
+                0x0080014d                SS_PIN
+                0x00800148                _spi_ddr
+ .data          0x00800151        0x0 obj/mcp23008.o
+ .data          0x00800151        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_exit.o)
+ .data          0x00800151        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_copy_data.o)
+ .data          0x00800151        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_clear_bss.o)
+ .data          0x00800151        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strncmp.o)
+ .data          0x00800151        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strnlen.o)
+ *(.data*)
+ *(.rodata)
+ *(.rodata*)
+ *(.gnu.linkonce.d*)
+                0x00800152                . = ALIGN (0x2)
+ *fill*         0x00800151        0x1 00
+                0x00800152                _edata = .
+                0x00800152                PROVIDE (__data_end, .)
+
+.bss            0x00800152       0x50
+                0x00800152                PROVIDE (__bss_start, .)
+ *(.bss)
+ .bss           0x00800152        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+ .bss           0x00800152        0x2 obj/GBC_Dumper.o
+                0x00800153                process_cmd
+                0x00800152                cmd_size
+ .bss           0x00800154        0x0 obj/GBA_Cart.o
+ .bss           0x00800154        0x0 obj/GB_Cart.o
+ .bss           0x00800154        0x0 obj/gbc_api.o
+ .bss           0x00800154        0x1 obj/serial.o
+                0x00800154                _serial_init
+ .bss           0x00800155        0x1 obj/spi.o
+                0x00800155                _spi_mode
+ .bss           0x00800156        0xf obj/mcp23008.o
+                0x00800156                _mcp23008_init
+ .bss           0x00800165        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_exit.o)
+ .bss           0x00800165        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_copy_data.o)
+ .bss           0x00800165        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_clear_bss.o)
+ .bss           0x00800165        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strncmp.o)
+ .bss           0x00800165        0x0 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strnlen.o)
+ *(.bss*)
+ *(COMMON)
+ COMMON         0x00800165       0x22 obj/GBC_Dumper.o
+                0x00800165                LoadedBankType
+                0x00800166                cmd
+ COMMON         0x00800187       0x19 obj/gbc_api.o
+                0x00800187                gameInfo
+ COMMON         0x008001a0        0x2 obj/serial.o
+                0x008001a0                cb_recv
+                0x008001a2                PROVIDE (__bss_end, .)
+                0x00001316                __data_load_start = LOADADDR (.data)
+                0x00001408                __data_load_end = (__data_load_start + SIZEOF (.data))
+
+.noinit         0x008001a2        0x0
+                0x008001a2                PROVIDE (__noinit_start, .)
+ *(.noinit*)
+                0x008001a2                PROVIDE (__noinit_end, .)
+                0x008001a2                _end = .
+                0x008001a2                PROVIDE (__heap_start, .)
+
+.eeprom         0x00810000        0x0
+ *(.eeprom*)
+                0x00810000                __eeprom_end = .
+
+.fuse
+ *(.fuse)
+ *(.lfuse)
+ *(.hfuse)
+ *(.efuse)
+
+.lock
+ *(.lock*)
+
+.signature
+ *(.signature*)
+
+.stab
+ *(.stab)
+
+.stabstr
+ *(.stabstr)
+
+.stab.excl
+ *(.stab.excl)
+
+.stab.exclstr
+ *(.stab.exclstr)
+
+.stab.index
+ *(.stab.index)
+
+.stab.indexstr
+ *(.stab.indexstr)
+
+.comment
+ *(.comment)
+
+.debug
+ *(.debug)
+
+.line
+ *(.line)
+
+.debug_srcinfo
+ *(.debug_srcinfo)
+
+.debug_sfnames
+ *(.debug_sfnames)
+
+.debug_aranges  0x00000000       0xe0
+ *(.debug_aranges)
+ .debug_aranges
+                0x00000000       0x20 obj/GBC_Dumper.o
+ .debug_aranges
+                0x00000020       0x20 obj/GBA_Cart.o
+ .debug_aranges
+                0x00000040       0x20 obj/GB_Cart.o
+ .debug_aranges
+                0x00000060       0x20 obj/gbc_api.o
+ .debug_aranges
+                0x00000080       0x20 obj/serial.o
+ .debug_aranges
+                0x000000a0       0x20 obj/spi.o
+ .debug_aranges
+                0x000000c0       0x20 obj/mcp23008.o
+
+.debug_pubnames
+                0x00000000      0x5f5
+ *(.debug_pubnames)
+ .debug_pubnames
+                0x00000000       0x76 obj/GBC_Dumper.o
+ .debug_pubnames
+                0x00000076       0xc7 obj/GBA_Cart.o
+ .debug_pubnames
+                0x0000013d      0x16f obj/GB_Cart.o
+ .debug_pubnames
+                0x000002ac      0x153 obj/gbc_api.o
+ .debug_pubnames
+                0x000003ff       0xd8 obj/serial.o
+ .debug_pubnames
+                0x000004d7       0xbc obj/spi.o
+ .debug_pubnames
+                0x00000593       0x62 obj/mcp23008.o
+
+.debug_info     0x00000000     0x17f7
+ *(.debug_info)
+ .debug_info    0x00000000      0x243 obj/GBC_Dumper.o
+ .debug_info    0x00000243      0x41f obj/GBA_Cart.o
+ .debug_info    0x00000662      0x66f obj/GB_Cart.o
+ .debug_info    0x00000cd1      0x5ae obj/gbc_api.o
+ .debug_info    0x0000127f      0x1d6 obj/serial.o
+ .debug_info    0x00001455      0x235 obj/spi.o
+ .debug_info    0x0000168a      0x16d obj/mcp23008.o
+ *(.gnu.linkonce.wi.*)
+
+.debug_abbrev   0x00000000      0x9c8
+ *(.debug_abbrev)
+ .debug_abbrev  0x00000000      0x158 obj/GBC_Dumper.o
+ .debug_abbrev  0x00000158      0x148 obj/GBA_Cart.o
+ .debug_abbrev  0x000002a0      0x1e1 obj/GB_Cart.o
+ .debug_abbrev  0x00000481      0x216 obj/gbc_api.o
+ .debug_abbrev  0x00000697      0x146 obj/serial.o
+ .debug_abbrev  0x000007dd      0x124 obj/spi.o
+ .debug_abbrev  0x00000901       0xc7 obj/mcp23008.o
+
+.debug_line     0x00000000     0x185a
+ *(.debug_line)
+ .debug_line    0x00000000      0x2eb obj/GBC_Dumper.o
+ .debug_line    0x000002eb      0x3c0 obj/GBA_Cart.o
+ .debug_line    0x000006ab      0x5cb obj/GB_Cart.o
+ .debug_line    0x00000c76      0x6fc obj/gbc_api.o
+ .debug_line    0x00001372      0x1a0 obj/serial.o
+ .debug_line    0x00001512      0x1c5 obj/spi.o
+ .debug_line    0x000016d7      0x183 obj/mcp23008.o
+
+.debug_frame    0x00000000      0x440
+ *(.debug_frame)
+ .debug_frame   0x00000000       0x40 obj/GBC_Dumper.o
+ .debug_frame   0x00000040       0x90 obj/GBA_Cart.o
+ .debug_frame   0x000000d0      0x150 obj/GB_Cart.o
+ .debug_frame   0x00000220      0x100 obj/gbc_api.o
+ .debug_frame   0x00000320       0x90 obj/serial.o
+ .debug_frame   0x000003b0       0x50 obj/spi.o
+ .debug_frame   0x00000400       0x40 obj/mcp23008.o
+
+.debug_str      0x00000000      0x77b
+ *(.debug_str)
+ .debug_str     0x00000000      0x130 obj/GBC_Dumper.o
+                                0x17a (size before relaxing)
+ .debug_str     0x00000130      0x147 obj/GBA_Cart.o
+                                0x235 (size before relaxing)
+ .debug_str     0x00000277      0x1f0 obj/GB_Cart.o
+                                0x31c (size before relaxing)
+ .debug_str     0x00000467      0x141 obj/gbc_api.o
+                                0x270 (size before relaxing)
+ .debug_str     0x000005a8       0xc8 obj/serial.o
+                                0x171 (size before relaxing)
+ .debug_str     0x00000670       0xa1 obj/spi.o
+                                0x16d (size before relaxing)
+ .debug_str     0x00000711       0x6a obj/mcp23008.o
+                                0x12b (size before relaxing)
+
+.debug_loc      0x00000000     0x1081
+ *(.debug_loc)
+ .debug_loc     0x00000000       0xda obj/GBC_Dumper.o
+ .debug_loc     0x000000da      0x2b7 obj/GBA_Cart.o
+ .debug_loc     0x00000391      0x5a1 obj/GB_Cart.o
+ .debug_loc     0x00000932      0x414 obj/gbc_api.o
+ .debug_loc     0x00000d46       0x64 obj/serial.o
+ .debug_loc     0x00000daa      0x16a obj/spi.o
+ .debug_loc     0x00000f14      0x16d obj/mcp23008.o
+
+.debug_macinfo
+ *(.debug_macinfo)
+OUTPUT(GBC_Dumper.elf elf32-avr)
+LOAD linker stubs
+
+.debug_ranges   0x00000000       0x60
+ .debug_ranges  0x00000000       0x60 obj/GBC_Dumper.o
+
+Cross Reference Table
+
+Symbol                                            File
+API_CartInserted                                  obj/gbc_api.o
+                                                  obj/GBC_Dumper.o
+API_GetGameInfo                                   obj/gbc_api.o
+                                                  obj/GBC_Dumper.o
+API_GetRam                                        obj/gbc_api.o
+API_GetRom                                        obj/gbc_api.o
+API_Get_Memory                                    obj/gbc_api.o
+                                                  obj/GBC_Dumper.o
+API_Init                                          obj/gbc_api.o
+                                                  obj/GBC_Dumper.o
+API_ResetGameInfo                                 obj/gbc_api.o
+API_Send_Abort                                    obj/gbc_api.o
+                                                  obj/GBC_Dumper.o
+API_Send_Cart_Type                                obj/gbc_api.o
+API_Send_Name                                     obj/gbc_api.o
+API_Send_Size                                     obj/gbc_api.o
+API_SetupPins                                     obj/gbc_api.o
+                                                  obj/GBC_Dumper.o
+API_WaitForOK                                     obj/gbc_api.o
+API_WriteGBRam                                    obj/gbc_api.o
+API_WriteRam                                      obj/gbc_api.o
+                                                  obj/GBC_Dumper.o
+CS_PIN                                            obj/spi.o
+CheckControlPin                                   obj/GB_Cart.o
+                                                  obj/GBC_Dumper.o
+CloseRam                                          obj/GB_Cart.o
+                                                  obj/gbc_api.o
+DisableSerialInterrupt                            obj/serial.o
+                                                  obj/gbc_api.o
+                                                  obj/GBC_Dumper.o
+EnableSerialInterrupt                             obj/serial.o
+                                                  obj/gbc_api.o
+                                                  obj/GBC_Dumper.o
+GetGBAInfo                                        obj/GBA_Cart.o
+                                                  obj/gbc_api.o
+GetGBARomSize                                     obj/GBA_Cart.o
+                                                  obj/gbc_api.o
+GetGBInfo                                         obj/GB_Cart.o
+                                                  obj/gbc_api.o
+GetMBCType                                        obj/GB_Cart.o
+GetRamDetails                                     obj/GB_Cart.o
+                                                  obj/gbc_api.o
+GetRomBanks                                       obj/GB_Cart.o
+                                                  obj/gbc_api.o
+LoadedBankType                                    obj/gbc_api.o
+                                                  obj/GB_Cart.o
+                                                  obj/GBA_Cart.o
+                                                  obj/GBC_Dumper.o
+MISO_PIN                                          obj/spi.o
+MOSI_PIN                                          obj/spi.o
+OpenRam                                           obj/GB_Cart.o
+                                                  obj/gbc_api.o
+ProcessChar                                       obj/GBC_Dumper.o
+ProcessCommand                                    obj/GBC_Dumper.o
+ReadRAMByte                                       obj/GB_Cart.o
+                                                  obj/gbc_api.o
+SCK_PIN                                           obj/spi.o
+SS_PIN                                            obj/spi.o
+Serial_ReadByte                                   obj/serial.o
+                                                  obj/gbc_api.o
+SetAddress                                        obj/GB_Cart.o
+SetControlPin                                     obj/GB_Cart.o
+                                                  obj/GBC_Dumper.o
+SetDataPinsAsInput                                obj/GB_Cart.o
+                                                  obj/GBA_Cart.o
+SetDataPinsAsOutput                               obj/GB_Cart.o
+                                                  obj/GBA_Cart.o
+SetGBAAddress                                     obj/GBA_Cart.o
+SetGBADataAsInput                                 obj/GBA_Cart.o
+SetGBADataAsOutput                                obj/GBA_Cart.o
+Setup_GBA_Pins                                    obj/GBA_Cart.o
+                                                  obj/gbc_api.o
+Setup_GB_Pins                                     obj/GB_Cart.o
+                                                  obj/gbc_api.o
+SwitchRAMBank                                     obj/GB_Cart.o
+                                                  obj/gbc_api.o
+SwitchROMBank                                     obj/GB_Cart.o
+                                                  obj/gbc_api.o
+WriteRAMByte                                      obj/GB_Cart.o
+                                                  obj/gbc_api.o
+_ReadByte                                         obj/GB_Cart.o
+                                                  obj/gbc_api.o
+_ReadGBABytes                                     obj/GBA_Cart.o
+                                                  obj/GBC_Dumper.o
+_ReadGBAIncrementedBytes                          obj/GBA_Cart.o
+                                                  obj/gbc_api.o
+_WriteByte                                        obj/GB_Cart.o
+__bad_interrupt                                   h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__bss_end                                         h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_clear_bss.o)
+__bss_start                                       h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_clear_bss.o)
+__data_end                                        h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_copy_data.o)
+__data_load_start                                 h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_copy_data.o)
+__data_start                                      h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_copy_data.o)
+__do_clear_bss                                    h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_clear_bss.o)
+                                                  obj/mcp23008.o
+                                                  obj/spi.o
+                                                  obj/serial.o
+                                                  obj/gbc_api.o
+                                                  obj/GB_Cart.o
+                                                  obj/GBA_Cart.o
+                                                  obj/GBC_Dumper.o
+__do_copy_data                                    h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_copy_data.o)
+                                                  obj/spi.o
+                                                  obj/gbc_api.o
+                                                  obj/GB_Cart.o
+                                                  obj/GBA_Cart.o
+                                                  obj/GBC_Dumper.o
+__heap_end                                        h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__init                                            h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__stack                                           h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_1                                        h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_10                                       h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_11                                       obj/serial.o
+                                                  h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_12                                       h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_13                                       h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_14                                       h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_15                                       h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_16                                       h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_17                                       h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_18                                       h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_2                                        h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_3                                        h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_4                                        h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_5                                        h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_6                                        h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_7                                        h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_8                                        h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_9                                        h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vector_default                                  h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+__vectors                                         h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+_clearPin                                         obj/GB_Cart.o
+_exit                                             h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_exit.o)
+_gba_cart                                         obj/gbc_api.o
+_mcp23008_init                                    obj/mcp23008.o
+_serial_init                                      obj/serial.o
+_setPin                                           obj/GB_Cart.o
+_spi_ddr                                          obj/spi.o
+_spi_mode                                         obj/spi.o
+_spi_port                                         obj/spi.o
+cb_recv                                           obj/serial.o
+cmd                                               obj/GBC_Dumper.o
+cmd_size                                          obj/GBC_Dumper.o
+cprintf_char                                      obj/serial.o
+                                                  obj/gbc_api.o
+                                                  obj/GBC_Dumper.o
+cprintf_string                                    obj/serial.o
+                                                  obj/gbc_api.o
+                                                  obj/GBC_Dumper.o
+exit                                              h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/avr4\libgcc.a(_exit.o)
+                                                  h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+gameInfo                                          obj/gbc_api.o
+initConsole                                       obj/serial.o
+                                                  obj/GBC_Dumper.o
+main                                              obj/GBC_Dumper.o
+                                                  h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4/crtm8.o
+mcp23008_ReadReg                                  obj/mcp23008.o
+                                                  obj/GB_Cart.o
+                                                  obj/GBA_Cart.o
+mcp23008_WriteReg                                 obj/mcp23008.o
+                                                  obj/GB_Cart.o
+                                                  obj/GBA_Cart.o
+mcp23008_init                                     obj/mcp23008.o
+                                                  obj/GB_Cart.o
+                                                  obj/GBA_Cart.o
+process_cmd                                       obj/GBC_Dumper.o
+setSerialRecvCallback                             obj/serial.o
+                                                  obj/GBC_Dumper.o
+spi_init                                          obj/spi.o
+spi_init_as                                       obj/spi.o
+                                                  obj/mcp23008.o
+spi_tranceiver                                    obj/spi.o
+                                                  obj/mcp23008.o
+spi_tranceiver_8                                  obj/spi.o
+                                                  obj/mcp23008.o
+strncmp                                           h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strncmp.o)
+                                                  obj/GBC_Dumper.o
+strnlen                                           h:/stuff/winavr/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr4\libc.a(strnlen.o)
+                                                  obj/gbc_api.o
+usart_GetChar                                     obj/serial.o
+usart_SendChar                                    obj/serial.o
+usart_SendString                                  obj/serial.o
