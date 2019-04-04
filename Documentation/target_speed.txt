@@ -1,2 +1,0 @@
-163,84 kb/s of 81.92kb/s -> DS (gba mode) - 3min20 - 32MB (metroid fusion)
-25.6kb/s -> current ( GB/C mode )
