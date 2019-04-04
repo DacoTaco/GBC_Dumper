@@ -13,6 +13,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+//API Commands!
+#define API_READ_ROM "API_READ_ROM"
+#define API_READ_ROM_SIZE 12
+#define API_READ_RAM "API_READ_RAM"
+#define API_READ_RAM_SIZE 12
+#define API_WRITE_RAM "API_WRITE_RAM"
+#define API_WRITE_RAM_SIZE 13
+
 #define API_GB_CART_TYPE_START 0x76
 #define API_GB_CART_TYPE_END 0x77
 #define API_GBC_ONLY 0x78
@@ -30,9 +38,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define API_NOK 0x11
 #define API_VERIFY 0x12
 #define API_RESEND_CMD 0x13
-#define API_HANDSHAKE_REQUEST 0x14
-#define API_HANDSHAKE_ACCEPT 0x15
-#define API_HANDSHAKE_DENY 0x16
+#define API_HANDSHAKE_REQUEST 0x017
+#define API_HANDSHAKE_ACCEPT 0x06
+#define API_HANDSHAKE_DENY 0x15
 
 #define API_TASK_START 0x20
 #define API_TASK_FINISHED 0x21

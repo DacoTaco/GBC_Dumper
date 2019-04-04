@@ -13,14 +13,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-//API Commands!
-#define API_READ_ROM "API_READ_ROM"
-#define API_READ_ROM_SIZE 12
-#define API_READ_RAM "API_READ_RAM"
-#define API_READ_RAM_SIZE 12
-#define API_WRITE_RAM "API_WRITE_RAM"
-#define API_WRITE_RAM_SIZE 13
-
 #include <inttypes.h>
 #include <avr/sleep.h>
 #include <avr/interrupt.h>
@@ -55,7 +47,7 @@ void ProcessCommand(void)
 {
 	process_cmd = 0;
 	DisableSerialInterrupt();
-	API_SetupPins((PINC&PC1)==0);
+	API_SetupPins((PINC & ( 1 << PC1))==0);
 	int8_t ret = API_GetGameInfo();
 	
 	if(ret > 0)
@@ -168,7 +160,7 @@ int main(void)
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
-	uint32_t addr = 0x000000;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
+	uint32_t addr = 0x00000000UL;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
     while(1) 
 	{
 		if(process_cmd)
@@ -192,10 +184,10 @@ int main(void)
 			
 			cprintf("\r\ndone\r\n");
 
-			if(CheckControlPin(CS2) == 1)
+			/*if(CheckControlPin(CS2) == 1)
 			{
 				SetControlPin(CS2,LOW);
-			}
+			}*/
 			//addr++;*/
 			_delay_ms(200);
 		}

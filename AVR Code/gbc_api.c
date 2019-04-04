@@ -100,23 +100,24 @@ int8_t API_GetGameInfo(void)
 {
 	if(gameInfo.Name[0] != 0xFF)
 		return 1;
+	int8_t ret = 0;
 	
 	if(_gba_cart)
 	{
-		if(GetGBAInfo(gameInfo.Name) < 0)
-			API_ResetGameInfo();
+		ret = GetGBAInfo(gameInfo.Name);
 	}
 	else
 	{
 		ClearPin(CTRL_PORT,CS2);
 		SetPin(CTRL_PORT,CS2);
-		if(GetGBInfo(gameInfo.Name,&gameInfo.RomSizeFlag,&gameInfo.RamSize)< 0)
-			API_ResetGameInfo();
+		ret = GetGBInfo(gameInfo.Name,&gameInfo.RomSizeFlag,&gameInfo.RamSize);
 	}
 	
-	if(gameInfo.Name[0] != 0xFF)
+	if(ret > 0 && gameInfo.Name[0] != 0xFF)
 		return 1;
-	return -1;
+	
+	API_ResetGameInfo();
+	return ret;
 }
 int8_t API_CartInserted(void)
 {
@@ -124,7 +125,7 @@ int8_t API_CartInserted(void)
 }
 int8_t API_Get_Memory(ROM_TYPE type)
 {
-	int8_t ret = API_GetGameInfo();
+	uint8_t ret = API_GetGameInfo();
 	if(!ret)
 	{
 		API_Send_Abort(API_ABORT_CMD);
@@ -266,7 +267,7 @@ int8_t API_WriteGBRam(void)
 	if(LoadedBankType != MBC2)
 		SwitchRAMBank(bank);
 	
-	//disable interrupts, like serial interrupt for example :P 
+	//disable serial interrupt. it got reactivated by the WairForOk
 	//we will handle the data, kthxbye
 	DisableSerialInterrupt();
 	
@@ -319,18 +320,13 @@ int8_t API_WriteGBRam(void)
 			cprintf_char(API_VERIFY);
 			cprintf_char(data);
 		}
-		else if(data_recv[0] == API_ABORT)
+		else
 		{
-			//we received an abort. QUIT!!
+			//we received an abort or invalid command. QUIT!!
 			ret = ERR_PACKET_FAILURE;
 			cprintf_char(API_ABORT);
 			cprintf_char(API_ABORT_PACKET);
 			break;
-		}
-		else if(data_recv[0] != API_OK && data_recv[0] != API_NOK)
-		{
-			//data was not received well or not supported. ask for a resend
-			cprintf_char(API_RESEND_CMD);				
 		}
 	}
 	//we are finished, lets send that!
@@ -356,6 +352,7 @@ int8_t API_WriteRam(void)
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,CS1);
+	SetPin(CTRL_PORT,CS2);
 	
 	if(_gba_cart)
 	{
@@ -471,6 +468,7 @@ int8_t API_GetRam(void)
 	
 	CloseRam();	
 	ClearPin(CTRL_PORT,CS2);
+	SetPin(CTRL_PORT,CS2);
 	API_ResetGameInfo();
 	return 1;
 }
