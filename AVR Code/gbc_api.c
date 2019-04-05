@@ -20,11 +20,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <string.h>
 #include <ctype.h>
 #include <stdint.h>
-#include "gbc_api.h"
 #include "serial.h"
-#include "GB_Cart.h"
-#include "GBA_Cart.h"
 #include "gb_error.h"
+#include "gb_pins.h"
+#include "8bit_cart.h"
+#include "24bit_cart.h"
+#include "gbc_api.h"
+
 
 
 
@@ -38,7 +40,7 @@ typedef struct _api_info
 } api_info;
 api_info gameInfo; 
 
-uint8_t _gba_cart = 2;
+uint8_t _gba_cart = 0;
 
 void API_Init(void)
 {
@@ -54,11 +56,11 @@ void API_SetupPins(int8_t _gba_mode)
 	
 	if(_gba_cart)
 	{
-		Setup_GBA_Pins();
+		Setup_Pins_24bitMode();
 	}
 	else
 	{
-		Setup_GB_Pins();
+		Setup_Pins_8bitMode();
 	}
 	return;
 }
@@ -140,7 +142,7 @@ int8_t API_Get_Memory(ROM_TYPE type)
 		}
 		else
 		{
-			gameInfo.fileSize = GetRomBanks(gameInfo.RomSizeFlag) * 0x4000UL;
+			gameInfo.fileSize = GetAmountOfRomBacks(gameInfo.RomSizeFlag) * 0x4000UL;
 		}		
 	}
 	else
@@ -240,7 +242,7 @@ int8_t API_WriteGBRam(void)
 	
 	
 	//we got the OK!	
-	OpenRam();
+	OpenGBRam();
 	
 	
 	
@@ -306,8 +308,8 @@ int8_t API_WriteGBRam(void)
 			}
 			
 			//Write and read written byte for verification
-			WriteRAMByte(i,data_recv[1]);
-			uint8_t data = ReadRAMByte(i);
+			WriteGBRamByte(i,data_recv[1]);
+			uint8_t data = ReadGBRamByte(i);
 			
 			cprintf_char(API_VERIFY);
 			cprintf_char(data);
@@ -315,8 +317,8 @@ int8_t API_WriteGBRam(void)
 		else if(data_recv[0] == API_NOK)
 		{
 			//data was decided NOT OK, we go back and retry!
-			WriteRAMByte(i,data_recv[1]);			
-			uint8_t data = ReadRAMByte(i);
+			WriteGBRamByte(i,data_recv[1]);			
+			uint8_t data = ReadGBRamByte(i);
 			cprintf_char(API_VERIFY);
 			cprintf_char(data);
 		}
@@ -332,7 +334,7 @@ int8_t API_WriteGBRam(void)
 	//we are finished, lets send that!
 	cprintf_char(API_TASK_FINISHED);
 	
-	CloseRam();
+	CloseGBRam();
 end_function:
 	//re-enable interrupts!
 	ClearPin(CTRL_PORT,CS2);
@@ -375,7 +377,7 @@ int8_t API_GetRom(void)
 	{			
 		//for dumping we use the GBA's increment reading mode. this saves a alot of cycles and is therefor a lot faster
 		//see the function for more info.
-		uint16_t data = ReadGBAIncrementedBytes(1,0);
+		uint16_t data = Read24BitIncrementedBytes(1,0);
 		cprintf_char((uint8_t)data & 0xFF);
 		cprintf_char((data >> 8) & 0xFF);
 		
@@ -383,7 +385,7 @@ int8_t API_GetRom(void)
 		{
 			//GBA rom's only latch the lower 16bits of the address and increments from that
 			//this means that every 0x10000(0x20000 in file) we need to send an actual read command so it relatches the address
-			uint16_t data = ReadGBAIncrementedBytes((i%0x10000) == 0?1:0,i);
+			uint16_t data = Read24BitIncrementedBytes((i%0x10000) == 0?1:0,i);
 			cprintf_char((uint8_t)data & 0xFF);
 			cprintf_char((data >> 8) & 0xFF);
 		}
@@ -401,7 +403,7 @@ int8_t API_GetRom(void)
 			return ERR_NO_INFO;
 		}
 		
-		uint16_t banks = GetRomBanks(gameInfo.RomSizeFlag);
+		uint16_t banks = GetAmountOfRomBacks(gameInfo.RomSizeFlag);
 		
 		uint16_t addr = 0;
 		for(uint16_t bank = 1;bank < banks;bank++)
@@ -409,7 +411,7 @@ int8_t API_GetRom(void)
 			SwitchROMBank(bank);
 			for(;addr < 0x8000;addr++)
 			{
-				cprintf_char(ReadByte(addr));
+				cprintf_char(ReadGBRomByte(addr));
 			}
 			addr = 0x4000;
 		}			
@@ -447,7 +449,7 @@ int8_t API_GetRam(void)
 	if(ret < 0)
 		return ERR_NO_SAVE;
 	
-	OpenRam();
+	OpenGBRam();
 	//_delay_us(5);
 
 	for(uint8_t bank = 0;bank < banks;bank++)
@@ -458,14 +460,14 @@ int8_t API_GetRam(void)
 		
 		for(uint16_t i = addr;i< end_addr ;i++)
 		{
-			cprintf_char(ReadRAMByte(i));
+			cprintf_char(ReadGBRamByte(i));
 			//_delay_us(5);
 			//asm ("nop");
 			asm ("nop");	
 		}
 	}
 	
-	CloseRam();	
+	CloseGBRam();	
 	ClearPin(CTRL_PORT,CS2);
 	SetPin(CTRL_PORT,CS2);
 	API_ResetGameInfo();

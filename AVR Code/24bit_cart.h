@@ -1,6 +1,6 @@
 /*
-GBA_Cart - An AVR library to communicate with a GBA cartridge. accessing ROM & RAM
-Copyright (C) 2016-2019  DacoTaco
+24bit_cart - An AVR library to communicate with a GBA cartridge. accessing ROM
+Copyright (C) 2018-2019  DacoTaco
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation version 2.
@@ -15,7 +15,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 /*GBA cart pins are as following : 	
 	
-    1 - VCC – Power (5 volts)
+    1 - VCC – Power (3.3 volts, though said to be 5v tolerant)
     2 - CLK – Clock signal (not used)
     3 - WR – if low(grounded) and if RD is low, we can write to the SRAM and load a ROM or SRAM bank
     4 - RD – if low (grounded) and if WR is high, we can read the ROM and SRAM
@@ -45,21 +45,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	28 - A22/D6
 	29 - A23/D7 - 8 higher bits of the address of the ROM or 8 bit output when reading RAM
     30 - CS_SRAM - if low, selects the RAM
-    31 - Audio in - (not used)
+    31 - IRQ - (not used)
     32 - GND - Ground	
-*/
-/*
-Connections we want,need and assigned to :
-
-    VCC -> 2nd VCC pin/Input voltage (5v)
-    ~WR -> D3 (has 10k pulldown)
-    ~RD -> D2 (has 10k pulldown)
-    CS_ROM -> D4 (has 10k pulldown)
-    A0 - A15 -> B0 - B7 & C0 - C7
-    D0 - D7 -> A0 - A7
-    CS_SRAM -> D5 (has 10k resistor in between) and led to indicate if its ready or not
-    GND -> input/Second GND
-
 */
 
 typedef struct _GBA_Header
@@ -84,16 +71,16 @@ typedef struct _GBA_Header
 	//uint8_t JoyBusEntryPoint[4]; // 0x00E0 - 0x00E4
 } GBA_Header ;
 
-#define ReadGBAIncrementedBytes(x,y) _ReadGBAIncrementedBytes(x,y)
+void Setup_Pins_24bitMode(void);
+uint16_t Read24BitBytes(uint32_t address);
+uint16_t Read24BitIncrementedBytes(int8_t SetAddress,uint32_t address);
+void Set24BitAddress(uint32_t address);
 
-uint16_t ReadGBABytes(uint32_t address);
-uint8_t ReadGBARamByte(uint16_t address);
-uint16_t _ReadGBAIncrementedBytes(int8_t SetAddress,uint32_t address);
-void SetGBAAddress(uint32_t address);
-void SetGBADataAsOutput(void);
-void SetGBADataAsInput(void);
 
-void Setup_GBA_Pins(void);
+
+//-------------------------
+//	GBA related functions
+//-------------------------
 int8_t GetGBAInfo(char* name);
 uint32_t GetGBARomSize(void);
 

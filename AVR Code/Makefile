@@ -28,7 +28,7 @@ OBJDIR = obj
 
 # List C source files here. (C dependencies are automatically generated.)
 EXT_SRC = $(EXTERNAL_LOC)/serial.c $(EXTERNAL_LOC)/spi.c $(EXTERNAL_LOC)/mcp23008.c
-SRC = $(TARGET).c GBA_Cart.c GB_Cart.c gbc_api.c
+SRC = gb_pins.c 8bit_cart.c 24bit_cart.c gbc_api.c $(TARGET).c
 
 
 

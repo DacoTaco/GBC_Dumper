@@ -231,10 +231,12 @@ namespace GB_Dumper
         }
         private void BtnSendRam_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog dialog = new OpenFileDialog();
-            dialog.Filter = "gameboy save (*.sav)|*.sav|All files (*.*)|*.*";
-            dialog.FilterIndex = 1;
-            dialog.InitialDirectory = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+            var dialog = new OpenFileDialog
+            {
+                Filter = "gameboy save (*.sav)|*.sav|All files (*.*)|*.*",
+                FilterIndex = 1,
+                InitialDirectory = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName)
+            };
 
 
             if (dialog.ShowDialog() == true)

@@ -1,6 +1,6 @@
 /*
-GBA_Cart - An AVR library to communicate with a GBA cartridge. accessing ROM & RAM
-Copyright (C) 2016-2019  DacoTaco
+24bit_cart - An AVR library to communicate with a GBA cartridge. accessing ROM
+Copyright (C) 2018-2019  DacoTaco
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation version 2.
@@ -21,34 +21,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <ctype.h>
 #include <stdint.h>
 #include "gb_error.h"
-#include "GBA_Cart.h"
-#include "GB_Cart.h"
+#include "gb_pins.h"
+#include "8bit_cart.h"
+#include "24bit_cart.h"
 
 #ifdef GPIO_EXTENDER_MODE
 #include "mcp23008.h"
 #endif
 
-inline void SetGBADataAsOutput(void)
-{
-	//disable pull ups
-	mcp23008_WriteReg(ADDR_CHIP_1,GPPU,0x00);
-	mcp23008_WriteReg(ADDR_CHIP_2,GPPU,0x00);
-	
-	//set output
-	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
-	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0x00);
-	
-}
-inline void SetGBADataAsInput(void)
-{
-	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0xFF);
-	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0xFF);
-	
-	//enable pull up
-	mcp23008_WriteReg(ADDR_CHIP_1,GPPU,0xFF);
-	mcp23008_WriteReg(ADDR_CHIP_2,GPPU,0xFF);
-}
-void Setup_GBA_Pins(void)
+void Setup_Pins_24bitMode(void)
 {
 #ifdef GPIO_EXTENDER_MODE
 	//setup the mcp23008, as its the source of everything xD
@@ -56,7 +37,7 @@ void Setup_GBA_Pins(void)
 	mcp23008_init(ADDR_CHIP_2);
 	mcp23008_init(DATA_CHIP_1);
 
-	SetGBADataAsOutput();	
+	SetAddressPinsAsOutput();	
 #endif	
 
 	//setup data pins as input
@@ -72,10 +53,10 @@ void Setup_GBA_Pins(void)
 	SetPin(CTRL_PORT,CS1);
 	SetPin(CTRL_PORT,CS2);
 }
-inline void SetGBAAddress(uint32_t address)
+inline void Set24BitAddress(uint32_t address)
 {	
 #ifdef GPIO_EXTENDER_MODE
-	SetGBADataAsOutput();
+	SetAddressPinsAsOutput();
 	SetDataPinsAsOutput();
 	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(address & 0xFF));
 	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(address >> 8) & 0xFF);
@@ -87,7 +68,7 @@ inline void SetGBAAddress(uint32_t address)
 //so if you set the address, and read again, you'll get addr+1, next time addr+2 etc etc
 //it'll only latch the lower 16 bits of the address though.
 //this still saves us quiet a few cycles on setting everything.
-inline uint16_t _ReadGBAIncrementedBytes(int8_t SetAddress,uint32_t address)
+inline uint16_t Read24BitIncrementedBytes(int8_t SetAddress,uint32_t address)
 {
 	uint8_t d1 = 0;
 	uint8_t d2 = 0;
@@ -100,13 +81,12 @@ inline uint16_t _ReadGBAIncrementedBytes(int8_t SetAddress,uint32_t address)
 		//do the whole shabang
 		SetPin(CTRL_PORT,CS1);
 		SetPin(CTRL_PORT,CS2);
-		SetGBAAddress(address);
+		Set24BitAddress(address);
 		ClearPin(CTRL_PORT,CS1);
+		SetAddressPinsAsInput();
 	}
 	
 	ClearPin(CTRL_PORT,RD);
-	
-	SetGBADataAsInput();
 	
 #ifdef GPIO_EXTENDER_MODE			
 	//read data
@@ -117,7 +97,7 @@ inline uint16_t _ReadGBAIncrementedBytes(int8_t SetAddress,uint32_t address)
 	SetPin(CTRL_PORT,RD);
 	return (uint16_t)d1 << 8 | d2;
 }
-inline uint16_t ReadGBABytes(uint32_t address)
+inline uint16_t Read24BitBytes(uint32_t address)
 {
 	uint8_t d1 = 0;
 	uint8_t d2 = 0;
@@ -126,7 +106,7 @@ inline uint16_t ReadGBABytes(uint32_t address)
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,CS1);
 
-	SetGBAAddress(address);
+	Set24BitAddress(address);
 	
 	//latch the address
 	ClearPin(CTRL_PORT,CS1);
@@ -136,7 +116,7 @@ inline uint16_t ReadGBABytes(uint32_t address)
 
 #ifdef GPIO_EXTENDER_MODE	
 	//set as input so we can read the pins
-	SetGBADataAsInput();
+	SetAddressPinsAsInput();
 #endif
 	
 #ifdef GPIO_EXTENDER_MODE			
@@ -149,36 +129,6 @@ inline uint16_t ReadGBABytes(uint32_t address)
 	SetPin(CTRL_PORT,CS1);
 	
 	return (uint16_t)d1 << 8 | d2;
-}
-inline uint8_t ReadGBARamByte(uint16_t address)
-{
-	SetPin(CTRL_PORT,CS2);
-	SetPin(CTRL_PORT,RD);
-	SetPin(CTRL_PORT,WD);
-	SetPin(CTRL_PORT,CS1);
-	SetDataPinsAsInput();
-	
-	//set address
-	SetGBADataAsOutput();
-	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(address & 0xFF));
-	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(address >> 8) & 0xFF);
-	
-	//latch the address
-	ClearPin(CTRL_PORT,CS2);
-	asm("nop");
-	asm("nop");
-	
-	//set RD low so data pins are set
-	ClearPin(CTRL_PORT,RD);
-	
-	//read data
-	uint8_t data = 0;
-	GET_DATA(data);
-	
-	SetPin(CTRL_PORT,CS2);
-	SetPin(CTRL_PORT,RD);
-	
-	return data;
 }
 uint32_t GetGBARomSize(void)
 {
@@ -189,7 +139,7 @@ uint32_t GetGBARomSize(void)
 	//retrieve first few bytes of header to use to compare later
 	for(uint8_t x = 0;x < 0x0F;x++)
 	{
-		start[x] = ReadGBABytes(x);
+		start[x] = Read24BitBytes(x);
 	}
 	
 	//basically we read all addresses untill we notice the rom starts mirroring. thats our size
@@ -197,7 +147,7 @@ uint32_t GetGBARomSize(void)
 	{	
 		for(uint8_t x = 0;x < 0x0F;x++)
 		{
-			if(ReadGBABytes(i+x) != start[x])
+			if(Read24BitBytes(i+x) != start[x])
 			{
 				endFound = 0;
 				break;
@@ -232,7 +182,7 @@ int8_t GetGBAInfo(char* name)
 	//Read header
 	for(uint8_t i = 0x00;i < 0xC0;i += 2 )
 	{
-		*ptr = ReadGBABytes(i/2);
+		*ptr = Read24BitIncrementedBytes(i==0,i/2);//Read24BitBytes(i/2);
 	
 		if(*ptr == 0xFFFF)
 			FF_Cnt++;		

@@ -1,4 +1,4 @@
-﻿using GB_Dumper.FileAccess;
+﻿using GB_Dumper.FileHelper;
 using GB_Dumper.Serial;
 using System;
 using System.Collections.Generic;
@@ -95,8 +95,8 @@ namespace GB_Dumper.API
         {
             try
             {
-                if (IsApiBusy)
-                    throw new InvalidOperationException("Failed to disconnect : API not ready.");
+                /*if (IsApiBusy)
+                    throw new InvalidOperationException("Failed to disconnect : API not ready.");*/
 
                 serialInterface.OnDataToRead -= Serial_DataToRead;
                 serialInterface.Close();

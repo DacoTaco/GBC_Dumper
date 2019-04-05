@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace GB_Dumper.FileAccess
+namespace GB_Dumper.FileHelper
 {
     public class FileHandler
     {
@@ -25,7 +25,7 @@ namespace GB_Dumper.FileAccess
                 if (IsOpened)
                     CloseFile();
 
-                _file = File.Open(filename, mode);
+                _file = File.Open(filename, mode, FileAccess.ReadWrite, FileShare.Read);
                 _file.Position = 0;
             }
             catch (Exception ex)

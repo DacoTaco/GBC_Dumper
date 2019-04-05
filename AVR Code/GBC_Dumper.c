@@ -28,8 +28,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mcp23008.h"
 #include "gb_error.h"
 #include "gbc_api.h"
-#include "GB_Cart.h"
-#include "GBA_Cart.h"
+#include "gb_pins.h"
+#include "8bit_cart.h"
+#include "24bit_cart.h"
 
 
 uint8_t cmd_size = 0;
@@ -172,6 +173,7 @@ int main(void)
 		if(CheckControlPin(BTN) == LOW)
 		{
 			cprintf("Btn pressed!\r\n");
+			Setup_Pins_8bitMode();
 			SetControlPin(CS2,HIGH);
 			uint16_t data = 0;	
 			//expected : 0x2e00	
