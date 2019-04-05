@@ -377,15 +377,14 @@ int8_t API_GetRom(void)
 		//see the function for more info.
 		uint16_t data = ReadGBAIncrementedBytes(1,0);
 		cprintf_char((uint8_t)data & 0xFF);
-		asm("nop");
 		cprintf_char((data >> 8) & 0xFF);
 		
 		for(uint32_t i = 1; i < _readSize;i++)
 		{
-			//GBA rom's seem to loop every 0x10000 (0x20000 in file). therefor we explicitly set the address every 0x10000 
+			//GBA rom's only latch the lower 16bits of the address and increments from that
+			//this means that every 0x10000(0x20000 in file) we need to send an actual read command so it relatches the address
 			uint16_t data = ReadGBAIncrementedBytes((i%0x10000) == 0?1:0,i);
 			cprintf_char((uint8_t)data & 0xFF);
-			asm("nop");
 			cprintf_char((data >> 8) & 0xFF);
 		}
 		SetPin(CTRL_PORT,CS1);

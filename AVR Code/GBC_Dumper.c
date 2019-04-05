@@ -115,6 +115,8 @@ void ProcessChar(char byte)
 	if(byte == API_HANDSHAKE_REQUEST)
 	{
 		cprintf_char(API_HANDSHAKE_ACCEPT);
+		//auto detect byte
+		cprintf_char(0x01);
 		return;
 	}
 	else if(byte == '\n' || byte == '\r')
@@ -160,7 +162,7 @@ int main(void)
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
-	uint32_t addr = 0x00000000UL;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
+	uint16_t addr = 0x000000;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
     while(1) 
 	{
 		if(process_cmd)
@@ -174,13 +176,18 @@ int main(void)
 			uint16_t data = 0;	
 			//expected : 0x2e00	
 			//cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);*/
-			data = ReadGBABytes(addr);
-			uint8_t d1 = data >> 8;
-			uint8_t d2 = data & 0xFF;
+			for(uint16_t i = 0;i< 4;i++)
+			{
+				data = ReadGBARamByte(i);
+				//uint8_t d1 = data >> 8;
+				uint8_t d2 = data & 0xFF;
+				
+				cprintf("data : ");
+				//cprintf_char(d1);	
+				cprintf_char(d2);
+				cprintf("\r\n");
+			}
 			
-			cprintf("data : ");
-			cprintf_char(d1);	
-			cprintf_char(d2);
 			
 			cprintf("\r\ndone\r\n");
 
@@ -188,6 +195,7 @@ int main(void)
 			{
 				SetControlPin(CS2,LOW);
 			}*/
+			SetControlPin(CS2,HIGH);
 			//addr++;*/
 			_delay_ms(200);
 		}

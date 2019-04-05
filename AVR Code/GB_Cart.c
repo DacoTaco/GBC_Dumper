@@ -48,7 +48,6 @@ inline void SetControlPin(uint8_t Pin,uint8_t state)
 	{
 		ClearPin(CTRL_PORT,Pin); // Pin goes low
 	}
-	//asm ("nop");
 	
 }
 int8_t CheckControlPin(uint8_t Pin)

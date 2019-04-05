@@ -31,6 +31,9 @@ namespace GB_Dumper.API
 
         public const byte API_TASK_START = 0x20;
         public const byte API_TASK_FINISHED = 0x21;
+        public const byte API_CART_MODE_AUTO = 0x22;
+        public const byte API_CART_MODE_GB = 0x23;
+        public const byte API_CART_MODE_GBA = 0x24;
 
         public const byte API_MODE_READ_ROM = 0xD0;
         public const byte API_MODE_READ_RAM = 0xD1;

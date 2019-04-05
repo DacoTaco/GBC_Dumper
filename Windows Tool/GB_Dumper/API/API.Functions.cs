@@ -23,17 +23,22 @@ namespace GB_Dumper.API
         {
             serialInterface.Write(new byte[] { GB_API_Protocol.API_HANDSHAKE_REQUEST }, 0, 1);
             byte cnt = 0;
+            AutoDetect = false;
 
             while (cnt <= 10)
             {
-                if (serialInterface.BytesToRead > 0)
+                if (serialInterface.BytesToRead > 1)
                 {
-                    int data = serialInterface.ReadByte();
-                    if (data == GB_API_Protocol.API_HANDSHAKE_ACCEPT)
+                    var data = serialInterface.Read(serialInterface.BytesToRead);
+                    if (data.Length > 2)
+                        return 0;
+
+                    if (data[0] == GB_API_Protocol.API_HANDSHAKE_ACCEPT)
                     {
+                        AutoDetect = data[1] == 0x01;
                         return 1;
                     }
-                    else if (data == GB_API_Protocol.API_HANDSHAKE_DENY)
+                    else if (data[0] == GB_API_Protocol.API_HANDSHAKE_DENY)
                     {
                         return -1;
                     }

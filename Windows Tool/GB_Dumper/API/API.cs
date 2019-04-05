@@ -37,6 +37,7 @@ namespace GB_Dumper.API
         //---------------------
         private FileHandler fileHandler = new FileHandler();
         private APIMode API_Mode;
+        public bool AutoDetect { get; private set; }
         public GameInfo Info = new GameInfo();
         public DateTime? StartTime { get; private set; }
 

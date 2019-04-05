@@ -84,10 +84,10 @@ typedef struct _GBA_Header
 	//uint8_t JoyBusEntryPoint[4]; // 0x00E0 - 0x00E4
 } GBA_Header ;
 
-#define ReadGBABytes(x) _ReadGBABytes(1,x)
 #define ReadGBAIncrementedBytes(x,y) _ReadGBAIncrementedBytes(x,y)
 
-uint16_t _ReadGBABytes(uint8_t ReadRom,uint32_t address);
+uint16_t ReadGBABytes(uint32_t address);
+uint8_t ReadGBARamByte(uint16_t address);
 uint16_t _ReadGBAIncrementedBytes(int8_t SetAddress,uint32_t address);
 void SetGBAAddress(uint32_t address);
 void SetGBADataAsOutput(void);

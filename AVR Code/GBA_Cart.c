@@ -85,7 +85,8 @@ inline void SetGBAAddress(uint32_t address)
 //The GBA supports something as a increment read.
 //basically as long as CS1 is kept low, the next RD strobe will just reveal the next 2 bytes.
 //so if you set the address, and read again, you'll get addr+1, next time addr+2 etc etc
-//this saves us quiet a few cycles on setting everything.
+//it'll only latch the lower 16 bits of the address though.
+//this still saves us quiet a few cycles on setting everything.
 inline uint16_t _ReadGBAIncrementedBytes(int8_t SetAddress,uint32_t address)
 {
 	uint8_t d1 = 0;
@@ -100,7 +101,6 @@ inline uint16_t _ReadGBAIncrementedBytes(int8_t SetAddress,uint32_t address)
 		SetPin(CTRL_PORT,CS1);
 		SetPin(CTRL_PORT,CS2);
 		SetGBAAddress(address);
-		asm("nop");
 		ClearPin(CTRL_PORT,CS1);
 	}
 	
@@ -117,12 +117,11 @@ inline uint16_t _ReadGBAIncrementedBytes(int8_t SetAddress,uint32_t address)
 	SetPin(CTRL_PORT,RD);
 	return (uint16_t)d1 << 8 | d2;
 }
-inline uint16_t _ReadGBABytes(uint8_t ReadRom,uint32_t address)
+inline uint16_t ReadGBABytes(uint32_t address)
 {
 	uint8_t d1 = 0;
 	uint8_t d2 = 0;
 
-	SetPin(CTRL_PORT,CS2);
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,CS1);
@@ -130,10 +129,7 @@ inline uint16_t _ReadGBABytes(uint8_t ReadRom,uint32_t address)
 	SetGBAAddress(address);
 	
 	//latch the address
-	if(ReadRom)
-		ClearPin(CTRL_PORT,CS1);
-	else
-		ClearPin(CTRL_PORT,CS2);
+	ClearPin(CTRL_PORT,CS1);
 	
 	//set RD low so data pins are set
 	ClearPin(CTRL_PORT,RD);
@@ -149,11 +145,40 @@ inline uint16_t _ReadGBABytes(uint8_t ReadRom,uint32_t address)
 	mcp23008_ReadReg(ADDR_CHIP_2, GPIO,&d2);	
 #endif
 	
-	SetPin(CTRL_PORT,CS2);
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,CS1);
 	
 	return (uint16_t)d1 << 8 | d2;
+}
+inline uint8_t ReadGBARamByte(uint16_t address)
+{
+	SetPin(CTRL_PORT,CS2);
+	SetPin(CTRL_PORT,RD);
+	SetPin(CTRL_PORT,WD);
+	SetPin(CTRL_PORT,CS1);
+	SetDataPinsAsInput();
+	
+	//set address
+	SetGBADataAsOutput();
+	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(address & 0xFF));
+	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(address >> 8) & 0xFF);
+	
+	//latch the address
+	ClearPin(CTRL_PORT,CS2);
+	asm("nop");
+	asm("nop");
+	
+	//set RD low so data pins are set
+	ClearPin(CTRL_PORT,RD);
+	
+	//read data
+	uint8_t data = 0;
+	GET_DATA(data);
+	
+	SetPin(CTRL_PORT,CS2);
+	SetPin(CTRL_PORT,RD);
+	
+	return data;
 }
 uint32_t GetGBARomSize(void)
 {
