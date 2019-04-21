@@ -28,8 +28,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "gbc_api.h"
 
 
-
-
 typedef struct _api_info
 {
 	char Name[18];
@@ -106,7 +104,7 @@ int8_t API_GetGameInfo(void)
 	
 	if(_gba_cart)
 	{
-		ret = GetGBAInfo(gameInfo.Name);
+		ret = GetGBAInfo(gameInfo.Name,&gameInfo.RamSize);
 	}
 	else
 	{
@@ -125,10 +123,12 @@ int8_t API_CartInserted(void)
 {
 	return (gameInfo.Name[0] == 0xFF)?0:1;
 }
-int8_t API_Get_Memory(ROM_TYPE type)
-{
-	uint8_t ret = API_GetGameInfo();
-	if(!ret)
+int8_t API_Get_Memory(ROM_TYPE type,int8_t _gbaMode)
+{	
+	API_SetupPins(_gbaMode);
+	
+	int8_t ret = API_GetGameInfo();
+	if(ret < 1)
 	{
 		API_Send_Abort(API_ABORT_CMD);
 		return ret;
@@ -149,7 +149,7 @@ int8_t API_Get_Memory(ROM_TYPE type)
 	{
 		if(_gba_cart)
 		{
-			
+			//API_SetupPins(0);
 		}
 		else
 		{
@@ -342,8 +342,9 @@ end_function:
 	EnableSerialInterrupt();
 	return ret;
 }
-int8_t API_WriteRam(void)
+int8_t API_WriteRam(int8_t _gbaMode)
 {		
+	API_SetupPins(_gbaMode);
 	int8_t ret = API_GetGameInfo();
 	if(!ret)
 	{
@@ -371,17 +372,13 @@ int8_t API_GetRom(void)
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,CS1);
 	SetPin(CTRL_PORT,CS2);
-	
-	uint32_t _readSize = gameInfo.fileSize / 2;
+		
 	if(_gba_cart)
 	{			
 		//for dumping we use the GBA's increment reading mode. this saves a alot of cycles and is therefor a lot faster
 		//see the function for more info.
-		uint16_t data = Read24BitIncrementedBytes(1,0);
-		cprintf_char((uint8_t)data & 0xFF);
-		cprintf_char((data >> 8) & 0xFF);
-		
-		for(uint32_t i = 1; i < _readSize;i++)
+		uint32_t _readSize = gameInfo.fileSize / 2;		
+		for(uint32_t i = 0; i < _readSize;i++)
 		{
 			//GBA rom's only latch the lower 16bits of the address and increments from that
 			//this means that every 0x10000(0x20000 in file) we need to send an actual read command so it relatches the address
@@ -396,12 +393,6 @@ int8_t API_GetRom(void)
 		//reset cart
 		ClearPin(CTRL_PORT,CS2);
 		SetPin(CTRL_PORT,CS2);
-		
-		if(!API_GetGameInfo())
-		{
-			API_Send_Abort(API_ABORT_CMD);
-			return ERR_NO_INFO;
-		}
 		
 		uint16_t banks = GetAmountOfRomBacks(gameInfo.RomSizeFlag);
 		
@@ -429,12 +420,6 @@ int8_t API_GetRam(void)
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,CS1);
 	SetPin(CTRL_PORT,CS2);
-	
-	if(!API_GetGameInfo())
-	{
-		API_Send_Abort(API_ABORT_CMD);
-		return ERR_NO_INFO;
-	}
 	
 	if(LoadedBankType == MBC_NONE || LoadedBankType == MBC_UNSUPPORTED)
 		return ERR_NO_MBC;

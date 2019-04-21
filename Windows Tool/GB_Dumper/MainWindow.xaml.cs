@@ -128,7 +128,7 @@ namespace GB_Dumper
             TextField += $"{msg} : {Environment.NewLine}{e.ToString()}{Environment.NewLine}";
             while (e.InnerException != null)
             {
-                TextField += $"Inner Exception : {e.InnerException.ToString()}{Environment.NewLine}";
+                TextField += $"Inner Exception : {Environment.NewLine}{e.InnerException.ToString()}{Environment.NewLine}";
                 e = e.InnerException;
             }
             OnPropertyChanged("EnableFunctions");
@@ -138,7 +138,7 @@ namespace GB_Dumper
         {
             TextField += $"INFO {(string.IsNullOrWhiteSpace(source) ? String.Empty : $"FROM {source}")} : {Environment.NewLine}\t{Msg}{Environment.NewLine}";
         }
-        private void ApiHandler_OnStatusThrown(byte status, APIMode mode, int param2)
+        private void ApiHandler_OnStatusThrown(byte status, APIMode mode)
         {
             switch(status)
             {
@@ -190,11 +190,10 @@ namespace GB_Dumper
                     else
                         TextField += $"{selectText}...{Environment.NewLine}0x{apiHandler.Info.current_addr.ToString("X8")}/0x{apiHandler.Info.FileSize.ToString("X8")}...";
 
+                    //finish it up
                     if (status == GB_API_Protocol.API_TASK_FINISHED)
                     {
-                        DateTime ending = DateTime.Now;
-                        DateTime start = apiHandler.StartTime.Value;
-                        TimeSpan diff = ending - start;
+                        TimeSpan diff = DateTime.Now - apiHandler.StartTime.Value;
                         //we are done!
                         TextField += $"{Environment.NewLine}Done!{Environment.NewLine}Time : {diff.ToString()}{Environment.NewLine}";
                     }

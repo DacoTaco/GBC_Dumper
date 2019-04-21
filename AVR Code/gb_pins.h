@@ -79,27 +79,33 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#define DATA_DDR DDRA
 	#define DATA_PIN PINA
 	
-	#define GET_DATA(x) (x = DATA_PIN)
-	#define SET_DATA(x) (DATA_PORT = byte)
-	
 	#define ADDR_DDR1 DDRB
 	#define ADDR_DDR2 DDRC
 	#define ADDR_PORT1 PORTB
 	#define ADDR_PORT2 PORTC
+	#define ADDR_PIN1 PINB
+	#define ADDR_PIN2 PINC
+	
+	//add nops as we were reading faster then a GB cart could output @ 8Mhz
+	#define GET_DATA(x) {asm("nop");asm("nop");x = DATA_PIN;}
+	#define SET_DATA(x) (DATA_PORT = x)
+	
+	#define GET_ADDR1_DATA(x) {asm("nop");x = ADDR_PIN1;}
+	#define GET_ADDR2_DATA(x) {asm("nop");x = ADDR_PIN2;}
 
 	
 	#define CTRL_DDR DDRD
 	#define CTRL_PORT PORTD
 	#define CTRL_PIN PIND
-	#define RD PD2
+	#define RD PD4
 	//0b00000100;
 	#define WD PD3
 	//0b00001000;
-	#define CS1 PD4
+	#define CS1 PD5
 	//0b00010000;
-	#define CS2 PD5
+	#define CS2 PD6
 	//0b00100000;
-	#define BTN PD6
+	#define BTN PD7
 	//0b01000000
 	
 #endif

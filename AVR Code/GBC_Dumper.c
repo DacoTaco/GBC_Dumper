@@ -43,32 +43,48 @@ uint8_t process_cmd = 0;
 //things that are broken : 
 
 */
+void Setup_Sense_Pin(void)
+{
+	//set pina s input & disable pull up
+#ifdef GPIO_EXTENDER_MODE
+	DDRC &= ~(1 << PC1);
+	PORTC &= ~(1 << PC1);
+#else
+	DDRD &= ~(1 << PD2);
+	PORTD &= ~(1 << PD2);
+#endif
+}
+uint8_t inline SenseGbaMode(void)
+{
+#ifdef GPIO_EXTENDER_MODE
+	return (PINC & ( 1 << PC1))==0;
+#else
+	return (PIND & ( 1 << PD2))==0;
+#endif
+	return 1;
+}
 
 void ProcessCommand(void)
 {
 	process_cmd = 0;
 	DisableSerialInterrupt();
-	API_SetupPins((PINC & ( 1 << PC1))==0);
-	int8_t ret = API_GetGameInfo();
+	int8_t ret = 0;
 	
-	if(ret > 0)
+	if(strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0 || strncmp(cmd,"API_READ_RAM",API_READ_RAM_SIZE) == 0 )
 	{
-		if(strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0 || strncmp(cmd,"API_READ_RAM",API_READ_RAM_SIZE) == 0 )
-		{
-			ROM_TYPE type = (strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0)?TYPE_ROM:TYPE_RAM;
-			ret = API_Get_Memory(type);
-		}
-		else if(strncmp(cmd,"API_WRITE_RAM",API_WRITE_RAM_SIZE) == 0)
-		{			
-			ret = API_WriteRam();	
-		}
-		else
-		{
-			API_Send_Abort(API_ABORT_ERROR);
-			cprintf("COMMAND '");
-			cprintf(cmd);
-			cprintf("' UNKNOWN\r\n");
-		}
+		ROM_TYPE type = (strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0)?TYPE_ROM:TYPE_RAM;
+		ret = API_Get_Memory(type,SenseGbaMode());
+	}
+	else if(strncmp(cmd,"API_WRITE_RAM",API_WRITE_RAM_SIZE) == 0)
+	{			
+		ret = API_WriteRam(SenseGbaMode());	
+	}
+	else
+	{
+		API_Send_Abort(API_ABORT_ERROR);
+		cprintf("COMMAND '");
+		cprintf(cmd);
+		cprintf("' UNKNOWN\r\n");
 	}
 	
 	//process errors
@@ -145,17 +161,15 @@ int main(void)
 	//setup API
 	API_Init();
 	
-	//Set PD2 as Input
-	DDRC &= ~(1 << PC1);
-	//disable pull up
-	PORTC &= ~(1 << PC1);
+	//setup the mode sense pin
+	Setup_Sense_Pin();
 
 	//set it so that incoming msg's are ignored.
 	setSerialRecvCallback(ProcessChar);
 	
-/*#ifdef __ATMEGA8__
+/*#ifdef __AVR_ATmega8__
 	cprintf("Atmega8 says : ");
-#elif defined(__ATMEGA32__)
+#elif defined(__AVR_ATmega32__)
 	cprintf("Atmega32 says : ");
 #endif*/
 
@@ -163,7 +177,7 @@ int main(void)
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
-	uint16_t addr = 0x000000;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
+	uint32_t addr = 0x00000000;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
     while(1) 
 	{
 		if(process_cmd)
@@ -172,23 +186,47 @@ int main(void)
 		}
 		if(CheckControlPin(BTN) == LOW)
 		{
-			cprintf("Btn pressed!\r\n");
-			Setup_Pins_8bitMode();
-			SetControlPin(CS2,HIGH);
-			uint16_t data = 0;	
+			cprintf("Btn pressed!\r\n");			
+			if(SenseGbaMode())
+			{
+				cprintf("gba mode\r\n");
+				Setup_Pins_24bitMode();
+			}
+			else
+			{
+				cprintf("gb mode\r\n");
+				Setup_Pins_8bitMode();
+			}
 			//expected : 0x2e00	
 			//cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);*/
-			for(uint16_t i = 0;i< 4;i++)
+			/*for(uint16_t i = 0x00;i< 0x0E;i++)
 			{
 				data = ReadGBARamByte(i);
 				//uint8_t d1 = data >> 8;
 				uint8_t d2 = data & 0xFF;
 				
-				cprintf("data : ");
+				cprintf("data (0x%04X) : 0x%02X",i,d2);
 				//cprintf_char(d1);	
-				cprintf_char(d2);
+				//cprintf_char(d2);
 				cprintf("\r\n");
 			}
+			for(uint16_t i = 0x7FFE;i< 0x800E;i++)
+			{
+				data = ReadGBARamByte(i);
+				//uint8_t d1 = data >> 8;
+				uint8_t d2 = data & 0xFF;
+				
+				cprintf("data (0x%04X) : 0x%02X",i,d2);
+				//cprintf_char(d1);	
+				//cprintf_char(d2);
+				cprintf("\r\n");
+			}*/
+			
+			/*char Name[20] = {0};
+			uint8_t i = 0;
+			uint8_t x = 0;
+			int8_t ret = GetGBInfo(Name, &i , &x);
+			cprintf("ret : %d , Name : '%s'\r\n",ret,Name);*/
 			
 			
 			cprintf("\r\ndone\r\n");

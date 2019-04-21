@@ -8,7 +8,11 @@
 # MCU name
 MCU = atmega8
 # Processor frequency. -WITHOUT- UL
-F_CPU = 16000000
+ifeq ($(MCU),atmega8)
+	F_CPU = 16000000
+else
+	F_CPU = 8000000
+endif
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex
 # Target file name (without extension).
@@ -27,8 +31,11 @@ OBJDIR = obj
 
 
 # List C source files here. (C dependencies are automatically generated.)
-EXT_SRC = $(EXTERNAL_LOC)/serial.c $(EXTERNAL_LOC)/spi.c $(EXTERNAL_LOC)/mcp23008.c
-SRC = gb_pins.c 8bit_cart.c 24bit_cart.c gbc_api.c $(TARGET).c
+EXT_SRC = $(EXTERNAL_LOC)/serial.c
+ifeq ($(MCU),atmega8)
+	EXT_SRC += $(EXTERNAL_LOC)/spi.c $(EXTERNAL_LOC)/mcp23008.c
+endif
+SRC = gb_pins.c 8bit_cart.c 24bit_cart.c gbc_api.c $(TARGET).c eeprom.c
 
 
 

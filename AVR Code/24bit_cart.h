@@ -49,6 +49,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
     32 - GND - Ground	
 */
 
+#define GBA_SAVE_NONE 0
+#define GBA_SAVE_EEPROM 1
+#define GBA_SAVE_SRAM 2
+#define GBA_SAVE_FLASH 3
+
 typedef struct _GBA_Header
 {
 	uint8_t EntryPoint[4]; // 0x0000 - 0x0003
@@ -73,7 +78,7 @@ typedef struct _GBA_Header
 
 void Setup_Pins_24bitMode(void);
 uint16_t Read24BitBytes(uint32_t address);
-uint16_t Read24BitIncrementedBytes(int8_t SetAddress,uint32_t address);
+uint16_t Read24BitIncrementedBytes(int8_t LatchAddress,uint32_t address);
 void Set24BitAddress(uint32_t address);
 
 
@@ -81,6 +86,7 @@ void Set24BitAddress(uint32_t address);
 //-------------------------
 //	GBA related functions
 //-------------------------
-int8_t GetGBAInfo(char* name);
+int8_t GetGBAInfo(char* name, uint8_t* ramFlag);
 uint32_t GetGBARomSize(void);
+uint8_t GBA_CheckForSramOrFlash(void);
 

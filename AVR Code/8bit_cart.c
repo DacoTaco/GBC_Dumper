@@ -34,21 +34,14 @@ void Setup_Pins_8bitMode(void)
 	mcp23008_init(ADDR_CHIP_1);
 	mcp23008_init(ADDR_CHIP_2);
 	mcp23008_init(DATA_CHIP_1);
-
-	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
-	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0x00);	
 	
 #elif defined(SHIFTING_MODE)
 	//set the pins as output, init-ing the pins for the shift register
-	ADDR_CTRL_DDR |= ( (1 << ADDR_CTRL_DATA) | (1 << ADDR_CTRL_CLK) | (1 << ADDR_CTRL_LATCH) );
-	
-#else
-	//enable address pins A0 - A7 as output
-	ADDR_DDR1 = 0xFF;
-	ADDR_DDR2 = 0xFF;	
-	
+	ADDR_CTRL_DDR |= ( (1 << ADDR_CTRL_DATA) | (1 << ADDR_CTRL_CLK) | (1 << ADDR_CTRL_LATCH) );	
 #endif	
 
+	//set address pins as output
+	SetAddressPinsAsOutput();
 	//setup data pins as input
 	SetDataPinsAsInput(); 
 	
@@ -101,8 +94,8 @@ inline void Set8BitAddress(uint16_t address)
 	SetPin(ADDR_CTRL_PORT,ADDR_CTRL_LATCH);
 	
 #else //#elif defined(NORMAL_MODE)
-	uint8_t adr1 = address >> 8;
-	uint8_t adr2 = (uint8_t)(address & 0xFF);
+	uint8_t adr2 = address >> 8;
+	uint8_t adr1 = (uint8_t)(address & 0xFF);
 	
 	ADDR_PORT1 = adr1;
 	ADDR_PORT2 = adr2;

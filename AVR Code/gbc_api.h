@@ -68,9 +68,9 @@ void API_SetupPins(int8_t _gb_mode);
 int8_t API_CartInserted(void);
 int8_t API_GetGameInfo(void);
 void API_ResetGameInfo(void);
-int8_t API_Get_Memory(ROM_TYPE type);
+int8_t API_Get_Memory(ROM_TYPE type,int8_t _gbaMode);
 int8_t API_WaitForOK(void);
-int8_t API_WriteRam(void);
+int8_t API_WriteRam(int8_t _gbaMode);
 
 
 //side functions that can be used if the API is used in a custom manor

@@ -44,9 +44,9 @@ void Setup_Pins_24bitMode(void)
 	SetDataPinsAsInput(); 
 	
 	//setup D pins as well for the other, as output
-	CTRL_DDR |= ( (0 << BTN) | (1 << RD) | (1 << WD) | (1 << CS1) | (1 << CS2) );//0b01111100;
+	CTRL_DDR |= ( (0 << BTN) | (1 << RD) | (1 << WD) | (1 << CS1) | (1 << CS2) );
 	//FUCK TRISTATE BULLSHIT xD set the mode of the pins correctly!
-	CTRL_PORT |= ((1 << BTN) | (1 << RD) | (1 << WD) | (1 << CS1) | (1 << CS2) ); //0b01111100;
+	CTRL_PORT |= ((1 << BTN) | (1 << RD) | (1 << WD) | (1 << CS1) | (1 << CS2) );
 	
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
@@ -55,12 +55,16 @@ void Setup_Pins_24bitMode(void)
 }
 inline void Set24BitAddress(uint32_t address)
 {	
-#ifdef GPIO_EXTENDER_MODE
 	SetAddressPinsAsOutput();
 	SetDataPinsAsOutput();
+#ifdef GPIO_EXTENDER_MODE	
 	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(address & 0xFF));
 	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(address >> 8) & 0xFF);
 	mcp23008_WriteReg(DATA_CHIP_1,GPIO,(uint8_t)(address >> 16) & 0xFF);
+#else
+	ADDR_PORT1 = address >> 8;
+	ADDR_PORT2 = (uint8_t)(address & 0xFF);
+	SET_DATA((uint8_t)(address >> 16) & 0xFF);
 #endif
 }
 //The GBA supports something as a increment read.
@@ -68,7 +72,7 @@ inline void Set24BitAddress(uint32_t address)
 //so if you set the address, and read again, you'll get addr+1, next time addr+2 etc etc
 //it'll only latch the lower 16 bits of the address though.
 //this still saves us quiet a few cycles on setting everything.
-inline uint16_t Read24BitIncrementedBytes(int8_t SetAddress,uint32_t address)
+inline uint16_t Read24BitIncrementedBytes(int8_t LatchAddress,uint32_t address)
 {
 	uint8_t d1 = 0;
 	uint8_t d2 = 0;
@@ -76,22 +80,28 @@ inline uint16_t Read24BitIncrementedBytes(int8_t SetAddress,uint32_t address)
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,WD);
 	
-	if(SetAddress)
+	if(LatchAddress)
 	{
 		//do the whole shabang
 		SetPin(CTRL_PORT,CS1);
 		SetPin(CTRL_PORT,CS2);
+		//set address
 		Set24BitAddress(address);
+		//latch address
 		ClearPin(CTRL_PORT,CS1);
+		//set pins as input
 		SetAddressPinsAsInput();
 	}
 	
-	ClearPin(CTRL_PORT,RD);
+	ClearPin(CTRL_PORT,RD);		
 	
 #ifdef GPIO_EXTENDER_MODE			
 	//read data
 	mcp23008_ReadReg(ADDR_CHIP_1, GPIO,&d1);
 	mcp23008_ReadReg(ADDR_CHIP_2, GPIO,&d2);	
+#else
+	GET_ADDR1_DATA(d2);
+	GET_ADDR2_DATA(d1);
 #endif
 	
 	SetPin(CTRL_PORT,RD);
@@ -99,55 +109,24 @@ inline uint16_t Read24BitIncrementedBytes(int8_t SetAddress,uint32_t address)
 }
 inline uint16_t Read24BitBytes(uint32_t address)
 {
-	uint8_t d1 = 0;
-	uint8_t d2 = 0;
-
-	SetPin(CTRL_PORT,RD);
-	SetPin(CTRL_PORT,WD);
-	SetPin(CTRL_PORT,CS1);
-
-	Set24BitAddress(address);
-	
-	//latch the address
-	ClearPin(CTRL_PORT,CS1);
-	
-	//set RD low so data pins are set
-	ClearPin(CTRL_PORT,RD);
-
-#ifdef GPIO_EXTENDER_MODE	
-	//set as input so we can read the pins
-	SetAddressPinsAsInput();
-#endif
-	
-#ifdef GPIO_EXTENDER_MODE			
-	//read data
-	mcp23008_ReadReg(ADDR_CHIP_1, GPIO,&d1);
-	mcp23008_ReadReg(ADDR_CHIP_2, GPIO,&d2);	
-#endif
-	
-	SetPin(CTRL_PORT,RD);
+	uint16_t data = Read24BitIncrementedBytes(1,address);
 	SetPin(CTRL_PORT,CS1);
 	
-	return (uint16_t)d1 << 8 | d2;
+	return data;
 }
 uint32_t GetGBARomSize(void)
 {
 	uint32_t i = 0;
-	uint16_t start[0x0F];
 	uint8_t endFound = 0;
 	
-	//retrieve first few bytes of header to use to compare later
-	for(uint8_t x = 0;x < 0x0F;x++)
-	{
-		start[x] = Read24BitBytes(x);
-	}
-	
-	//basically we read all addresses untill we notice the rom starts mirroring. thats our size
+	//basically we read all addresses untill we notice the rom starts mirroring. 
+	//from testing a few carts i noticed it started to mirror, instead of throwing 00's (open bus)?
+	//thats our size
 	for(i = 0x00100000UL; i <= 0x01000000UL; i<<=1)
 	{	
 		for(uint8_t x = 0;x < 0x0F;x++)
 		{
-			if(Read24BitBytes(i+x) != start[x])
+			if(Read24BitBytes(i+x) != Read24BitBytes(x))
 			{
 				endFound = 0;
 				break;
@@ -160,10 +139,14 @@ uint32_t GetGBARomSize(void)
 	return i;
 }
 
-int8_t GetGBAInfo(char* name)
+int8_t GetGBAInfo(char* name, uint8_t* ramFlag)
 {
+	if(name == NULL || ramFlag == NULL)
+		return ERR_NO_INFO;
+	
 	GBA_Header info;
 	uint16_t* ptr = (uint16_t*)&info;
+	*ramFlag = GBA_SAVE_NONE;
 	uint8_t FF_Cnt = 0;
 	//normal size is 0x9C. we only check 0x08 to speed things up and save space
 	uint8_t Logo[0x08] = {
@@ -182,7 +165,7 @@ int8_t GetGBAInfo(char* name)
 	//Read header
 	for(uint8_t i = 0x00;i < 0xC0;i += 2 )
 	{
-		*ptr = Read24BitIncrementedBytes(i==0,i/2);//Read24BitBytes(i/2);
+		*ptr = Read24BitIncrementedBytes(i==0,i/2);
 	
 		if(*ptr == 0xFFFF)
 			FF_Cnt++;		
@@ -203,7 +186,15 @@ int8_t GetGBAInfo(char* name)
 	if(info.FixedValue != 0x96)
 		return ERR_FAULT_CART;
 	
-	//eh, it'll be ok. copy over the name...
+	//cart is detected OK lets set all data
+	
+	//check if cart is SRAM or flash
+	if(*ramFlag == GBA_SAVE_NONE)
+	{
+		*ramFlag = GBA_CheckForSramOrFlash();
+	}
+	
+	
 	memset(name,0,13);
 	ptr = (uint16_t*)name;
 	uint16_t* ptr_name = (uint16_t*)info.Name;
@@ -215,4 +206,59 @@ int8_t GetGBAInfo(char* name)
 	}
 
 	return 1;
+}
+uint32_t GBA_GetSramOrFlashSize(uint8_t RamType)
+{
+	if(RamType != GBA_SAVE_FLASH && RamType != GBA_SAVE_SRAM)
+		return 0;
+	
+	//size calculation for flash & Sram
+	//Sram only has one size (on paper...). if we read past 0x8000 we would see that it is a mirror of 0x0000	
+	uint8_t duplicates = 0;
+	for(uint8_t i = 0;i < 0x400;i++)
+	{
+		if(ReadGBARamByte(i) == ReadGBARamByte(i+0x8000))
+		{
+			duplicates++;
+		}
+	}
+	
+	//32KB
+	if(duplicates == 0x400)
+		return 0x8000;
+	
+	//64KB SRAM, max Sram size
+	if(RamType == GBA_SAVE_SRAM)
+		return 0x10000;
+	
+	//check if we are dealing with a 64KB or 128KB save
+	
+	return 0;
+}
+
+uint8_t GBA_CheckForSramOrFlash(void)
+{
+	//set to 8bit mode
+	Setup_Pins_8bitMode();
+	
+	//read 32x64 bytes and check for bogus
+	uint16_t addr = 0x00;
+	for (uint8_t x = 0; x < 32; x++) 
+	{		
+		for(uint8_t i = 0;i < 64;i++)
+		{
+			if(ReadGBARamByte(addr) != 0)
+			{
+				return GBA_SAVE_NONE;
+			}
+		}
+		addr += 0x400;
+	}
+
+	
+
+	
+	
+	Setup_Pins_24bitMode();
+	return 0;
 }

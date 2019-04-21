@@ -75,6 +75,7 @@ inline void SetDataPinsAsOutput(void)
 
 inline void SetAddressPinsAsOutput(void)
 {
+#ifdef GPIO_EXTENDER_MODE
 	//disable pull ups
 	mcp23008_WriteReg(ADDR_CHIP_1,GPPU,0x00);
 	mcp23008_WriteReg(ADDR_CHIP_2,GPPU,0x00);
@@ -82,15 +83,30 @@ inline void SetAddressPinsAsOutput(void)
 	//set output
 	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0x00);
 	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0x00);
+#else
+	ADDR_DDR1 = 0xFF;
+	ADDR_DDR2 = 0xFF;
+	
+	ADDR_PORT1 = 0x00;
+	ADDR_PORT2 = 0x00;
+#endif
 	
 }
 inline void SetAddressPinsAsInput(void)
 {
+#ifdef GPIO_EXTENDER_MODE
 	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0xFF);
 	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0xFF);
 	
 	//enable pull up
 	mcp23008_WriteReg(ADDR_CHIP_1,GPPU,0xFF);
 	mcp23008_WriteReg(ADDR_CHIP_2,GPPU,0xFF);
+#else
+	ADDR_DDR1 &= ~(0xFF);
+	ADDR_DDR2 &= ~(0xFF);
+	
+	ADDR_PORT1 = 0xFF;
+	ADDR_PORT2 = 0xFF;
+#endif
 }
 
