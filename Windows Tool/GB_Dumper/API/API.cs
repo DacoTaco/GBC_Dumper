@@ -200,6 +200,14 @@ namespace GB_Dumper.API
             {
                 _throwException(ex);
                 API_ResetVariables();
+                try
+                {
+                    serialInterface.Write(new byte[] { GB_API_Protocol.API_ABORT_CMD }, 0, 1);
+                }
+                catch(Exception exc)
+                {
+                    _throwException(exc);
+                }
                 return;
             }
         }

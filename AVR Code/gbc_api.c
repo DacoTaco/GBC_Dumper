@@ -34,7 +34,7 @@ typedef struct _api_info
 	uint8_t RomSizeFlag;
 	uint8_t RamSize;
 	uint32_t fileSize;
-	uint8_t flag;
+	uint8_t CartFlag;
 } api_info;
 api_info gameInfo; 
 
@@ -104,13 +104,13 @@ int8_t API_GetGameInfo(void)
 	
 	if(_gba_cart)
 	{
-		ret = GetGBAInfo(gameInfo.Name,&gameInfo.RamSize);
+		ret = GetGBAInfo(gameInfo.Name,&gameInfo.CartFlag);
 	}
 	else
 	{
 		ClearPin(CTRL_PORT,CS2);
 		SetPin(CTRL_PORT,CS2);
-		ret = GetGBInfo(gameInfo.Name,&gameInfo.RomSizeFlag,&gameInfo.RamSize);
+		ret = GetGBInfo(gameInfo.Name,&gameInfo.RomSizeFlag,&gameInfo.RamSize,&gameInfo.CartFlag);
 	}
 	
 	if(ret > 0 && gameInfo.Name[0] != 0xFF)
@@ -149,7 +149,7 @@ int8_t API_Get_Memory(ROM_TYPE type,int8_t _gbaMode)
 	{
 		if(_gba_cart)
 		{
-			//API_SetupPins(0);
+			gameInfo.fileSize = GetGBARamSize(gameInfo.CartFlag);
 		}
 		else
 		{
@@ -393,7 +393,6 @@ int8_t API_GetRom(void)
 		//reset cart
 		ClearPin(CTRL_PORT,CS2);
 		SetPin(CTRL_PORT,CS2);
-		
 		uint16_t banks = GetAmountOfRomBacks(gameInfo.RomSizeFlag);
 		
 		uint16_t addr = 0;
@@ -414,46 +413,61 @@ int8_t API_GetRom(void)
 int8_t API_GetRam(void)
 {
 	//reset game cart. this causes all banks & states to reset
-	ClearPin(CTRL_PORT,CS2);
+	if(!_gba_cart)	
+	{
+		if(LoadedBankType == MBC_NONE || LoadedBankType == MBC_UNSUPPORTED)
+			return ERR_NO_MBC;
+		ClearPin(CTRL_PORT,CS2);
+	}
 	
 	SetPin(CTRL_PORT,WD);
 	SetPin(CTRL_PORT,RD);
 	SetPin(CTRL_PORT,CS1);
 	SetPin(CTRL_PORT,CS2);
 	
-	if(LoadedBankType == MBC_NONE || LoadedBankType == MBC_UNSUPPORTED)
-		return ERR_NO_MBC;
-	
-	//read RAM Address'
-	uint16_t addr = 0xA000;
-	uint16_t end_addr = 0xC000; //actually ends at 0xBFFF
-	uint8_t banks = 0;
-	
-	int8_t ret = GetRamDetails(&end_addr,&banks,gameInfo.RamSize);
-	
-	if(ret < 0)
-		return ERR_NO_SAVE;
-	
-	OpenGBRam();
-	//_delay_us(5);
-
-	for(uint8_t bank = 0;bank < banks;bank++)
+	if(_gba_cart)	
 	{
-		//if we aren't dealing with MBC2, set bank to 0!
-		if(LoadedBankType != MBC2)
-			SwitchRAMBank(bank);	
-		
-		for(uint16_t i = addr;i< end_addr ;i++)
+		Setup_Pins_8bitMode();
+		for( uint32_t i = 0; i < gameInfo.fileSize;i++)
 		{
-			cprintf_char(ReadGBRamByte(i));
-			//_delay_us(5);
-			//asm ("nop");
-			asm ("nop");	
+			cprintf_char(ReadGBARamByte(i));
 		}
+		Setup_Pins_24bitMode();
+	}
+	else
+	{
+		//read RAM Address'
+		uint16_t addr = 0xA000;
+		uint16_t end_addr = 0xC000; //actually ends at 0xBFFF
+		uint8_t banks = 0;
+		
+		int8_t ret = GetRamDetails(&end_addr,&banks,gameInfo.RamSize);
+		
+		if(ret < 0)
+			return ERR_NO_SAVE;
+		
+		OpenGBRam();
+		//_delay_us(5);
+
+		for(uint8_t bank = 0;bank < banks;bank++)
+		{
+			//if we aren't dealing with MBC2, set bank to 0!
+			if(LoadedBankType != MBC2)
+				SwitchRAMBank(bank);	
+			
+			for(uint16_t i = addr;i< end_addr ;i++)
+			{
+				cprintf_char(ReadGBRamByte(i));
+				//_delay_us(5);
+				//asm ("nop");
+				asm ("nop");	
+			}
+		}
+		
+		CloseGBRam();	
+		ClearPin(CTRL_PORT,CS2);
 	}
 	
-	CloseGBRam();	
-	ClearPin(CTRL_PORT,CS2);
 	SetPin(CTRL_PORT,CS2);
 	API_ResetGameInfo();
 	return 1;
@@ -493,7 +507,7 @@ void API_Send_Cart_Type(void)
 		toSend = API_GBA_ONLY;
 	else
 	{	
-		switch(gameInfo.flag)
+		switch(gameInfo.CartFlag)
 		{
 			case 0x80:
 				toSend = API_GBC_HYBRID;

@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "gb_pins.h"
 #include "8bit_cart.h"
 #include "24bit_cart.h"
+#include "serial.h"
 
 #ifdef GPIO_EXTENDER_MODE
 #include "mcp23008.h"
@@ -35,11 +36,10 @@ void Setup_Pins_24bitMode(void)
 	//setup the mcp23008, as its the source of everything xD
 	mcp23008_init(ADDR_CHIP_1);
 	mcp23008_init(ADDR_CHIP_2);
-	mcp23008_init(DATA_CHIP_1);
-
-	SetAddressPinsAsOutput();	
+	mcp23008_init(DATA_CHIP_1);	
 #endif	
-
+	SetAddressPinsAsOutput();
+	
 	//setup data pins as input
 	SetDataPinsAsInput(); 
 	
@@ -58,8 +58,8 @@ inline void Set24BitAddress(uint32_t address)
 	SetAddressPinsAsOutput();
 	SetDataPinsAsOutput();
 #ifdef GPIO_EXTENDER_MODE	
-	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(address & 0xFF));
-	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(address >> 8) & 0xFF);
+	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(address & 0xFF));
+	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(address >> 8) & 0xFF);
 	mcp23008_WriteReg(DATA_CHIP_1,GPIO,(uint8_t)(address >> 16) & 0xFF);
 #else
 	ADDR_PORT1 = address >> 8;
@@ -94,11 +94,13 @@ inline uint16_t Read24BitIncrementedBytes(int8_t LatchAddress,uint32_t address)
 	}
 	
 	ClearPin(CTRL_PORT,RD);		
+	asm("nop");
+	asm("nop");
 	
 #ifdef GPIO_EXTENDER_MODE			
 	//read data
-	mcp23008_ReadReg(ADDR_CHIP_1, GPIO,&d1);
-	mcp23008_ReadReg(ADDR_CHIP_2, GPIO,&d2);	
+	mcp23008_ReadReg(ADDR_CHIP_2, GPIO,&d1);
+	mcp23008_ReadReg(ADDR_CHIP_1, GPIO,&d2);	
 #else
 	GET_ADDR1_DATA(d2);
 	GET_ADDR2_DATA(d1);
@@ -139,14 +141,14 @@ uint32_t GetGBARomSize(void)
 	return i;
 }
 
-int8_t GetGBAInfo(char* name, uint8_t* ramFlag)
+int8_t GetGBAInfo(char* name, uint8_t* cartFlag)
 {
-	if(name == NULL || ramFlag == NULL)
+	if(name == NULL || cartFlag == NULL)
 		return ERR_NO_INFO;
 	
 	GBA_Header info;
 	uint16_t* ptr = (uint16_t*)&info;
-	*ramFlag = GBA_SAVE_NONE;
+	*cartFlag = GBA_SAVE_NONE;
 	uint8_t FF_Cnt = 0;
 	//normal size is 0x9C. we only check 0x08 to speed things up and save space
 	uint8_t Logo[0x08] = {
@@ -189,10 +191,7 @@ int8_t GetGBAInfo(char* name, uint8_t* ramFlag)
 	//cart is detected OK lets set all data
 	
 	//check if cart is SRAM or flash
-	if(*ramFlag == GBA_SAVE_NONE)
-	{
-		*ramFlag = GBA_CheckForSramOrFlash();
-	}
+	*cartFlag = GBA_CheckForSave();
 	
 	
 	memset(name,0,13);
@@ -207,15 +206,15 @@ int8_t GetGBAInfo(char* name, uint8_t* ramFlag)
 
 	return 1;
 }
-uint32_t GBA_GetSramOrFlashSize(uint8_t RamType)
+uint32_t GetGBARamSize(uint8_t RamType)
 {
-	if(RamType != GBA_SAVE_FLASH && RamType != GBA_SAVE_SRAM)
+	if(RamType != GBA_SAVE_FLASH && RamType != GBA_SAVE_SRAM && RamType != GBA_SAVE_SRAM_FLASH)
 		return 0;
 	
 	//size calculation for flash & Sram
 	//Sram only has one size (on paper...). if we read past 0x8000 we would see that it is a mirror of 0x0000	
 	uint8_t duplicates = 0;
-	for(uint8_t i = 0;i < 0x400;i++)
+	for(uint16_t i = 0;i < 0x400;i++)
 	{
 		if(ReadGBARamByte(i) == ReadGBARamByte(i+0x8000))
 		{
@@ -223,42 +222,48 @@ uint32_t GBA_GetSramOrFlashSize(uint8_t RamType)
 		}
 	}
 	
-	//32KB
+	//32KB ( 256Kbit )
 	if(duplicates == 0x400)
 		return 0x8000;
 	
-	//64KB SRAM, max Sram size
-	if(RamType == GBA_SAVE_SRAM)
+	//64KB SRAM, max Sram size ( 512Kbit )
+	if(GBA_CheckForSramOrFlash() == GBA_SAVE_SRAM)
 		return 0x10000;
 	
-	//check if we are dealing with a 64KB or 128KB save
-	
+	//check if we are dealing with a 64KB or 128KB flash ( 512Kbit or 1Mbit)
 	return 0;
 }
 
-uint8_t GBA_CheckForSramOrFlash(void)
+uint8_t GBA_CheckForSave(void)
 {
 	//set to 8bit mode
 	Setup_Pins_8bitMode();
-	
 	//read 32x64 bytes and check for bogus
 	uint16_t addr = 0x00;
+	uint8_t zeroes = 0;
 	for (uint8_t x = 0; x < 32; x++) 
 	{		
+		zeroes = 0;
 		for(uint8_t i = 0;i < 64;i++)
 		{
-			if(ReadGBARamByte(addr) != 0)
-			{
-				return GBA_SAVE_NONE;
-			}
+			uint8_t data = ReadGBARamByte(addr+i);
+			if(data == 0)
+			{				
+				zeroes++;	
+			}	
+		}
+		if(x == 0 && zeroes >= 63)
+		{
+			Setup_Pins_24bitMode();
+			return GBA_SAVE_NONE;
 		}
 		addr += 0x400;
 	}
 
-	
-
-	
-	
 	Setup_Pins_24bitMode();
-	return 0;
+	return GBA_SAVE_SRAM_FLASH;
+}
+uint8_t GBA_CheckForSramOrFlash(void)
+{
+	return GBA_SAVE_SRAM;
 }

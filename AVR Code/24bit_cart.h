@@ -52,7 +52,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define GBA_SAVE_NONE 0
 #define GBA_SAVE_EEPROM 1
 #define GBA_SAVE_SRAM 2
-#define GBA_SAVE_FLASH 3
+#define GBA_SAVE_SRAM_FLASH 3
+#define GBA_SAVE_FLASH 4
 
 typedef struct _GBA_Header
 {
@@ -88,5 +89,7 @@ void Set24BitAddress(uint32_t address);
 //-------------------------
 int8_t GetGBAInfo(char* name, uint8_t* ramFlag);
 uint32_t GetGBARomSize(void);
+uint32_t GetGBARamSize(uint8_t RamType);
+uint8_t GBA_CheckForSave(void);
 uint8_t GBA_CheckForSramOrFlash(void);
 

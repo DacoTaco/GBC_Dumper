@@ -60,10 +60,10 @@ inline void Set8BitAddress(uint16_t address)
 {	
 #ifdef GPIO_EXTENDER_MODE	
 	//write lower address
-	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(address & 0xFF));
+	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(address & 0xFF));
 	
 	//write upper address
-	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,address >> 8);
+	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,address >> 8);
 
 #elif defined(SHIFTING_MODE)
 
@@ -265,9 +265,9 @@ inline void SwitchRAMBank(int8_t bank)
 //				GB Retrieval functions
 //---------------------------------------------------
 
-int8_t GetGBInfo(char* GameName, uint8_t* romFlag , uint8_t* ramFlag)
+int8_t GetGBInfo(char* GameName, uint8_t* romFlag , uint8_t* ramFlag,uint8_t* cartFlag)
 {
-	if(GameName == NULL ||romFlag == NULL || ramFlag == NULL)
+	if(GameName == NULL ||romFlag == NULL || ramFlag == NULL || cartFlag == NULL)
 		return -1;
 	
 	GBC_Header temp;
@@ -385,6 +385,7 @@ int8_t GetGBInfo(char* GameName, uint8_t* romFlag , uint8_t* ramFlag)
 	}
 	
 	temp.CartType = header[_CALC_ADDR(_ADDR_CART_TYPE)];
+	*cartFlag = temp.GBCFlag;
 	*romFlag = header[_CALC_ADDR(_ADDR_ROM_SIZE)];
 	*ramFlag = header[_CALC_ADDR(_ADDR_RAM_SIZE)];	
 	LoadedBankType = GetMBCType(temp.CartType);	
@@ -393,7 +394,7 @@ int8_t GetGBInfo(char* GameName, uint8_t* romFlag , uint8_t* ramFlag)
 
 uint16_t GetAmountOfRomBacks(uint8_t RomSizeFlag)
 {
-	if(RomSizeFlag < 7)
+	if(RomSizeFlag <= 7)
 		return 2 << RomSizeFlag;
 	switch(RomSizeFlag)
 	{

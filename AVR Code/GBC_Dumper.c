@@ -43,21 +43,38 @@ uint8_t process_cmd = 0;
 //things that are broken : 
 
 */
-void Setup_Sense_Pin(void)
+void inline SetActive(void)
 {
-	//set pina s input & disable pull up
+	ClearPin(PORTD,PD6);
+	SetPin(PORTD,PD7);
+}
+void inline SetInactive(void)
+{
+	ClearPin(PORTD,PD7);
+	SetPin(PORTD,PD6);
+}
+void Setup_Dumper_Pins(void)
+{
+	//set sense pin as input & disable pull up
+	//set LED pin as output & disable pull up
 #ifdef GPIO_EXTENDER_MODE
-	DDRC &= ~(1 << PC1);
-	PORTC &= ~(1 << PC1);
+	DDRC &= ~(1 << PC0);
+	PORTC &= ~(1 << PC0);
+	
+	DDRD |= ((1 << PD6) | (1 << PD7));
+	PORTD &= ~((1 << PD6) | (1 << PD7));
 #else
 	DDRD &= ~(1 << PD2);
-	PORTD &= ~(1 << PD2);
+	DDRD |= ((1 << PD6) | (1 << PD7));
+	
+	PORTD &= ~((1 << PD2) | (1 << PD6)| (1 << PD7));
 #endif
+	SetInactive();
 }
 uint8_t inline SenseGbaMode(void)
 {
 #ifdef GPIO_EXTENDER_MODE
-	return (PINC & ( 1 << PC1))==0;
+	return (PINC & ( 1 << PC0))==0;
 #else
 	return (PIND & ( 1 << PD2))==0;
 #endif
@@ -66,9 +83,10 @@ uint8_t inline SenseGbaMode(void)
 
 void ProcessCommand(void)
 {
-	process_cmd = 0;
 	DisableSerialInterrupt();
+	process_cmd = 0;
 	int8_t ret = 0;
+	SetActive();
 	
 	if(strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0 || strncmp(cmd,"API_READ_RAM",API_READ_RAM_SIZE) == 0 )
 	{
@@ -124,6 +142,7 @@ void ProcessCommand(void)
 end_function:
 	cmd_size = 0;
 	memset(cmd,0,MAX_CMD_SIZE);
+	SetInactive();
 	EnableSerialInterrupt();
 	return;
 }
@@ -136,6 +155,8 @@ void ProcessChar(char byte)
 		cprintf_char(0x01);
 		return;
 	}
+	else if(byte == API_ABORT_CMD)
+		return;
 	else if(byte == '\n' || byte == '\r')
 	{
 		if(cmd_size > 0)
@@ -162,7 +183,7 @@ int main(void)
 	API_Init();
 	
 	//setup the mode sense pin
-	Setup_Sense_Pin();
+	Setup_Dumper_Pins();
 
 	//set it so that incoming msg's are ignored.
 	setSerialRecvCallback(ProcessChar);
@@ -177,7 +198,7 @@ int main(void)
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
-	uint32_t addr = 0x00000000;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
+	uint32_t addr = 0x00000050;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
     while(1) 
 	{
 		if(process_cmd)
@@ -197,37 +218,18 @@ int main(void)
 				cprintf("gb mode\r\n");
 				Setup_Pins_8bitMode();
 			}
+			
+			uint8_t type = GBA_CheckForSave();
+			cprintf("type : 0x%02X\r\n",type);
+			uint16_t size = GetGBARamSize(type);
+			cprintf("size : 0x%04X\r\n",size);
 			//expected : 0x2e00	
-			//cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);*/
-			/*for(uint16_t i = 0x00;i< 0x0E;i++)
-			{
-				data = ReadGBARamByte(i);
-				//uint8_t d1 = data >> 8;
-				uint8_t d2 = data & 0xFF;
+			/*cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);
+			uint16_t data = Read24BitBytes(addr);
+			uint8_t d1 = data >> 8;
+			uint8_t d2 = data & 0xFF;
 				
-				cprintf("data (0x%04X) : 0x%02X",i,d2);
-				//cprintf_char(d1);	
-				//cprintf_char(d2);
-				cprintf("\r\n");
-			}
-			for(uint16_t i = 0x7FFE;i< 0x800E;i++)
-			{
-				data = ReadGBARamByte(i);
-				//uint8_t d1 = data >> 8;
-				uint8_t d2 = data & 0xFF;
-				
-				cprintf("data (0x%04X) : 0x%02X",i,d2);
-				//cprintf_char(d1);	
-				//cprintf_char(d2);
-				cprintf("\r\n");
-			}*/
-			
-			/*char Name[20] = {0};
-			uint8_t i = 0;
-			uint8_t x = 0;
-			int8_t ret = GetGBInfo(Name, &i , &x);
-			cprintf("ret : %d , Name : '%s'\r\n",ret,Name);*/
-			
+			cprintf("data : 0x%04X",data);*/			
 			
 			cprintf("\r\ndone\r\n");
 

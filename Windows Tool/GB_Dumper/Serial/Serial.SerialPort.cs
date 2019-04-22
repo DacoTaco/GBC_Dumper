@@ -9,22 +9,13 @@ namespace GB_Dumper.Serial
         private SerialPort _device = null;
         private void _device_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            if (OnDataToRead != null)
-                OnDataToRead(this, new SerialEventArgs());
+            OnDataToRead?.Invoke(this, new SerialEventArgs());
         }
 
-        public bool IsOpen()
-        {
-            if (_device == null)
-                return false;
+        public bool IsOpen() => _device?.IsOpen == true;
 
-            return _device.IsOpen;
-        }
-
-        public int BytesToRead()
-        {
-            return _device.BytesToRead;
-        }
+        public int BytesToRead() => _device.BytesToRead;
+  
 
         public IList<SerialDevice> ReloadDevices()
         {
@@ -43,11 +34,14 @@ namespace GB_Dumper.Serial
             if (IsOpen())
                 return;
 
-            _device = new SerialPort(device.Device,BaudRate,Parity.None,8,StopBits.One);
-            _device.Handshake = Handshake.None;
-            _device.ReadTimeout = 200;
-            _device.WriteTimeout = 50;
-            _device.ReceivedBytesThreshold = 0x1;
+            _device = new SerialPort(device.Device, BaudRate, Parity.None, 8, StopBits.One)
+            {
+                Handshake = Handshake.None,
+                ReadTimeout = 50,
+                WriteTimeout = 50,
+                ReceivedBytesThreshold = 0x1,
+                ReadBufferSize = 0x2000
+            };
             _device.DataReceived += _device_DataReceived;
 
             _device.Open();

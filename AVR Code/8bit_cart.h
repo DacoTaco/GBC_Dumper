@@ -126,7 +126,7 @@ int8_t OpenGBRam(void);
 void CloseGBRam(void);
 void SwitchROMBank(int8_t bank);
 void SwitchRAMBank(int8_t bank);
-int8_t GetGBInfo(char* GameName, uint8_t* romFlag , uint8_t* ramFlag);
+int8_t GetGBInfo(char* GameName, uint8_t* romFlag , uint8_t* ramFlag,uint8_t* cartFlag);
 uint16_t GetAmountOfRomBacks(uint8_t RomSizeFlag);
 int8_t GetRamDetails(uint16_t *end_addr, uint8_t *banks,uint8_t RamSizeFlag);
 uint8_t GetMBCType(uint8_t CartType);

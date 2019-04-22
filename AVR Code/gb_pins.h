@@ -22,9 +22,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#define GET_DATA(x) { mcp23008_ReadReg(DATA_CHIP_1, GPIO,&x);}
 	#define SET_DATA(x) { mcp23008_WriteReg(DATA_CHIP_1, GPIO,x);}
 	
-	#define CTRL_DDR DDRD
-	#define CTRL_PORT PORTD
-	#define CTRL_PIN PIND
+	#define CTRL_DDR DDRC
+	#define CTRL_PORT PORTC
+	#define CTRL_PIN PINC
 	
 	//the MCP23008 addresses consist of 0b0100xxxy. xxx = the chip set address & y = the read/write bit.
 	//but no worries, the mcp23008 library keeps that in check for us in case we fuck up
@@ -35,11 +35,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#define DATA_CHIP_1 (0b01000100)
 	
 	
-	#define RD PD5
-	#define WD PD6
-	#define CS1 PD7
-	#define CS2 PD3
-	#define BTN PD4
+	#define RD PC3
+	#define WD PC2
+	#define CS1 PC4
+	#define CS2 PC5
+	#define BTN PC1
 	
 #elif defined(SHIFTING_MODE)
 
