@@ -246,7 +246,7 @@ namespace GB_Dumper.API
             if (data[0] >= GB_API_Protocol.API_ABORT && data[1] >= GB_API_Protocol.API_ABORT)
             {
                 //we retrieved an error. throw the error msg as info and stop
-                _throwWarning(this, $"Cart Error : {Encoding.ASCII.GetString(data, 2, data.Length - 4)}{Environment.NewLine}");
+                _throwStatus(GB_API_Protocol.API_ABORT, $"Cart Error : {Encoding.ASCII.GetString(data, 2, data.Length - 4)}{Environment.NewLine}");
                 return false;
             }
 

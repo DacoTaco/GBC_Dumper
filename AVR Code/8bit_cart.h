@@ -108,7 +108,7 @@ uint8_t LoadedBankType;
 void Setup_Pins_8bitMode(void);
 void Set8BitAddress(uint16_t address);
 
-//we pass on RD here so it will do nothing to the pins. lost cycles, but i don't know if a null check would be more effecient?
+//not sure if this is the most effecient way but... we pass which CS pin to use here
 #define ReadGBRomByte(x) _Read8BitByte(0,x)
 #define ReadGBARamByte(x) _Read8BitByte(CS2,x)
 uint8_t ReadGBRamByte(uint16_t address);
@@ -126,6 +126,7 @@ int8_t OpenGBRam(void);
 void CloseGBRam(void);
 void SwitchROMBank(int8_t bank);
 void SwitchRAMBank(int8_t bank);
+void SwitchFlashRAMBank(int8_t bank);
 int8_t GetGBInfo(char* GameName, uint8_t* romFlag , uint8_t* ramFlag,uint8_t* cartFlag);
 uint16_t GetAmountOfRomBacks(uint8_t RomSizeFlag);
 int8_t GetRamDetails(uint16_t *end_addr, uint8_t *banks,uint8_t RamSizeFlag);

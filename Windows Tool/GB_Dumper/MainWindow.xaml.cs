@@ -138,10 +138,18 @@ namespace GB_Dumper
         {
             TextField += $"INFO {(string.IsNullOrWhiteSpace(source) ? String.Empty : $"FROM {source}")} : {Environment.NewLine}\t{Msg}{Environment.NewLine}";
         }
-        private void ApiHandler_OnStatusThrown(byte status, APIMode mode)
+        private void ApiHandler_OnStatusThrown(byte status, APIMode mode,string Msg)
         {
             switch(status)
             {
+                //error
+                case GB_API_Protocol.API_ABORT:
+                    if (String.IsNullOrWhiteSpace(Msg))
+                        break;
+                    TextField += $"An Error Occured : {Environment.NewLine}{Msg}";
+                    break;
+
+                //handling rom/ram
                 case GB_API_Protocol.API_TASK_START:
                     switch(mode)
                     {
@@ -199,6 +207,8 @@ namespace GB_Dumper
                     }
 
                     break;
+
+                //reset
                 case GB_API_Protocol.API_RESET:
                     OnPropertyChanged("EnableFunctions");
                     OnPropertyChanged("Connected");

@@ -213,7 +213,8 @@ uint32_t GetGBARamSize(uint8_t RamType)
 	
 	//size calculation for flash & Sram
 	//Sram only has one size (on paper...). if we read past 0x8000 we would see that it is a mirror of 0x0000	
-	uint8_t duplicates = 0;
+	Setup_Pins_8bitMode();
+	uint16_t duplicates = 0;
 	for(uint16_t i = 0;i < 0x400;i++)
 	{
 		if(ReadGBARamByte(i) == ReadGBARamByte(i+0x8000))
@@ -231,7 +232,33 @@ uint32_t GetGBARamSize(uint8_t RamType)
 		return 0x10000;
 	
 	//check if we are dealing with a 64KB or 128KB flash ( 512Kbit or 1Mbit)
-	return 0;
+	//this can be done by comparing bank 0 reads to bank 1 and check for mirroring
+	uint8_t bank0[64] = {0};
+	duplicates = 0;
+	
+	for(uint8_t i = 0; i < 32 ; i++)
+	{
+		SwitchFlashRAMBank(0);
+		//read from bank 0
+		for(uint8_t x = 0; x < 64 ; x++)
+		{
+			bank0[x] = ReadGBARamByte(i*0x400);
+		}
+		
+		SwitchFlashRAMBank(1);
+		//compare to bank 1
+		for(uint8_t x = 0; x < 64 ; x++)
+		{
+			if ( bank0[x] == ReadGBARamByte(i*0x400))
+				duplicates++;
+		}
+	}
+	
+	//64KB
+	if(duplicates >= 0x600)
+		return 0x10000;
+	//128KB
+	return 0x20000;
 }
 
 uint8_t GBA_CheckForSave(void)
@@ -265,5 +292,5 @@ uint8_t GBA_CheckForSave(void)
 }
 uint8_t GBA_CheckForSramOrFlash(void)
 {
-	return GBA_SAVE_SRAM;
+	return GBA_SAVE_FLASH;
 }

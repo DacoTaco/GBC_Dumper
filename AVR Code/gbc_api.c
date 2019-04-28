@@ -86,7 +86,7 @@ int8_t API_WaitForOK(void)
 			break;
 	}
 	
-	EnableSerialInterrupt();
+	//EnableSerialInterrupt();
 	return ret;
 }
 void API_ResetGameInfo(void)
@@ -108,8 +108,6 @@ int8_t API_GetGameInfo(void)
 	}
 	else
 	{
-		ClearPin(CTRL_PORT,CS2);
-		SetPin(CTRL_PORT,CS2);
 		ret = GetGBInfo(gameInfo.Name,&gameInfo.RomSizeFlag,&gameInfo.RamSize,&gameInfo.CartFlag);
 	}
 	
@@ -118,10 +116,6 @@ int8_t API_GetGameInfo(void)
 	
 	API_ResetGameInfo();
 	return ret;
-}
-int8_t API_CartInserted(void)
-{
-	return (gameInfo.Name[0] == 0xFF)?0:1;
 }
 int8_t API_Get_Memory(ROM_TYPE type,int8_t _gbaMode)
 {	
@@ -179,31 +173,23 @@ int8_t API_Get_Memory(ROM_TYPE type,int8_t _gbaMode)
 	API_Send_Size();
 	
 	
-	if(API_WaitForOK() > 0)
-	{
-		if(type == TYPE_RAM)
-		{
-			return API_GetRam();
-		}
-		else
-		{
-			return API_GetRom();
-		}
-	}
-	else
+	if(API_WaitForOK <= 0)
 	{
 		API_Send_Abort(API_ABORT_PACKET);
 		return ERR_NOK_RETURNED;
 	}
-	return 1;
+	
+	if(type == TYPE_RAM)
+	{
+		return API_GetRam();
+	}
+	else
+	{
+		return API_GetRom();
+	}
 }
 int8_t API_WriteGBRam(void)
 {	
-	if(_gba_cart)
-	{
-		return -1;
-	}
-	
 	//reset game cart. this causes all banks & states to reset
 	ClearPin(CTRL_PORT,CS2);
 	SetPin(CTRL_PORT,CS2);
@@ -269,8 +255,7 @@ int8_t API_WriteGBRam(void)
 	if(LoadedBankType != MBC2)
 		SwitchRAMBank(bank);
 	
-	//disable serial interrupt. it got reactivated by the WairForOk
-	//we will handle the data, kthxbye
+	//disable serial interrupt. we will handle the data, kthxbye
 	DisableSerialInterrupt();
 	
 	//we start our loop at addr -1 because we will add 1 asa we start the loop
@@ -328,7 +313,7 @@ int8_t API_WriteGBRam(void)
 			ret = ERR_PACKET_FAILURE;
 			cprintf_char(API_ABORT);
 			cprintf_char(API_ABORT_PACKET);
-			break;
+			goto end_function;
 		}
 	}
 	//we are finished, lets send that!
@@ -359,7 +344,7 @@ int8_t API_WriteRam(int8_t _gbaMode)
 	
 	if(_gba_cart)
 	{
-		return 0;
+		return -1;
 	}
 	else
 	{
@@ -430,6 +415,9 @@ int8_t API_GetRam(void)
 		Setup_Pins_8bitMode();
 		for( uint32_t i = 0; i < gameInfo.fileSize;i++)
 		{
+			/*if(i == 0x00010000 && gameInfo.CartFlag == GBA_SAVE_FLASH)
+				SwitchFlashRAMBank(1);*/
+			
 			cprintf_char(ReadGBARamByte(i));
 		}
 		Setup_Pins_24bitMode();
@@ -447,7 +435,6 @@ int8_t API_GetRam(void)
 			return ERR_NO_SAVE;
 		
 		OpenGBRam();
-		//_delay_us(5);
 
 		for(uint8_t bank = 0;bank < banks;bank++)
 		{
@@ -458,9 +445,7 @@ int8_t API_GetRam(void)
 			for(uint16_t i = addr;i< end_addr ;i++)
 			{
 				cprintf_char(ReadGBRamByte(i));
-				//_delay_us(5);
-				//asm ("nop");
-				asm ("nop");	
+				//asm("nop");	
 			}
 		}
 		

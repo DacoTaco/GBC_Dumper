@@ -18,7 +18,7 @@ namespace GB_Dumper.API
     public delegate void ExceptionThrown(string source, Exception e);
     public delegate void WarningThrown(string source,string Msg);
     public delegate void InfoThrown(string source, string Msg);
-    public delegate void StatusThrown(byte status, APIMode api_mode);
+    public delegate void StatusThrown(byte status, APIMode api_mode,string Msg);
     public partial class APIHandler
     {
         //error/exception/warning/info events!
@@ -30,7 +30,8 @@ namespace GB_Dumper.API
         private void _throwException(Exception e) => OnExceptionThrown(e.Source, e);
         private void _throwWarning(object source,string msg) => OnWarningThrown(source?.GetType().ToString(),msg);
         private void _throwInfo(object source, string msg) => OnInfoThrown(source?.GetType().ToString(), msg);
-        private void _throwStatus(byte status) => OnStatusThrown(status, API_Mode);
+        private void _throwStatus(byte status) => OnStatusThrown(status, API_Mode, null);
+        private void _throwStatus(byte status,string Msg) => OnStatusThrown(status, API_Mode, Msg);
 
 
         //variables

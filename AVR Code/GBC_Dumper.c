@@ -34,42 +34,51 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 uint8_t cmd_size = 0;
-#define MAX_CMD_SIZE 0x21
-char cmd[MAX_CMD_SIZE];
+#define MAX_CMD_SIZE 0x20
+char cmd[MAX_CMD_SIZE+1] = {0};
 uint8_t process_cmd = 0;
+
+#ifdef GPIO_EXTENDER_MODE
+	#define ACTIVE_LED PD7
+	#define OK_LED PD6
+	#define SetActive() {ClearPin(PORTD,OK_LED);SetPin(PORTD,ACTIVE_LED);}
+	#define SetInactive() {ClearPin(PORTD,ACTIVE_LED);SetPin(PORTD,OK_LED);}
+#else
+	#define SetActive() {}
+	#define SetInactive() {}
+#endif
 
 /*
 
 //things that are broken : 
 
 */
-void inline SetActive(void)
-{
-	ClearPin(PORTD,PD6);
-	SetPin(PORTD,PD7);
-}
-void inline SetInactive(void)
-{
-	ClearPin(PORTD,PD7);
-	SetPin(PORTD,PD6);
-}
 void Setup_Dumper_Pins(void)
 {
-	//set sense pin as input & disable pull up
+	//set sense pins (cart & interface sense) as input & disable pull up
 	//set LED pin as output & disable pull up
 #ifdef GPIO_EXTENDER_MODE
 	DDRC &= ~(1 << PC0);
 	PORTC &= ~(1 << PC0);
 	
-	DDRD |= ((1 << PD6) | (1 << PD7));
-	PORTD &= ~((1 << PD6) | (1 << PD7));
+	DDRD |= ((1 << OK_LED) | (1 << ACTIVE_LED));
+	DDRD &= ~(1 << PD5);
+	PORTD &= ~((1 << OK_LED) | (1 << ACTIVE_LED) | (1 << PD5));
 #else
-	DDRD &= ~(1 << PD2);
-	DDRD |= ((1 << PD6) | (1 << PD7));
+	DDRD &= ~((1 << PD2) | (1 << PD7));
 	
-	PORTD &= ~((1 << PD2) | (1 << PD6)| (1 << PD7));
+	PORTD &= ~((1 << PD2) | (1 << PD7));
 #endif
 	SetInactive();
+}
+uint8_t inline SenseAutoDetectEnabled(void)
+{
+#ifdef GPIO_EXTENDER_MODE
+	return (PIND & ( 1 << PD5)) > 0;
+#else
+	//normal mode is for Atmega32, which has no sense pins left...
+	return (PIND & ( 1 << PD7)) > 0;
+#endif
 }
 uint8_t inline SenseGbaMode(void)
 {
@@ -78,7 +87,6 @@ uint8_t inline SenseGbaMode(void)
 #else
 	return (PIND & ( 1 << PD2))==0;
 #endif
-	return 1;
 }
 
 void ProcessCommand(void)
@@ -107,12 +115,7 @@ void ProcessCommand(void)
 	
 	//process errors
 	if(ret < 0)
-	{
-		//if there is no Gameinfo/Cart detected that means we are here from cart detection or before. therefor send an abort.
-		//else, just process. it has send its own abort!
-		if(!API_CartInserted())
-			API_Send_Abort(API_ABORT_ERROR);
-		
+	{		
 		switch(ret)
 		{
 			case ERR_PACKET_FAILURE:
@@ -152,21 +155,18 @@ void ProcessChar(char byte)
 	{
 		cprintf_char(API_HANDSHAKE_ACCEPT);
 		//auto detect byte
-		cprintf_char(0x01);
+		cprintf_char(SenseAutoDetectEnabled());
 		return;
 	}
 	else if(byte == API_ABORT_CMD)
 		return;
 	else if(byte == '\n' || byte == '\r')
 	{
-		if(cmd_size > 0)
-			//set variable instead of processing command. something in the lines of disabling interrupt while in one that just doesn't work out nicely
-			process_cmd = 1;
-		return;
+		//set variable instead of processing command. something in the lines of disabling interrupt while in one that just doesn't work out nicely
+		if(cmd_size > 0)			
+			process_cmd = cmd_size > 0;
 	}
-	else if( 
-		(cmd_size+1) < MAX_CMD_SIZE
-	)
+	else if( cmd_size < MAX_CMD_SIZE )
 	{
 		//space left!
 		cmd[cmd_size] = byte;
@@ -220,9 +220,18 @@ int main(void)
 			}
 			
 			uint8_t type = GBA_CheckForSave();
-			cprintf("type : 0x%02X\r\n",type);
-			uint16_t size = GetGBARamSize(type);
-			cprintf("size : 0x%04X\r\n",size);
+			cprintf("type : ");
+			cprintf_char(type);
+			uint32_t size = GetGBARamSize(type);
+			Setup_Pins_24bitMode();
+			cprintf("\r\nsize : ");
+			cprintf_char((size >> 24) & 0xFF);
+			cprintf_char((size >> 16) & 0xFF);
+			cprintf_char((size >> 8) & 0xFF);
+			cprintf_char((size) & 0xFF);
+			
+			//cprintf("type : 0x%02X\r\n",type);		
+			//cprintf("size : 0x%04X\r\n",size);
 			//expected : 0x2e00	
 			/*cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);
 			uint16_t data = Read24BitBytes(addr);

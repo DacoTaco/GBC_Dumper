@@ -17,7 +17,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	
     1 - VCC – Power (3.3 volts, though said to be 5v tolerant)
     2 - CLK – Clock signal (not used)
-    3 - WR – if low(grounded) and if RD is low, we can write to the SRAM and load a ROM or SRAM bank
+    3 - WR – if low(grounded) and if RD is HIGH, we can write to the SRAM and load a ROM or SRAM bank
     4 - RD – if low (grounded) and if WR is high, we can read the ROM and SRAM
     5 - CS_ROM – if low, selects the ROM
     6 - A0

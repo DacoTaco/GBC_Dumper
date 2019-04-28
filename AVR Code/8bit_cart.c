@@ -104,9 +104,6 @@ inline void Set8BitAddress(uint16_t address)
 inline uint8_t _Read8BitByte(uint8_t CS_Pin, uint16_t address)
 {
 	uint8_t data = 0;
-
-	SetPin(CTRL_PORT,WD);
-	SetPin(CTRL_PORT,RD);
 		
 	//pass Address to cartridge via the address bus
 	Set8BitAddress(address);
@@ -139,10 +136,7 @@ uint8_t ReadGBRamByte(uint16_t address)
 }
 
 inline void _Write8BitByte(uint8_t CS_Pin, uint16_t addr,uint8_t byte)
-{
-	SetPin(CTRL_PORT,WD);
-	SetPin(CTRL_PORT,RD);
-	
+{	
 	SetDataPinsAsOutput(); 
 	SET_DATA(byte);
 	Set8BitAddress(addr);
@@ -158,7 +152,6 @@ inline void _Write8BitByte(uint8_t CS_Pin, uint16_t addr,uint8_t byte)
 	if(CS_Pin != 0)
 		SetPin(CTRL_PORT,CS_Pin);
 	
-	SET_DATA(0x00);
 	SetDataPinsAsInput();
 	
 	return;
@@ -258,6 +251,14 @@ inline void SwitchRAMBank(int8_t bank)
 	WriteGBRomByte(0x4000,bank);	
 	return;
 }
+inline void SwitchFlashRAMBank(int8_t bank)
+{
+	WriteGBARamByte(0x5555,0xAA);
+	WriteGBARamByte(0x2AAA,0x55);	
+	WriteGBARamByte(0x5555,0xB0);
+	WriteGBARamByte(0x0000,bank);
+	return;
+}
 
 
 
@@ -269,6 +270,10 @@ int8_t GetGBInfo(char* GameName, uint8_t* romFlag , uint8_t* ramFlag,uint8_t* ca
 {
 	if(GameName == NULL ||romFlag == NULL || ramFlag == NULL || cartFlag == NULL)
 		return -1;
+	
+	//reset cart
+	ClearPin(CTRL_PORT,CS2);
+	SetPin(CTRL_PORT,CS2);
 	
 	GBC_Header temp;
 	uint8_t header[0x51] = {0};
@@ -433,9 +438,7 @@ int8_t GetRamDetails(uint16_t *end_addr, uint8_t *banks,uint8_t RamSizeFlag)
 		switch(RamSizeFlag)
 		{
 			case 0x01: //1 bank of 2KB ram
-				*banks = 1;
 				*end_addr = 0xA800;
-				break;
 			case 0x02: //1 bank of 8KB ram
 				*banks = 1;
 				break;
