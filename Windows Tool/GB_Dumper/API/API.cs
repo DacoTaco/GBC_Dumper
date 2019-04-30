@@ -15,23 +15,31 @@ namespace GB_Dumper.API
         WriteRam
     }
 
-    public delegate void ExceptionThrown(string source, Exception e);
-    public delegate void WarningThrown(string source,string Msg);
-    public delegate void InfoThrown(string source, string Msg);
-    public delegate void StatusThrown(byte status, APIMode api_mode,string Msg);
     public partial class APIHandler
     {
         //error/exception/warning/info events!
         //-----------------------------------------
-        public event ExceptionThrown OnExceptionThrown;
-        public event WarningThrown OnWarningThrown;
-        public event InfoThrown OnInfoThrown;
-        public event StatusThrown OnStatusThrown;
+        public Action<string, Exception> OnExceptionThrown;
+        public Action<string, string> OnWarningThrown;
+        public Action<string, string> OnInfoThrown;
+        public Action<ApiInfo> OnStatusThrown;
+
         private void _throwException(Exception e) => OnExceptionThrown(e.Source, e);
         private void _throwWarning(object source,string msg) => OnWarningThrown(source?.GetType().ToString(),msg);
         private void _throwInfo(object source, string msg) => OnInfoThrown(source?.GetType().ToString(), msg);
-        private void _throwStatus(byte status) => OnStatusThrown(status, API_Mode, null);
-        private void _throwStatus(byte status,string Msg) => OnStatusThrown(status, API_Mode, Msg);
+        private void _throwStatus(byte status) => _throwStatus(status, null);
+        private void _throwStatus(byte status,string Msg)
+        {
+            ApiInfo msg = new ApiInfo
+            {
+                Status = status,
+                Msg = Msg,
+                gameInfo = Info,
+                API_Mode = API_Mode,
+                StartTime = StartTime
+            };
+            OnStatusThrown(msg);
+        }
 
 
         //variables
@@ -39,8 +47,8 @@ namespace GB_Dumper.API
         private FileHandler fileHandler = new FileHandler();
         private APIMode API_Mode;
         public bool AutoDetect { get; private set; }
-        public GameInfo Info = new GameInfo();
-        public DateTime? StartTime { get; private set; }
+        private GameInfo Info = new GameInfo();
+        private DateTime? StartTime;
 
         private SerialInterface serialInterface = SerialInterface.Instance;
         public bool FTDIMode

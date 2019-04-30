@@ -12,4 +12,13 @@ namespace GB_Dumper.API
         public Int32 current_addr;
         public Int32 CartType;
     }
+
+    public class ApiInfo
+    {
+        public GameInfo gameInfo = new GameInfo();
+        public string Msg;
+        public APIMode API_Mode;
+        public byte Status;
+        public DateTime? StartTime;
+    }
 }

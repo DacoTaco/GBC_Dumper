@@ -138,27 +138,27 @@ namespace GB_Dumper
         {
             TextField += $"INFO {(string.IsNullOrWhiteSpace(source) ? String.Empty : $"FROM {source}")} : {Environment.NewLine}\t{Msg}{Environment.NewLine}";
         }
-        private void ApiHandler_OnStatusThrown(byte status, APIMode mode,string Msg)
+        private void ApiHandler_OnStatusThrown(ApiInfo info)
         {
-            switch(status)
+            switch(info.Status)
             {
                 //error
                 case GB_API_Protocol.API_ABORT:
-                    if (String.IsNullOrWhiteSpace(Msg))
+                    if (String.IsNullOrWhiteSpace(info.Msg))
                         break;
-                    TextField += $"An Error Occured : {Environment.NewLine}{Msg}";
+                    TextField += $"An Error Occured : {Environment.NewLine}{info.Msg}";
                     break;
 
                 //handling rom/ram
                 case GB_API_Protocol.API_TASK_START:
-                    switch(mode)
+                    switch(info.API_Mode)
                     {
                         case APIMode.ReadRam:
                         case APIMode.ReadRom:
-                            TextField += $"Downloading...{Environment.NewLine}0x{apiHandler.Info.current_addr.ToString("X8")}/0x{apiHandler.Info.FileSize.ToString("X8")}...";
+                            TextField += $"Downloading...{Environment.NewLine}0x{info.gameInfo.current_addr.ToString("X8")}/0x{info.gameInfo.FileSize.ToString("X8")}...";
                             break;
                         case APIMode.WriteRam:
-                            TextField += $"Uploading...{Environment.NewLine}0x{apiHandler.Info.current_addr.ToString("X8")}/0x{apiHandler.Info.FileSize.ToString("X8")}...";
+                            TextField += $"Uploading...{Environment.NewLine}0x{info.gameInfo.current_addr.ToString("X8")}/0x{info.gameInfo.FileSize.ToString("X8")}...";
                             break;
                         default:
                             break;
@@ -167,7 +167,7 @@ namespace GB_Dumper
                 case GB_API_Protocol.API_TASK_FINISHED: //we will update the UI & then finish it up
                 case GB_API_Protocol.API_OK:
                     var selectText = string.Empty;
-                    switch (mode)
+                    switch (info.API_Mode)
                     {
                         case APIMode.ReadRam:
                         case APIMode.ReadRom:
@@ -191,17 +191,17 @@ namespace GB_Dumper
                         {
                             place += $"{selectText}...{Environment.NewLine}".Length;
                             display = TextField.Remove(place, 24);
-                            display += $"0x{apiHandler.Info.current_addr.ToString("X8")}/0x{apiHandler.Info.FileSize.ToString("X8")}...";
+                            display += $"0x{info.gameInfo.current_addr.ToString("X8")}/0x{info.gameInfo.FileSize.ToString("X8")}...";
                             TextField = display;
                         }
                     }
                     else
-                        TextField += $"{selectText}...{Environment.NewLine}0x{apiHandler.Info.current_addr.ToString("X8")}/0x{apiHandler.Info.FileSize.ToString("X8")}...";
+                        TextField += $"{selectText}...{Environment.NewLine}0x{info.gameInfo.current_addr.ToString("X8")}/0x{info.gameInfo.FileSize.ToString("X8")}...";
 
                     //finish it up
-                    if (status == GB_API_Protocol.API_TASK_FINISHED)
+                    if (info.Status == GB_API_Protocol.API_TASK_FINISHED)
                     {
-                        TimeSpan diff = DateTime.Now - apiHandler.StartTime.Value;
+                        TimeSpan diff = DateTime.Now - info.StartTime.Value;
                         //we are done!
                         TextField += $"{Environment.NewLine}Done!{Environment.NewLine}Time : {diff.ToString()}{Environment.NewLine}";
                     }

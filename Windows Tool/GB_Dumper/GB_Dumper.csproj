@@ -62,7 +62,7 @@
     <Compile Include="API\API.Constants.cs" />
     <Compile Include="API\API.cs" />
     <Compile Include="API\API.Functions.cs" />
-    <Compile Include="API\API.GameInfo.cs" />
+    <Compile Include="API\API.ApiInfo.cs" />
     <Compile Include="Serial\SeriaI.ISerialInterface.cs" />
     <Compile Include="Serial\Serial.Interface.cs" />
     <Compile Include="Serial\Serial.FTDIDevice.cs" />

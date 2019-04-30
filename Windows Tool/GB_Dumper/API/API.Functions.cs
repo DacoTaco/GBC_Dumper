@@ -59,7 +59,7 @@ namespace GB_Dumper.API
         }
         private bool API_HandleReadRomRam(byte[] data)
         {
-            //process header
+            //process header & open file
             if(!fileHandler.IsOpened || string.IsNullOrWhiteSpace(Info.CartName))
             {
                 //this is the header we are processing.
@@ -224,7 +224,7 @@ namespace GB_Dumper.API
         private bool API_ProcessHeader(byte[] data)
         {
             if (data == null)
-                throw new ArgumentException("Failed to process header : Invalid arguments");
+                throw new ArgumentNullException("Failed to process header : Invalid arguments");
 
             short sleep_cnt = 0;
             //we sometimes get uncomplete data, so wait a bit to see if more data is coming.
