@@ -221,9 +221,9 @@ int8_t GetGBAInfo(char* name, uint8_t* cartFlag)
 
 	return 1;
 }
-uint32_t GetGBARamSize(uint8_t RamType)
+uint32_t GetGBARamSize(uint8_t* RamType)
 {
-	if(RamType != GBA_SAVE_FLASH && RamType != GBA_SAVE_SRAM && RamType != GBA_SAVE_SRAM_FLASH)
+	if(RamType == NULL || (*RamType != GBA_SAVE_FLASH && *RamType != GBA_SAVE_SRAM && *RamType != GBA_SAVE_SRAM_FLASH))
 		return 0;
 	
 	//size calculation for flash & Sram
@@ -243,8 +243,11 @@ uint32_t GetGBARamSize(uint8_t RamType)
 		return 0x8000;
 	
 	//64KB SRAM, max Sram size ( 512Kbit )
-	if(GBA_CheckForSramOrFlash() == GBA_SAVE_SRAM)
+	*RamType = GBA_CheckForSramOrFlash();
+	if(*RamType == GBA_SAVE_SRAM)
 		return 0x10000;
+	else if (*RamType == GBA_SAVE_NONE)
+		return 0;
 	
 	//check if we are dealing with a 64KB or 128KB flash ( 512Kbit or 1Mbit)
 	//this can be done by comparing bank 0 reads to bank 1 and check for mirroring
@@ -307,5 +310,28 @@ uint8_t GBA_CheckForSave(void)
 }
 uint8_t GBA_CheckForSramOrFlash(void)
 {
+	//ok so, how this works freaks me out but there doesn't seem to be a more reliable way
+	//we basically write a test byte to address 0 of the save. if it returns as the test byte, we have sram and we restore what was on address 0.
+	//if it doesn't return the test byte , we have flash
+	//this because flash is read as normal, but writing requires a whole process...
+	uint8_t testByte = 0xDA;
+	uint8_t checkByte = 0x00;
+	
+	checkByte = ReadGBARamByte(0);
+	if(checkByte == testByte)
+		testByte = 0xED;
+	
+	//here we go... D:
+	WriteGBARamByte(0,testByte);
+	if(ReadGBARamByte(0) == testByte)
+	{
+		//we have SRAM!!
+		//restore byte and return
+		WriteGBARamByte(0,checkByte);
+		return GBA_SAVE_SRAM;		
+	}
+	
+	//TODO : read Flash manufactoring ID and verify it
+	
 	return GBA_SAVE_FLASH;
 }

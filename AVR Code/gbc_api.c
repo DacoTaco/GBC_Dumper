@@ -143,7 +143,12 @@ int8_t API_Get_Memory(ROM_TYPE type,int8_t _gbaMode)
 	{
 		if(_gba_cart)
 		{
-			gameInfo.fileSize = GetGBARamSize(gameInfo.CartFlag);
+			gameInfo.fileSize = GetGBARamSize(&gameInfo.CartFlag);
+			if(gameInfo.fileSize <= 0)
+			{
+				API_Send_Abort(API_ABORT_CMD);
+				return ERR_NO_SAVE;
+			}
 		}
 		else
 		{
@@ -412,12 +417,16 @@ int8_t API_GetRam(void)
 	if(_gba_cart)	
 	{
 		Setup_Pins_8bitMode();
+		uint8_t bank = 0;
 		for( uint32_t i = 0; i < gameInfo.fileSize;i++)
 		{
-			/*if(i == 0x00010000 && gameInfo.CartFlag == GBA_SAVE_FLASH)
-				SwitchFlashRAMBank(1);*/
+			if((i%0x10000) == 0 && gameInfo.CartFlag == GBA_SAVE_FLASH)
+			{
+				SwitchFlashRAMBank(bank);
+				bank++;
+			}
 			
-			cprintf_char(ReadGBARamByte(i));
+			cprintf_char(ReadGBARamByte(i & 0xFFFF));
 		}
 		Setup_Pins_24bitMode();
 	}

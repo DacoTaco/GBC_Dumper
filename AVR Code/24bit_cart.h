@@ -89,7 +89,7 @@ void Set24BitAddress(uint32_t address);
 //-------------------------
 int8_t GetGBAInfo(char* name, uint8_t* ramFlag);
 uint32_t GetGBARomSize(void);
-uint32_t GetGBARamSize(uint8_t RamType);
+uint32_t GetGBARamSize(uint8_t* RamType);
 uint8_t GBA_CheckForSave(void);
 uint8_t GBA_CheckForSramOrFlash(void);
 

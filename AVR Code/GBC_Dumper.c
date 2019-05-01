@@ -218,22 +218,10 @@ int main(void)
 				cprintf("gb mode\r\n");
 				Setup_Pins_8bitMode();
 			}
+			uint8_t data = ReadGBARamByte(0x1004);
+			cprintf("data : ");
+			cprintf_char(data);
 			
-			uint8_t type = GBA_CheckForSave();
-			cprintf("type : ");
-			cprintf_char(type);
-			uint32_t size = GetGBARamSize(type);
-			cprintf("done\r\n");
-			Setup_Pins_24bitMode();
-			cprintf("size : ");
-			cprintf_char((size >> 24) & 0xFF);
-			cprintf_char((size >> 16) & 0xFF);
-			cprintf_char((size >> 8) & 0xFF);
-			cprintf_char((size) & 0xFF);
-			
-			//cprintf("type : 0x%02X\r\n",type);		
-			//cprintf("size : 0x%04X\r\n",size);
-			//expected : 0x2e00	
 			/*cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);
 			uint16_t data = Read24BitBytes(addr);
 			uint8_t d1 = data >> 8;
