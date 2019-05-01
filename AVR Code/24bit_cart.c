@@ -142,7 +142,8 @@ uint32_t GetGBARomSize(void)
 				endFound = 0;
 				break;
 			}
-			endFound = 1;
+			else
+				endFound = 1;
 		}		
 		if(endFound == 1 || noData == 0x500)
 			break;	
