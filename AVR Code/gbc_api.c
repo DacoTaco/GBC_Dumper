@@ -170,10 +170,9 @@ int8_t API_Get_Memory(ROM_TYPE type,int8_t _gbaMode)
 	
 	API_Send_Cart_Type();
 	API_Send_Name();
-	API_Send_Size();
+	API_Send_Size();	
 	
-	
-	if(API_WaitForOK <= 0)
+	if(API_WaitForOK() <= 0)
 	{
 		API_Send_Abort(API_ABORT_PACKET);
 		return ERR_NOK_RETURNED;

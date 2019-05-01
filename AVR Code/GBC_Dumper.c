@@ -107,7 +107,7 @@ void ProcessCommand(void)
 	}
 	else
 	{
-		API_Send_Abort(API_ABORT_ERROR);
+		API_Send_Abort(API_ABORT);
 		cprintf("COMMAND '");
 		cprintf(cmd);
 		cprintf("' UNKNOWN\r\n");
@@ -223,8 +223,9 @@ int main(void)
 			cprintf("type : ");
 			cprintf_char(type);
 			uint32_t size = GetGBARamSize(type);
+			cprintf("done\r\n");
 			Setup_Pins_24bitMode();
-			cprintf("\r\nsize : ");
+			cprintf("size : ");
 			cprintf_char((size >> 24) & 0xFF);
 			cprintf_char((size >> 16) & 0xFF);
 			cprintf_char((size >> 8) & 0xFF);

@@ -120,24 +120,38 @@ uint32_t GetGBARomSize(void)
 {
 	uint32_t i = 0;
 	uint8_t endFound = 0;
+	uint16_t noData;
 	
-	//basically we read all addresses untill we notice the rom starts mirroring. 
-	//from testing a few carts i noticed it started to mirror, instead of throwing 00's (open bus)?
+	//basically we read all addresses untill we notice the rom starts mirroring OR we get like... 0x1000 bytes of 0xFF
+	//from testing a few carts i noticed it started to mirror (metroid fusion, sword of mana)
+	//yet others went open bus (super mario advance 4) and read 0xFF...
 	//thats our size
 	for(i = 0x00100000UL; i <= 0x01000000UL; i<<=1)
 	{	
-		for(uint8_t x = 0;x < 0x0F;x++)
+		noData = 0;
+		for(uint16_t x = 0;x < 0x500;x++)
 		{
-			if(Read24BitBytes(i+x) != Read24BitBytes(x))
+			uint16_t data = Read24BitBytes(i+x);
+			if(data == 0xFFFF)
+			{
+				noData++;
+				endFound = 0;
+			}
+			else if(data != Read24BitBytes(x))
 			{
 				endFound = 0;
 				break;
 			}
 			endFound = 1;
 		}		
-		if(endFound)
+		if(endFound == 1 || noData == 0x500)
 			break;	
 	}
+	
+	//since GBA is 16bit per address, we need to multiply the size with 2
+	if(i<= 0x01000000UL)
+		i *= 2;
+	
 	return i;
 }
 
@@ -242,20 +256,20 @@ uint32_t GetGBARamSize(uint8_t RamType)
 		//read from bank 0
 		for(uint8_t x = 0; x < 64 ; x++)
 		{
-			bank0[x] = ReadGBARamByte(i*0x400);
+			bank0[x] = ReadGBARamByte((i*0x400)+x);
 		}
 		
 		SwitchFlashRAMBank(1);
 		//compare to bank 1
 		for(uint8_t x = 0; x < 64 ; x++)
 		{
-			if ( bank0[x] == ReadGBARamByte(i*0x400))
+			if ( bank0[x] == ReadGBARamByte((i*0x400)+x))
 				duplicates++;
 		}
 	}
 	
 	//64KB
-	if(duplicates >= 0x600)
+	if(duplicates >= 0x2000)
 		return 0x10000;
 	//128KB
 	return 0x20000;
