@@ -217,18 +217,14 @@ int main(void)
 			{
 				cprintf("gb mode\r\n");
 				Setup_Pins_8bitMode();
-			}
-			uint8_t data = ReadGBARamByte(0x1004);
-			cprintf("data : ");
-			cprintf_char(data);
-			
+			}			
 			/*cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);
 			uint16_t data = Read24BitBytes(addr);
 			uint8_t d1 = data >> 8;
 			uint8_t d2 = data & 0xFF;
 				
-			cprintf("data : 0x%04X",data);*/			
-			
+			cprintf("data : 0x%04X",data);*/	
+
 			cprintf("\r\ndone\r\n");
 
 			/*if(CheckControlPin(CS2) == 1)

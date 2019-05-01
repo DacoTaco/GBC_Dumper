@@ -57,15 +57,10 @@ inline void Set24BitAddress(uint32_t address)
 {	
 	SetAddressPinsAsOutput();
 	SetDataPinsAsOutput();
-#ifdef GPIO_EXTENDER_MODE	
-	mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(address & 0xFF));
-	mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(address >> 8) & 0xFF);
-	mcp23008_WriteReg(DATA_CHIP_1,GPIO,(uint8_t)(address >> 16) & 0xFF);
-#else
-	ADDR_PORT1 = address >> 8;
-	ADDR_PORT2 = (uint8_t)(address & 0xFF);
+
+	SET_ADDR(address);
 	SET_DATA((uint8_t)(address >> 16) & 0xFF);
-#endif
+
 }
 //The GBA supports something as a increment read.
 //basically as long as CS1 is kept low, the next RD strobe will just reveal the next 2 bytes.
@@ -89,6 +84,10 @@ inline uint16_t Read24BitIncrementedBytes(int8_t LatchAddress,uint32_t address)
 		Set24BitAddress(address);
 		//latch address
 		ClearPin(CTRL_PORT,CS1);
+		
+		//now that the cart has latched the address, we can set the address pins as 0, to force 0x0000 when open bus
+		SET_ADDR(0x0000);
+		
 		//set pins as input
 		SetAddressPinsAsInput();
 	}
@@ -97,14 +96,8 @@ inline uint16_t Read24BitIncrementedBytes(int8_t LatchAddress,uint32_t address)
 	asm("nop");
 	asm("nop");
 	
-#ifdef GPIO_EXTENDER_MODE			
-	//read data
-	mcp23008_ReadReg(ADDR_CHIP_2, GPIO,&d1);
-	mcp23008_ReadReg(ADDR_CHIP_1, GPIO,&d2);	
-#else
 	GET_ADDR1_DATA(d2);
 	GET_ADDR2_DATA(d1);
-#endif
 	
 	SetPin(CTRL_PORT,RD);
 	return (uint16_t)d1 << 8 | d2;
@@ -122,20 +115,20 @@ uint32_t GetGBARomSize(void)
 	uint8_t endFound = 0;
 	uint16_t noData;
 	
-	//basically we read all addresses untill we notice the rom starts mirroring OR we get like... 0x1000 bytes of 0xFF
+	//basically we read all addresses untill we notice the rom starts mirroring OR we get like... 0x1000 bytes of 0x0000 (open bus)
 	//from testing a few carts i noticed it started to mirror (metroid fusion, sword of mana)
-	//yet others went open bus (super mario advance 4) and read 0xFF...
+	//yet others went open bus (super mario advance 4) and read 0x00...
+	//or does both (metroid fusion(EU))
 	//thats our size
-	for(i = 0x00100000UL; i <= 0x01000000UL; i<<=1)
+	for(i = 0x00100000UL; i < 0x01000000UL; i<<=1)
 	{	
 		noData = 0;
 		for(uint16_t x = 0;x < 0x500;x++)
 		{
 			uint16_t data = Read24BitBytes(i+x);
-			if(data == 0xFFFF)
+			if(data == 0x0000)
 			{
 				noData++;
-				endFound = 0;
 			}
 			else if(data != Read24BitBytes(x))
 			{
@@ -184,9 +177,9 @@ int8_t GetGBAInfo(char* name, uint8_t* cartFlag)
 	{
 		*ptr = Read24BitIncrementedBytes(i==0,i/2);
 	
-		if(*ptr == 0xFFFF)
+		if(*ptr == 0x0000)
 			FF_Cnt++;		
-		if(FF_Cnt >= 3)
+		if(FF_Cnt >= 0x30)
 			return ERR_FAULT_CART;
 		
 		ptr++;
@@ -273,7 +266,7 @@ uint32_t GetGBARamSize(uint8_t* RamType)
 	}
 	
 	//64KB
-	if(duplicates >= 0x2000)
+	if(duplicates >= 0x800)
 		return 0x10000;
 	//128KB
 	return 0x20000;

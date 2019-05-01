@@ -94,19 +94,13 @@ inline void SetAddressPinsAsOutput(void)
 }
 inline void SetAddressPinsAsInput(void)
 {
+	//we don't enable pull ups here cause we need to be able to tell the differenc between 0xFFFF & open bus...
 #ifdef GPIO_EXTENDER_MODE
 	mcp23008_WriteReg(ADDR_CHIP_1,IODIR,0xFF);
-	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0xFF);
-	
-	//enable pull up
-	mcp23008_WriteReg(ADDR_CHIP_1,GPPU,0xFF);
-	mcp23008_WriteReg(ADDR_CHIP_2,GPPU,0xFF);
+	mcp23008_WriteReg(ADDR_CHIP_2,IODIR,0xFF);	
 #else
 	ADDR_DDR1 &= ~(0xFF);
 	ADDR_DDR2 &= ~(0xFF);
-	
-	ADDR_PORT1 = 0xFF;
-	ADDR_PORT2 = 0xFF;
 #endif
 }
 

@@ -22,6 +22,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#define GET_DATA(x) { mcp23008_ReadReg(DATA_CHIP_1, GPIO,&x);}
 	#define SET_DATA(x) { mcp23008_WriteReg(DATA_CHIP_1, GPIO,x);}
 	
+	#define SET_ADDR(x) { mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(x & 0xFF));mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(x >> 8) & 0xFF); }
+	#define GET_ADDR1_DATA(x) {mcp23008_ReadReg(ADDR_CHIP_1, GPIO,&x);}
+	#define GET_ADDR2_DATA(x) {mcp23008_ReadReg(ADDR_CHIP_2, GPIO,&x);}
+	
 	#define CTRL_DDR DDRC
 	#define CTRL_PORT PORTC
 	#define CTRL_PIN PINC
@@ -90,6 +94,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#define GET_DATA(x) {asm("nop");asm("nop");x = DATA_PIN;}
 	#define SET_DATA(x) (DATA_PORT = x)
 	
+	#define SET_ADDR(x) { ADDR_PORT1 = x >> 8; ADDR_PORT2 = (uint8_t)(x & 0xFF); }
 	#define GET_ADDR1_DATA(x) {asm("nop");x = ADDR_PIN1;}
 	#define GET_ADDR2_DATA(x) {asm("nop");x = ADDR_PIN2;}
 
