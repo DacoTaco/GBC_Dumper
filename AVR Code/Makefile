@@ -73,7 +73,7 @@ DEBUG = dwarf-2
 # _VA_SUPPORT is for Variadic functions in cprintf (accepting arguments)
 # SAVE_SPACE is to set it so all code having defines for saving space will disable code to do so
 #SHIFTING_MODE
-CUSTOMDEFINES = -DBAUD=500000 -DSAVE_SPACE 
+CUSTOMDEFINES = -DBAUD=1000000 -DSAVE_SPACE 
 #CUSTOMDEFINES = -D_VA_SUPPORT -DSCL_CLOCK=400
 
 ifeq ($(MCU),atmega8)

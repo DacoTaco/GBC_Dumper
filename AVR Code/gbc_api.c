@@ -164,11 +164,11 @@ int8_t API_Get_Memory(ROM_TYPE type,int8_t _gbaMode)
 			
 			if(end_addr < 0xC000)
 			{
-				gameInfo.fileSize = end_addr - 0xA000;
+				gameInfo.fileSize = end_addr - 0xA000UL;
 			}
 			else
 			{
-				gameInfo.fileSize = 0x2000 * _banks;
+				gameInfo.fileSize = 0x2000UL * _banks;
 			}
 		}		
 	}
@@ -215,11 +215,11 @@ int8_t API_WriteGBRam(void)
 	//for WRITERAM we need to send Ram size, wait for the OK(0x80) or NOK(anything NOT 0x80) signal, and then start receiving.
 	if(end_addr < 0xC000)
 	{
-		gameInfo.fileSize = end_addr - 0xA000;
+		gameInfo.fileSize = end_addr - 0xA000UL;
 	}
 	else
 	{
-		gameInfo.fileSize = 0x2000 * banks;
+		gameInfo.fileSize = 0x2000UL * banks;
 	}
 	
 	API_Send_Size();
@@ -331,6 +331,23 @@ end_function:
 	EnableSerialInterrupt();
 	return ret;
 }
+int8_t API_WriteGBARam()
+{
+	if(gameInfo.CartFlag != GBA_SAVE_NONE)
+		return ERR_NO_SAVE;
+	
+	int8_t ret = -1;
+	
+	if(gameInfo.CartFlag != GBA_SAVE_SRAM)
+	{
+		ret = ERR_NO_INFO;
+		goto end_write_gba;
+	}
+	
+end_write_gba:
+	API_ResetGameInfo();
+	return ret;
+}
 int8_t API_WriteRam(int8_t _gbaMode)
 {		
 	API_SetupPins(_gbaMode);
@@ -348,7 +365,7 @@ int8_t API_WriteRam(int8_t _gbaMode)
 	
 	if(_gba_cart)
 	{
-		return -1;
+		return API_WriteGBARam();
 	}
 	else
 	{

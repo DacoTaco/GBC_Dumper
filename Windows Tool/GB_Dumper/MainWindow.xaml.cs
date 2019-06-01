@@ -105,7 +105,7 @@ namespace GB_Dumper
 
             cbBaudRate.ItemsSource = apiHandler.BaudRates;
             if (cbBaudRate.Items.Count > 0)
-                cbBaudRate.SelectedItem = 500000;
+                cbBaudRate.SelectedItem = 1000000;
             else
                 cbBaudRate.SelectedIndex = -1;
 

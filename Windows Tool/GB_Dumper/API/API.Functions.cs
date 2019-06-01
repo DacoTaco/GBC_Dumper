@@ -238,7 +238,6 @@ namespace GB_Dumper.API
             if (serialInterface.BytesToRead > 0)
             {
                 //we have data!
-                data = serialInterface.Read(serialInterface.BytesToRead);
                 data = data.Concat(serialInterface.Read(serialInterface.BytesToRead)).ToArray();
             }
 

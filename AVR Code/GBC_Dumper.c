@@ -217,7 +217,7 @@ int main(void)
 			{
 				cprintf("gb mode\r\n");
 				Setup_Pins_8bitMode();
-			}			
+			}		
 			/*cprintf("address (0x%X): 0x%02X%02X%02X\r\n",addr, addr & 0xFF,(addr >> 8) & 0xFF,(addr >> 16) & 0xFF);
 			uint16_t data = Read24BitBytes(addr);
 			uint8_t d1 = data >> 8;
