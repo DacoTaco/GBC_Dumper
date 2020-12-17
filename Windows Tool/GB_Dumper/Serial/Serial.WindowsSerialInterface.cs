@@ -6,10 +6,16 @@ namespace GB_Dumper.Serial
     public class WindowsSerialInterface : ISerialInterface
     {
         public event DataReadHandler OnDataToRead;
+        public event DataErrorHandler OnErrorRaised;
+
         private SerialPort _device = null;
         private void _device_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             OnDataToRead?.Invoke(this, new SerialEventArgs());
+        }
+        private void _device_RaiseError(string type,string msg)
+        {
+            OnErrorRaised?.Invoke(type,msg);
         }
 
         public bool IsOpen() => _device?.IsOpen == true;
@@ -37,14 +43,23 @@ namespace GB_Dumper.Serial
             _device = new SerialPort(device.Device, BaudRate, Parity.None, 8, StopBits.One)
             {
                 Handshake = Handshake.None,
-                ReadTimeout = 50,
-                WriteTimeout = 50,
+                ReadTimeout = 100,
+                WriteTimeout = 100,
                 ReceivedBytesThreshold = 0x1,
-                ReadBufferSize = 0x2000
+                ReadBufferSize = 0x100000
             };
             _device.DataReceived += _device_DataReceived;
+            _device.ErrorReceived += _device_ErrorReceived;
 
             _device.Open();
+        }
+
+        private void _device_ErrorReceived(object sender, SerialErrorReceivedEventArgs e)
+        {
+            if (e.EventType == SerialError.Overrun)
+                _device_RaiseError(e.EventType.ToString(),"Received data while buffer is full(overrun)");
+            else
+                _device_RaiseError(e.EventType.ToString(),$"Unknown Serial error '{e.EventType.ToString()}' while receiving data");
         }
 
         public void Close()
@@ -54,6 +69,7 @@ namespace GB_Dumper.Serial
 
             _device.Close();
             _device.DataReceived -= _device_DataReceived;
+            _device.ErrorReceived -= _device_ErrorReceived;
             _device = null;
         }
 

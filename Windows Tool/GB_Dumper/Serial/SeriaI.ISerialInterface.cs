@@ -10,10 +10,12 @@ namespace GB_Dumper.Serial
         }
     }
     public delegate void DataReadHandler(object source, SerialEventArgs e);
+    public delegate void DataErrorHandler(string ErrorType, string message);
 
     public interface ISerialInterface
     {
         event DataReadHandler OnDataToRead;
+        event DataErrorHandler OnErrorRaised;
 
         bool IsOpen();
         int BytesToRead();

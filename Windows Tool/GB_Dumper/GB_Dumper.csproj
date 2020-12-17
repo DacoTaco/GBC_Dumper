@@ -65,9 +65,9 @@
     <Compile Include="API\API.ApiInfo.cs" />
     <Compile Include="Serial\SeriaI.ISerialInterface.cs" />
     <Compile Include="Serial\Serial.Interface.cs" />
-    <Compile Include="Serial\Serial.FTDIDevice.cs" />
+    <Compile Include="Serial\Serial.FTDIInterface.cs" />
     <Compile Include="Serial\Serial.SerialDevice.cs" />
-    <Compile Include="Serial\Serial.SerialPort.cs" />
+    <Compile Include="Serial\Serial.WindowsSerialInterface.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

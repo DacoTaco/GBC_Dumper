@@ -13,6 +13,7 @@
             <MenuItem Header="_File" Height="25">
                 <MenuItem Header="_Detect Serial Ports" Height="25" Click="RefreshSerial_Click" IsEnabled="{Binding Path=NotConnected}"></MenuItem>
                 <MenuItem Header="Toggle _FTDI Mode" Height="25" IsCheckable="True" IsChecked="{Binding FTDIMode}" IsEnabled="{Binding Path=NotConnected}"></MenuItem>
+                <MenuItem Header="_Open Working Directory" Height="25" Click="OpenDirectory_Click"/>
             </MenuItem>
         </Menu>
 

@@ -90,6 +90,7 @@ namespace GB_Dumper.API
                     case 1:
                         //handshake was successful
                         serialInterface.OnDataToRead += Serial_DataToRead;
+                        serialInterface.OnErrorRaised += Serial_ErrorRaised;
                         break;
                 }
             }
@@ -100,6 +101,12 @@ namespace GB_Dumper.API
             }
             return true;
         }
+
+        private void Serial_ErrorRaised(string ErrorType, string message)
+        {
+            _throwWarning(this, message);
+        }
+
         public void Disconnect()
         {
             try
@@ -108,6 +115,7 @@ namespace GB_Dumper.API
                     throw new InvalidOperationException("Failed to disconnect : API not ready.");*/
 
                 serialInterface.OnDataToRead -= Serial_DataToRead;
+                serialInterface.OnErrorRaised -= Serial_ErrorRaised;
                 serialInterface.Close();
                 API_ResetVariables();
             }

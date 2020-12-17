@@ -16,6 +16,10 @@ namespace GB_Dumper.Serial
         //because nor FTDI's driver nor the wrapper has an event...
         private static System.Timers.Timer aTimer = new System.Timers.Timer(0.5);
         public event DataReadHandler OnDataToRead;
+
+        //currently unused - we don't raise errors from the FTDI interface just yet.
+        public event DataErrorHandler OnErrorRaised;
+
         private void DataToReadTimer(Object source, ElapsedEventArgs e)
         {
             if (BytesToRead() > 0 && OnDataToRead != null)

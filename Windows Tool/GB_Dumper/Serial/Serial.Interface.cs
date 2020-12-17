@@ -52,6 +52,30 @@ namespace GB_Dumper.Serial
                 }
             }
         }
+        public event DataErrorHandler OnErrorRaised
+        {
+            add
+            {
+                if (_serialInterface == null)
+                    return;
+
+                lock (_eventLock)
+                {
+                    _serialInterface.OnErrorRaised += value;
+                }
+
+            }
+            remove
+            {
+                if (_serialInterface == null)
+                    return;
+
+                lock (_eventLock)
+                {
+                    _serialInterface.OnErrorRaised -= value;
+                }
+            }
+        }
         public bool IsOpen => _serialInterface == null ? false:_serialInterface.IsOpen();
         public int BytesToRead => _serialInterface == null ? 0 : _serialInterface.BytesToRead();
 
@@ -99,7 +123,5 @@ namespace GB_Dumper.Serial
 
             return _serialInterface.ReadByte();
         }
-
-
     }
 }

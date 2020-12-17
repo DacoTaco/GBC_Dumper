@@ -286,5 +286,14 @@ namespace GB_Dumper
             OnPropertyChanged("NotConnected");
             OnPropertyChanged("EnableFunctions");
         }
+        private void OpenDirectory_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo()
+            {
+                FileName = AppDomain.CurrentDomain.BaseDirectory,
+                UseShellExecute = true,
+                Verb = "open"
+            });
+        }
     }
 }
