@@ -55,6 +55,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define GBA_SAVE_SRAM_FLASH 3
 #define GBA_SAVE_FLASH 4
 
+#define EEPROM_TYPE_4KBIT 0
+#define EEPROM_TYPE_64KBIT 1
+
+#define GBA_EEPROM_READ_64KBIT 0b1100000000000000
+#define GBA_EEPROM_WRITE_64KBIT 0b1000000000000000
+#define GBA_EEPROM_READ_4KBIT 0b0000000011000000
+#define GBA_EEPROM_WRITE_4KBIT 0b0000000010000000
+
 typedef struct _GBA_Header
 {
 	uint8_t EntryPoint[4]; // 0x0000 - 0x0003
@@ -78,10 +86,10 @@ typedef struct _GBA_Header
 } GBA_Header ;
 
 void Setup_Pins_24bitMode(void);
-uint16_t Read24BitBytes(uint32_t address);
 uint16_t Read24BitIncrementedBytes(int8_t LatchAddress,uint32_t address);
 void Set24BitAddress(uint32_t address);
-
+void SetEepromRamAddress(uint16_t address, int8_t eeprom_type);
+void ReadEepromRamByte(uint16_t address, int8_t eeprom_type, uint8_t* buffer);
 
 
 //-------------------------

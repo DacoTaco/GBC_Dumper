@@ -108,7 +108,7 @@ uint8_t LoadedBankType;
 void Setup_Pins_8bitMode(void);
 void Set8BitAddress(uint16_t address);
 
-//not sure if this is the most effecient way but... we pass which CS pin to use here
+//not sure if this is the most efficient way but... we pass which CS pin to use here
 #define ReadGBRomByte(x) _Read8BitByte(0,x)
 #define ReadGBARamByte(x) _Read8BitByte(CS2,x)
 uint8_t ReadGBRamByte(uint16_t address);

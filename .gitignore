@@ -312,3 +312,7 @@ $RECYCLE.BIN/
 *.gbc
 *.rtc
 *.elf
+AVR Code/GBC_Dumper.map
+AVR Code/GBC_Dumper.lss
+AVR Code/GBC_Dumper.sym
+AVR Code/optiboot/baudcheck.tmp.sh

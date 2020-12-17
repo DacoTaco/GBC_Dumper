@@ -27,18 +27,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "24bit_cart.h"
 #include "gbc_api.h"
 
-
-typedef struct _api_info
-{
-	char Name[18];
-	uint8_t RomSizeFlag;
-	uint8_t RamSize;
-	uint32_t fileSize;
-	uint8_t CartFlag;
-} api_info;
 api_info gameInfo; 
 
-uint8_t _gba_cart = 0;
+int8_t _gba_cart = 0;
 
 void API_Init(void)
 {
@@ -66,8 +57,8 @@ int8_t API_WaitForOK(void)
 {
 	//disable interrupts, like serial interrupt for example :P 
 	//we will handle the data, kthxbye
-	DisableSerialInterrupt();
-	int8_t ret = 0;
+	//this is done outside of the api though
+	//DisableSerialInterrupt();
 	
 	cprintf_char(API_OK);
 	uint8_t response = Serial_ReadByte();
@@ -76,20 +67,17 @@ int8_t API_WaitForOK(void)
 	{
 		default:
 		case API_NOK:
-			ret = 0;
+			return 0;
 			break;
 		case API_ABORT:
-			ret = -1;
+			return -1;
 			break;
 		case API_OK:
-			ret = 1;
+			return 1;
 			break;
 	}
-	
-	//EnableSerialInterrupt();
-	return ret;
 }
-void API_ResetGameInfo(void)
+inline void API_ResetGameInfo(void)
 {
 	//reset GameInfo
 	//code only checks byte 0 of the name. invalidate that and its ok :P
@@ -144,7 +132,7 @@ int8_t API_Get_Memory(ROM_TYPE type,int8_t _gbaMode)
 		if(_gba_cart)
 		{
 			gameInfo.fileSize = GetGBARamSize(&gameInfo.CartFlag);
-			if(gameInfo.fileSize <= 0)
+			if(gameInfo.fileSize = 0)
 			{
 				API_Send_Abort(API_ABORT_CMD);
 				return ERR_NO_SAVE;
@@ -260,7 +248,7 @@ int8_t API_WriteGBRam(void)
 		SwitchRAMBank(bank);
 	
 	//disable serial interrupt. we will handle the data, kthxbye
-	DisableSerialInterrupt();
+	//DisableSerialInterrupt();
 	
 	//we start our loop at addr -1 because we will add 1 asa we start the loop
 	for(uint16_t i = addr-1;i< end_addr;)
@@ -331,7 +319,7 @@ end_function:
 	EnableSerialInterrupt();
 	return ret;
 }
-int8_t API_WriteGBARam()
+int8_t API_WriteGBARam(void)
 {
 	if(gameInfo.CartFlag != GBA_SAVE_NONE)
 		return ERR_NO_SAVE;
@@ -388,7 +376,7 @@ int8_t API_GetRom(void)
 		{
 			//GBA rom's only latch the lower 16bits of the address and increments from that
 			//this means that every 0x10000(0x20000 in file) we need to send an actual read command so it relatches the address
-			uint16_t data = Read24BitIncrementedBytes((i%0x10000) == 0?1:0,i);
+			uint16_t data = Read24BitIncrementedBytes((i%0x10000) == 0,i);
 			cprintf_char((uint8_t)data & 0xFF);
 			cprintf_char((data >> 8) & 0xFF);
 		}

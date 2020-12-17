@@ -96,12 +96,12 @@ void ProcessCommand(void)
 	int8_t ret = 0;
 	SetActive();
 	
-	if(strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0 || strncmp(cmd,"API_READ_RAM",API_READ_RAM_SIZE) == 0 )
+	if(strncmp(cmd,API_READ_ROM,API_READ_ROM_SIZE) == 0 || strncmp(cmd,API_READ_RAM,API_READ_RAM_SIZE) == 0 )
 	{
-		ROM_TYPE type = (strncmp(cmd,"API_READ_ROM",API_READ_ROM_SIZE) == 0)?TYPE_ROM:TYPE_RAM;
+		ROM_TYPE type = (strncmp(cmd,API_READ_ROM,API_READ_ROM_SIZE) == 0)?TYPE_ROM:TYPE_RAM;
 		ret = API_Get_Memory(type,SenseGbaMode());
 	}
-	else if(strncmp(cmd,"API_WRITE_RAM",API_WRITE_RAM_SIZE) == 0)
+	else if(strncmp(cmd,API_WRITE_RAM,API_WRITE_RAM_SIZE) == 0)
 	{			
 		ret = API_WriteRam(SenseGbaMode());	
 	}
@@ -139,7 +139,6 @@ void ProcessCommand(void)
 				cprintf("'\r\n");
 				break;
 		}		
-		goto end_function;
 	}
 	
 end_function:
@@ -162,9 +161,8 @@ void ProcessChar(char byte)
 		return;
 	else if(byte == '\n' || byte == '\r')
 	{
-		//set variable instead of processing command. something in the lines of disabling interrupt while in one that just doesn't work out nicely
-		if(cmd_size > 0)			
-			process_cmd = cmd_size > 0;
+		//set variable instead of processing command. something in the lines of disabling interrupt while in one that just doesn't work out nicely			
+		process_cmd = cmd_size > 0;
 	}
 	else if( cmd_size < MAX_CMD_SIZE )
 	{
@@ -198,7 +196,7 @@ int main(void)
 
     // main loop
 	// do not kill the loop. despite the console/UART being set as interrupt. going out of main kills the program completely
-	uint32_t addr = 0x00000050;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
+	uint16_t addr = 0x0000;//0x00000050;//0xFF31;//0x13FF;//0x104;//0x200;//0x8421;
     while(1) 
 	{
 		if(process_cmd)
@@ -224,15 +222,34 @@ int main(void)
 			uint8_t d2 = data & 0xFF;
 				
 			cprintf("data : 0x%04X",data);*/	
-
+			
+			/*cprintf("address : ");
+			cprintf_char(addr >> 8);
+			cprintf_char(addr);	
+			uint8_t data = ReadEepromRamByte(addr);
+			cprintf("data : ");
+			cprintf_char(data);
+			cprintf("\r\ndone\r\n");*/
+			
+			//same 8 bytes are repeated over and over. setting address doesn't work?
+			for(uint16_t a = 0;a < (0x200 / 0x08) ; a++)
+			{
+				uint8_t eepromBuffer[8] = {0};
+				ReadEepromRamByte(a , EEPROM_TYPE_4KBIT, eepromBuffer);
+				for(uint8_t i = 0;i < 8;i++)
+				{
+					cprintf_char(eepromBuffer[i]);
+				}
+			}
+			
 			cprintf("\r\ndone\r\n");
 
 			/*if(CheckControlPin(CS2) == 1)
 			{
 				SetControlPin(CS2,LOW);
 			}*/
-			SetControlPin(CS2,HIGH);
-			//addr++;*/
+			//SetControlPin(CS2,HIGH);
+			addr++;
 			_delay_ms(200);
 		}
     }

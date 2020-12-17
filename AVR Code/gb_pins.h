@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	#define GET_DATA(x) { mcp23008_ReadReg(DATA_CHIP_1, GPIO,&x);}
 	#define SET_DATA(x) { mcp23008_WriteReg(DATA_CHIP_1, GPIO,x);}
 	
+	#define SET_ADDR1(x) { mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(x & 0xFF)); }
 	#define SET_ADDR(x) { mcp23008_WriteReg(ADDR_CHIP_1,GPIO,(uint8_t)(x & 0xFF));mcp23008_WriteReg(ADDR_CHIP_2,GPIO,(uint8_t)(x >> 8) & 0xFF); }
 	#define GET_ADDR1_DATA(x) {mcp23008_ReadReg(ADDR_CHIP_1, GPIO,&x);}
 	#define GET_ADDR2_DATA(x) {mcp23008_ReadReg(ADDR_CHIP_2, GPIO,&x);}

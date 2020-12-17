@@ -60,7 +60,6 @@ inline void Set24BitAddress(uint32_t address)
 
 	SET_ADDR(address);
 	SET_DATA((uint8_t)(address >> 16) & 0xFF);
-
 }
 //The GBA supports something as a increment read.
 //basically as long as CS1 is kept low, the next RD strobe will just reveal the next 2 bytes.
@@ -92,7 +91,7 @@ inline uint16_t Read24BitIncrementedBytes(int8_t LatchAddress,uint32_t address)
 		SetAddressPinsAsInput();
 	}
 	
-	ClearPin(CTRL_PORT,RD);		
+	ClearPin(CTRL_PORT,RD);
 	asm("nop");
 	asm("nop");
 	
@@ -108,6 +107,93 @@ inline uint16_t Read24BitBytes(uint32_t address)
 	SetPin(CTRL_PORT,CS1);
 	
 	return data;
+}
+void SetEepromRamAddress(uint16_t address, int8_t eeprom_type)
+{
+	uint16_t mask = 0b00000000010000000;
+	int8_t size = 8;
+	
+	if(eeprom_type)
+	{
+		mask = 0b1000000000000000;
+		size = 16;
+	}
+	
+	//setup pins
+	SetAddressPinsAsOutput();
+	ClearPin(CTRL_PORT,CS1);
+	
+	for (int8_t x = 0;x < size; x++)
+	{
+		char byte = 0x00;
+		if((address << x) & mask)
+			byte = 0x01;
+		
+		SET_ADDR1(byte);	
+		ClearPin(CTRL_PORT,WD); //clk
+		//asm ("nop");
+		SetPin(CTRL_PORT,WD); //clk
+	}
+	
+	//stop command can be send. only for reading since writing it done in 1 huge chunk
+	//the command for reading is 11 & writing is 10, so if we read the 2nd command byte we know if its reading or writing
+	if (address & (mask >> 1)) 
+	{  
+		SET_ADDR1(0x00);
+		ClearPin(CTRL_PORT,WD);
+		//asm ("nop");	
+		SetPin(CTRL_PORT,WD);
+		//asm ("nop");
+		SetPin(CTRL_PORT,CS1);
+	}
+}
+//NOTE : reading EEPROM needs to be done in chucks of 8 bytes/64bits.
+//hence the buffer pointer
+void ReadEepromRamByte(uint16_t address, int8_t eeprom_type, uint8_t* buffer)
+{
+	SetPin(CTRL_PORT,RD);
+	SetPin(CTRL_PORT,WD);
+	SetPin(CTRL_PORT,CS1);
+	
+	//clear the operation bits first
+	//address &= ~GBA_EEPROM_READ;
+	
+	//append read command
+	address = address | ( eeprom_type == EEPROM_TYPE_64KBIT? GBA_EEPROM_READ_64KBIT : GBA_EEPROM_READ_4KBIT);
+	
+	//pass Address to cartridge via the address bus + Read bits
+	SetEepromRamAddress(address,eeprom_type);
+	SetAddressPinsAsInput();
+	ClearPin(CTRL_PORT,CS1);
+	
+	// Ignore first 4 bits
+	for (int8_t x = 0; x < 4; x++) 
+	{
+		ClearPin(CTRL_PORT,RD);
+		//asm ("nop");
+		SetPin(CTRL_PORT,RD);
+		//asm ("nop");
+	}
+	
+	// Read out 64 bits
+	for (uint8_t c = 0; c < 8; c++) 
+	{
+		uint8_t data = 0;
+		uint8_t y = 0;	
+		for (int8_t x = 7; x >= 0; x--) 
+		{
+			ClearPin(CTRL_PORT,RD);
+			//asm ("nop");
+			SetPin(CTRL_PORT,RD);
+			
+			GET_ADDR1_DATA(y);		
+			data |= ((y & 0x01)<<x);
+		}
+		buffer[c] = data;
+	}
+	
+	SetPin(CTRL_PORT,CS1);
+	return;
 }
 uint32_t GetGBARomSize(void)
 {

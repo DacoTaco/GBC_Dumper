@@ -13,6 +13,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#ifndef _GBC_API_H_
+#define _GBC_API_H_
+
 //API Commands!
 #define API_READ_ROM "API_READ_ROM"
 #define API_READ_ROM_SIZE 12
@@ -62,6 +65,15 @@ typedef uint8_t ROM_TYPE;
 #define TYPE_ROM 0
 #define TYPE_RAM 1
 
+typedef struct _api_info
+{
+	char Name[18];
+	uint8_t RomSizeFlag;
+	uint8_t RamSize;
+	uint32_t fileSize;
+	uint8_t CartFlag;
+} api_info;
+
 //main API functions
 void API_Init(void);
 void API_SetupPins(int8_t _gb_mode);
@@ -79,3 +91,5 @@ void API_Send_Abort(uint8_t type);
 void API_Send_Name(void);
 void API_Send_Cart_Type(void);
 void API_Send_Size(void);
+
+#endif
